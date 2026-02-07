@@ -190,18 +190,23 @@ chainhack/
 
 ## 🔧 Configuration
 
-### Required Secrets
-Add to `aegis-workflow/config.staging.json`:
+### API Key Setup
+
+Add your OpenAI API key to `aegis-workflow/config.staging.json`:
+
 ```json
 {
-  "openaiApiKey": "sk-your-openai-key"
+  "openaiApiKey": "sk-your-openai-key-here"
 }
 ```
 
-### Environment Variables
+**Note**: This file is in `.gitignore` to protect your secrets. Use `config.staging.json.example` as a template.
+
+**Alternative**: You can also set it as an environment variable:
 ```bash
-export OPENAI_API_KEY="sk-..."  # Required for AI analysis
+export OPENAI_API_KEY="sk-..."
 ```
+But this is optional - the config file method is preferred for CRE workflows.
 
 ---
 
