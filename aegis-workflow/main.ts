@@ -49,14 +49,14 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
             requestData = requestSchema.parse(parsed);
             runtime.log("✓ Payload validated successfully");
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            runtime.log(`❌ Invalid payload: ${errorMsg}`);
-            return JSON.stringify({
-                error: "Invalid request payload",
-                details: errorMsg,
-                risk_score: 10,
-                decision: "REJECT"
-            });
+            let errorMsg: string;
+            if (error instanceof z.ZodError) {
+                errorMsg = `Invalid payload: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
+            } else {
+                errorMsg = error instanceof Error ? error.message : String(error);
+            }
+            runtime.log(`❌ ${errorMsg}`);
+            return JSON.stringify({ error: "Invalid request payload", details: errorMsg, risk_score: 10, decision: "REJECT" });
         }
     }
 
@@ -238,7 +238,7 @@ Do NOT include any other fields.`
     if (ok(aiResponse)) {
         const aiData: any = json(aiResponse);
         const rawContent = aiData?.choices?.[0]?.message?.content || "{}";
-        runtime.log(`🤖 Raw AI Response: ${rawContent}`);
+        // runtime.log(`🤖 Raw AI Response: ${rawContent}`);
 
         const aiDecision = JSON.parse(rawContent);
         const score = Number(aiDecision.risk_score ?? aiDecision.final_risk_score ?? 5);

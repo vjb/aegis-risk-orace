@@ -14229,14 +14229,14 @@ var brainHandler = async (runtime2, payload) => {
       requestData = requestSchema.parse(parsed);
       runtime2.log("✓ Payload validated successfully");
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      runtime2.log(`❌ Invalid payload: ${errorMsg}`);
-      return JSON.stringify({
-        error: "Invalid request payload",
-        details: errorMsg,
-        risk_score: 10,
-        decision: "REJECT"
-      });
+      let errorMsg;
+      if (error instanceof exports_external.ZodError) {
+        errorMsg = `Invalid payload: ${error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`;
+      } else {
+        errorMsg = error instanceof Error ? error.message : String(error);
+      }
+      runtime2.log(`❌ ${errorMsg}`);
+      return JSON.stringify({ error: "Invalid request payload", details: errorMsg, risk_score: 10, decision: "REJECT" });
     }
   }
   const tokenAddress = requestData.tokenAddress;
@@ -14376,7 +14376,6 @@ Do NOT include any other fields.`
   if (ok(aiResponse)) {
     const aiData = json(aiResponse);
     const rawContent = aiData?.choices?.[0]?.message?.content || "{}";
-    runtime2.log(`\uD83E\uDD16 Raw AI Response: ${rawContent}`);
     const aiDecision = JSON.parse(rawContent);
     const score = Number(aiDecision.risk_score ?? aiDecision.final_risk_score ?? 5);
     const decision = String(aiDecision.decision || (score >= 7 ? "REJECT" : "EXECUTE")).toUpperCase();

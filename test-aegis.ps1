@@ -1,6 +1,9 @@
 # Aegis Risk Oracle - Test Suite (Video Ready)
 # This script runs all test scenarios and filters out SDK noise for a clean demo video.
 
+# Force UTF-8 for proper emoji rendering in PowerShell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "  🛡️  AEGIS RISK ORACLE - TEST SUITE" -ForegroundColor Cyan
 Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
@@ -13,11 +16,12 @@ function Run-Test($ScenarioName, $PayloadFile, $ExpectedNote, $Color = "Cyan") {
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor $Color
     
     # Run the simulation inside the docker container
-    # We use --non-interactive and filter out verbose setup/shutdown messages
     $cmd = "cd /app && cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload $PayloadFile"
     
     # Execute and filter output
-    docker exec aegis_dev sh -c "$cmd" 2>&1 | 
+    $output = docker exec aegis_dev sh -c "$cmd" 2>&1
+    
+    $cleanOutput = $output | 
         Select-String -NotMatch `
             "Added experimental chain", `
             "Warning: using default private key", `
@@ -26,8 +30,17 @@ function Run-Test($ScenarioName, $PayloadFile, $ExpectedNote, $Color = "Cyan") {
             "msg=`"context canceled`"", `
             "Skipping WorkflowEngineV2", `
             "Please provide JSON input", `
+            "Workflow Simulation Result:", `
+            "Analysis Complete:", `
             "Enter your input" |
         ForEach-Object { $_.ToString().Trim() }
+    
+    # Only print non-empty lines to keep it tight
+    foreach ($line in $cleanOutput) {
+        if ($line.Trim() -ne "") {
+            Write-Host $line
+        }
+    }
 
     Write-Host "✅ Expected: $ExpectedNote" -ForegroundColor Yellow
 }
