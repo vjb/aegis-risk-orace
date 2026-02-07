@@ -390,7 +390,9 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
 
     const decision = aiResult.decision || 'REJECT';
     const riskScore = Number(aiResult.risk_score);
-    const salt = entropy.startsWith('0x') ? entropy as Hex : `0x${entropy.padStart(64, '0')}` as Hex;
+    // Ensure salt is exactly 32 bytes (64 hex chars) for bytes32 encoding
+    const entropyHex = entropy.startsWith('0x') ? entropy.slice(2) : entropy;
+    const salt = `0x${entropyHex.padStart(64, '0')}` as Hex;
 
     // Create message hash - matches Solidity's keccak256(abi.encodePacked(...))
     const messageHash = keccak256(
