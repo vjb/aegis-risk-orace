@@ -64,5 +64,33 @@ Run-Test "TEST 4: FAIL Scenario (SUS-TOKEN Composite Risk)" "/app/test-payload-s
 Run-Test "TEST 5: FAIL Scenario (Invalid Payload)" "/app/test-payload-invalid.json" "Validation error & REJECT" "Gray"
 
 Write-Host "`n════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  ✅ ALL TESTS COMPLETE" -ForegroundColor Cyan
+Write-Host "  ✅ ALL WORKFLOW TESTS COMPLETE" -ForegroundColor Cyan
 Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+
+# Signature Verification Demo
+Write-Host "`n" -NoNewline
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Magenta
+Write-Host "🔐 BONUS: SIGNATURE VERIFICATION DEMO" -ForegroundColor Magenta
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Magenta
+Write-Host "Running cryptographic signature security tests..." -ForegroundColor White
+
+# Run the verification demo
+docker exec aegis_dev sh -c "cd /app && bun run /app/aegis-workflow/verify-signature.ts" 2>&1 | ForEach-Object {
+    $line = $_.ToString()
+    if ($line -match "PASSED" -or $line -match "VALID" -or $line -match "BLOCKED") {
+        Write-Host $line -ForegroundColor Green
+    } elseif ($line -match "FAILED" -or $line -match "VULNERABLE") {
+        Write-Host $line -ForegroundColor Red
+    } elseif ($line -match "TEST" -or $line -match "━━━") {
+        Write-Host $line -ForegroundColor Cyan
+    } elseif ($line -match "Attacker" -or $line -match "Forged") {
+        Write-Host $line -ForegroundColor Yellow
+    } else {
+        Write-Host $line
+    }
+}
+
+Write-Host "`n════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "  ✅ ALL TESTS COMPLETE (WORKFLOW + SIGNATURE VERIFICATION)" -ForegroundColor Cyan
+Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+
