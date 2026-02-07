@@ -35,7 +35,7 @@
  */
 import { HTTPCapability, handler, Runner, type Runtime, type HTTPPayload, cre, type NodeRuntime, ok, text, json } from "@chainlink/cre-sdk";
 import { z } from "zod";
-import { keccak256, encodePacked, toHex, Hex, signatureToHex, recoverAddress } from "viem";
+import { keccak256, encodePacked, toHex, Hex, signatureToHex, recoverMessageAddress } from "viem";
 import { privateKeyToAccount, signMessage } from "viem/accounts";
 
 /**
@@ -405,6 +405,13 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
     // Sign the message hash with the DON demo private key
     const signature = await donAccount.signMessage({ message: { raw: messageHash } });
 
+    // Verify signature inline (proves it's valid before returning)
+    const recoveredAddress = await recoverMessageAddress({
+        message: { raw: messageHash },
+        signature: signature
+    });
+    const isValid = recoveredAddress.toLowerCase() === donAccount.address.toLowerCase();
+
     // Create the signed result object (sent to smart contract)
     const signedResult = {
         tokenAddress: requestData.tokenAddress,
@@ -417,16 +424,21 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
         signer: donAccount.address
     };
 
-    // Color-coded verdict with cryptographic proof
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🔐 CRYPTOGRAPHIC RESULT OUTPUT
+    // Shows the complete signing process with inline verification
+    // ═══════════════════════════════════════════════════════════════════════════
     const verdictColor = decision === "EXECUTE" ? GREEN : RED;
     runtime.log("");
     runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     runtime.log(`⚖️  VERDICT: ${verdictColor}${BOLD}${decision}${RESET} | Score: ${riskScore}/10`);
-    runtime.log(`🔐 DON: ${CYAN}${donAccount.address.substring(0, 10)}...${donAccount.address.substring(38)}${RESET}`);
-    runtime.log(`📝 Sig: ${signature.substring(0, 22)}...`);
+    runtime.log(`🔐 SIGNING:  Hash: ${messageHash.substring(0, 18)}...`);
+    runtime.log(`             Salt: ${salt.substring(0, 18)}... (replay protection)`);
+    runtime.log(`             Sig:  ${signature.substring(0, 18)}...`);
+    runtime.log(`✓  VERIFIED: ${isValid ? GREEN + "Signer matches DON" : RED + "SIGNATURE INVALID"} → ${CYAN}${donAccount.address.substring(0, 10)}...${donAccount.address.substring(38)}${RESET}`);
     runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    // Return JSON with full signature for verification
+    // Return JSON with full signature for on-chain verification
     return JSON.stringify(signedResult);
 };
 
