@@ -8,6 +8,16 @@ Added **mock DON signature** to the workflow output to demonstrate how productio
 
 The workflow now logs a structured, signed result that shows what would be submitted to the blockchain:
 
+```mermaid
+graph TD
+    A[Agent Request] --> B[Aegis Oracle]
+    B --> C{AI Analysis}
+    C -->|EXECUTE| D[Sign with DON Key]
+    C -->|REJECT| E[Sign Failure]
+    D --> F[Return Signed Result]
+    E --> F
+```
+
 ```json
 {
   "result": {

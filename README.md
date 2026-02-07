@@ -45,10 +45,10 @@ AI Agent → HTTP POST → Aegis CRE Workflow → Signed Risk Assessment → Sma
    - Zod payload validation
    - Signed result generation
 
-2. **Smart Contract** (Planned: `AegisVault.sol`)
-   - Verifies DON signatures
-   - Enforces risk policies
-   - Blocks trades with REJECT decisions
+2. **Smart Contract** ([contracts/AegisVault.sol](contracts/AegisVault.sol))
+   - Verifies DON signatures on-chain
+   - Enforced risk policies before trade execution
+   - Prevents bypass of the Risk Oracle
 
 3. **Test Suite** ([test-aegis.sh](test-aegis.sh))
    - Automated testing of PASS/FAIL/Invalid scenarios

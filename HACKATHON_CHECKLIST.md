@@ -18,9 +18,13 @@
 
 ### 3. Documentation
 - ✅ README.md with Chainlink file links
+- ✅ Mermaid architectural diagrams (Sequence & Flow)
 - ✅ EXAMPLE_PAYLOADS.md
 - ✅ MOCK_SIGNATURE_DEMO.md
 - ✅ VIDEO_SCRIPT.md
+
+### 4. Smart Contracts
+- ✅ AegisVault.sol (On-chain verification reference)
 
 ## ⚠️ TODO Before Submission
 
