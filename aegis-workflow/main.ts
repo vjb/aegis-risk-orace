@@ -366,13 +366,6 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
     runtime.log("━━━ 🤖  AI ANALYSIS ━━━");
     runtime.log(`   Risk Score:  ${BOLD}${aiResult.risk_score}/10${RESET}`);
     runtime.log(`   Reasoning:   ${aiResult.reasoning}`);
-    runtime.log("");
-
-    // Color-coded verdict
-    const verdictColor = aiResult.decision === "EXECUTE" ? GREEN : RED;
-    runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    runtime.log(`⚖️  FINAL VERDICT: ${verdictColor}${BOLD}${aiResult.decision || 'REJECT'}${RESET}`);
-    runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     // Log structured result (what would be verified on-chain in production)
     const signedResult = {
@@ -384,8 +377,12 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
         timestamp: Date.now()
     };
 
+    // Color-coded verdict with signature proof
+    const verdictColor = aiResult.decision === "EXECUTE" ? GREEN : RED;
     runtime.log("");
-    runtime.log(`📝 SIGNED: ${verdictColor}${signedResult.decision}${RESET} | Score: ${signedResult.riskScore}/10 | Entropy: ${entropy.substring(0, 16)}... | DON: 0x742d...Eb ✓`);
+    runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    runtime.log(`⚖️  VERDICT: ${verdictColor}${BOLD}${aiResult.decision || 'REJECT'}${RESET} | Score: ${signedResult.riskScore}/10 | 📝 Entropy: ${entropy.substring(0, 12)}... ✓`);
+    runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     return `Analysis Complete: ${aiResult.decision || 'REJECT'}`;
 };
