@@ -63,7 +63,16 @@ interface AIAnalysisResult {
 }
 
 const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Promise<string> => {
-    runtime.log("🧠 [AEGIS] Starting Intelligent Analysis...");
+    // ANSI color codes for terminal output
+    const GREEN = "\x1b[32m";
+    const RED = "\x1b[31m";
+    const YELLOW = "\x1b[33m";
+    const CYAN = "\x1b[36m";
+    const RESET = "\x1b[0m";
+    const BOLD = "\x1b[1m";
+
+    runtime.log("━━━━━━ 🧠  AEGIS RISK ORACLE ━━━━━━");
+    runtime.log("Starting Intelligent Analysis...");
 
     // Parse and validate request payload with error handling
     let requestData: RiskAssessmentRequest;
@@ -116,7 +125,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
      * in the CRE SDK documentation. The SDK allows up to 5 concurrent HTTP
      * calls per workflow execution (PerWorkflow.HTTPAction.CallLimit = 5).
      */
-    runtime.log("📊 Initiating parallel data fetching...");
+    runtime.log("");
+    runtime.log("━━━ 📊  DATA ACQUISITION ━━━");
 
     const [priceResult, entropyResult, securityResult] = await Promise.all([
         // 1. Fetch ETH price from CoinGecko
@@ -157,12 +167,15 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const entropyData = ok(entropyResult) ? json(entropyResult) : null;
     const entropyFromAPI = entropyData?.data?.[0];
     let entropy: string;
+    let entropySource: string;
     if (entropyFromAPI) {
         entropy = entropyFromAPI;
-        runtime.log(`✓ Quantum Entropy: ${entropy.substring(0, 16)}...`);
+        entropySource = "LIVE";
+        runtime.log(`✓  Quantum Entropy: ${entropy.substring(0, 16)}... [${GREEN}LIVE${RESET}]`);
     } else {
         entropy = "0x00000000000000000000000000000000";
-        runtime.log(`⚠️ QRNG API fallback used`);
+        entropySource = "FALLBACK";
+        runtime.log(`⚠️  Quantum Entropy: Using demo fallback [${YELLOW}FALLBACK${RESET}]`);
     }
 
     // Process Security Results (Enhanced Detection)
@@ -185,9 +198,9 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     // Log Price results ONLY if relevant to the token being analyzed
     if (isEthEquivalent) {
         if (priceStatus === 200) {
-            runtime.log(`✓ Market Reference: $${ethPrice} ETH [${priceSource}]`);
+            runtime.log(`✓  Market Price: $${ethPrice} ETH [${GREEN}LIVE${RESET} - CoinGecko]`);
         } else {
-            runtime.log(`⚠️ Market Reference: $${ethPrice} ETH [${priceSource}]`);
+            runtime.log(`⚠️  Market Price: $${ethPrice} ETH [${YELLOW}FALLBACK${RESET}]`);
         }
     }
 
@@ -197,17 +210,29 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     if (tokenAddress.toLowerCase() === "0x5555555555555555555555555555555555555555") {
         isProxyFinal = true;
         isMintableFinal = true;
-        runtime.log("🎭 [DEMO] Injecting Suspicious Signals (Proxy + Mintable)");
+        runtime.log(`🎭  [DEMO MODE] Injecting Suspicious Signals (Proxy + Mintable)`);
     }
 
+    const securityStatus = ok(securityResult) ? "LIVE" : "FALLBACK";
+    runtime.log(`✓  Security Data: GoPlus Labs [${securityStatus === "LIVE" ? GREEN : YELLOW}${securityStatus}${RESET}]`);
+    runtime.log("");
+    runtime.log("━━━ 📋  TRADE CONTEXT ━━━");
     const askingPriceStr = requestData.askingPrice ? `$${requestData.askingPrice}` : "N/A";
-    runtime.log(`📊 Trade Analysis: Asking ${askingPriceStr} for Token ${tokenAddress.substring(0, 10)}...`);
-
-    runtime.log(`✓ Security Signals - Honeypot: ${isHoneypot}, Tax (B/S): ${buyTax}%/${sellTax}%, Restrictions: ${cannotBuy ? 'Buy BLOCKED ' : ''}${cannotSell ? 'Sell BLOCKED' : 'None'}`);
-    runtime.log(`✓ Metadata Flags - Proxy: ${isProxyFinal}, Mintable: ${isMintableFinal}, Owner Changeable: ${ownerModifiable}`);
-
+    runtime.log(`   Token:   ${tokenAddress.substring(0, 10)}...${tokenAddress.substring(38)}`);
+    runtime.log(`   Chain:   ${chainId}`);
+    runtime.log(`   Asking:  ${askingPriceStr}`);
+    runtime.log("");
+    runtime.log("━━━ 🔒  SECURITY SIGNALS ━━━");
+    runtime.log(`   Honeypot:    ${isHoneypot ? RED + "TRUE" + RESET : GREEN + "false" + RESET}`);
+    runtime.log(`   Tax (B/S):   ${buyTax}% / ${sellTax}%`);
+    runtime.log(`   Restrictions: ${cannotBuy ? 'Buy BLOCKED ' : ''}${cannotSell ? 'Sell BLOCKED' : 'None'}`);
+    runtime.log("");
+    runtime.log("━━━ 📄  CONTRACT METADATA ━━━");
+    runtime.log(`   Proxy:       ${isProxyFinal ? YELLOW + "true" + RESET : GREEN + "false" + RESET}`);
+    runtime.log(`   Mintable:    ${isMintableFinal ? YELLOW + "true" + RESET : GREEN + "false" + RESET}`);
+    runtime.log(`   Owner Mod:   ${ownerModifiable ? YELLOW + "true" + RESET : GREEN + "false" + RESET}`);
+    runtime.log("");
     // 4. Call OpenAI for AI risk analysis
-    runtime.log("🤖 Calling OpenAI for risk analysis...");
 
     // Normalize prices and calculate deviation
     const marketPrice = Number(ethPrice);
@@ -320,7 +345,7 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
             entropy: entropy,
             price: ethPrice
         };
-        runtime.log("✓ AI Analysis Complete");
+        runtime.log(`✓  AI Engine: OpenAI GPT-4o-mini [${GREEN}LIVE${RESET}]`);
     } else {
         const statusCode = aiResponse ? aiResponse.statusCode : "Unknown";
         const errorBody = aiResponse ? text(aiResponse) : "No Response Body";
@@ -338,18 +363,16 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
 
     // runtime.log(`🔍 [AEGIS] Analysis Result: ${JSON.stringify(aiResult)}`);
 
-    // Verifiable AI Logging
-    if (isEthEquivalent) {
-        runtime.log(`💰 [PRICE] ETH: $${aiResult.price || 'N/A'}`);
-    }
-    if (aiResult.entropy) {
-        runtime.log(`⚛️ [ENTROPY] Quantum Salt: ${entropy.substring(0, 10)}...`);
-    } else {
-        runtime.log("⚛️ [ENTROPY] Quantum Salt: N/A");
-    }
-    runtime.log(`🔍 RISK SCORE: ${aiResult.risk_score}/10`);
-    runtime.log(`🤖 AI REASONING: ${aiResult.reasoning}`);
-    runtime.log(`⚖️ FINAL VERDICT: ${aiResult.decision || 'REJECT'}`);
+    runtime.log("━━━ 🤖  AI ANALYSIS ━━━");
+    runtime.log(`   Risk Score:  ${BOLD}${aiResult.risk_score}/10${RESET}`);
+    runtime.log(`   Reasoning:   ${aiResult.reasoning}`);
+    runtime.log("");
+
+    // Color-coded verdict
+    const verdictColor = aiResult.decision === "EXECUTE" ? GREEN : RED;
+    runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    runtime.log(`⚖️  FINAL VERDICT: ${verdictColor}${BOLD}${aiResult.decision || 'REJECT'}${RESET}`);
+    runtime.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     // Log structured result (what would be verified on-chain in production)
     const signedResult = {
@@ -361,11 +384,12 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
         timestamp: Date.now()
     };
 
-    runtime.log(`📝 [SIGNED RESULT]`);
-    runtime.log(`   Decision: ${signedResult.decision}`);
-    runtime.log(`   Points:   ${signedResult.riskScore}/10`);
-    runtime.log(`   Sig:      ${entropy.substring(0, 16)}...`);
-    runtime.log(`   DON:      0x742d...Eb (Verified)`);
+    runtime.log("");
+    runtime.log("━━━ 📝  SIGNED RESULT ━━━");
+    runtime.log(`   Decision:  ${verdictColor}${signedResult.decision}${RESET}`);
+    runtime.log(`   Score:     ${signedResult.riskScore}/10`);
+    runtime.log(`   Entropy:   ${entropy.substring(0, 16)}...`);
+    runtime.log(`   DON:       0x742d...Eb (Verified)`);
 
     return `Analysis Complete: ${aiResult.decision || 'REJECT'}`;
 };
