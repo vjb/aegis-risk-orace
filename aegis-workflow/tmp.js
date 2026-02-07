@@ -14269,7 +14269,7 @@ var brainHandler = async (runtime2, payload) => {
     priceSource = priceStatus === 429 ? "Demo Fallback (Rate Limited)" : "Demo Fallback (API Error)";
     runtime2.log(`⚠️ Price Fetch Failed (${priceStatus}), using fallback: $${ethPrice}`);
   }
-  runtime2.log(`✓ Price Check: $${ethPrice} [${priceSource}]`);
+  runtime2.log(`✓ Market Reference: $${ethPrice} ETH [${priceSource}]`);
   const entropyData = ok(entropyResult) ? json(entropyResult) : null;
   const entropyFromAPI = entropyData?.data?.[0];
   let entropy;
@@ -14409,7 +14409,9 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
       price: ethPrice
     };
   }
-  runtime2.log(`\uD83D\uDCB0 [PRICE] ETH: $${aiResult.price || "N/A"}`);
+  if (isEthEquivalent) {
+    runtime2.log(`\uD83D\uDCB0 [PRICE] ETH: $${aiResult.price || "N/A"}`);
+  }
   if (aiResult.entropy) {
     runtime2.log(`⚛️ [ENTROPY] Quantum Salt: ${entropy.substring(0, 10)}...`);
   } else {
