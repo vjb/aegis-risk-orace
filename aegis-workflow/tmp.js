@@ -14233,20 +14233,25 @@ var brainHandler = async (runtime2, payload) => {
   const chainId = requestData.chainId;
   runtime2.log(`\uD83D\uDCCB Request: Token ${tokenAddress} on Chain ${chainId}`);
   const httpClient = new cre.capabilities.HTTPClient;
-  runtime2.log("\uD83D\uDCCA Fetching ETH price from CoinGecko...");
-  const priceResponse = httpClient.sendRequest(runtime2, {
-    url: "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
-    method: "GET"
-  }).result();
-  const priceData = ok(priceResponse) ? json(priceResponse) : null;
+  runtime2.log("\uD83D\uDCCA Initiating parallel data fetching...");
+  const [priceResult, entropyResult, securityResult] = await Promise.all([
+    httpClient.sendRequest(runtime2, {
+      url: "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+      method: "GET"
+    }).result(),
+    httpClient.sendRequest(runtime2, {
+      url: "https://qrng.anu.edu.au/API/jsonI.php?length=1&type=hex16&size=32",
+      method: "GET"
+    }).result(),
+    httpClient.sendRequest(runtime2, {
+      url: `https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${tokenAddress}`,
+      method: "GET"
+    }).result()
+  ]);
+  const priceData = ok(priceResult) ? json(priceResult) : null;
   const ethPrice = String(priceData?.ethereum?.usd || "0");
-  runtime2.log(`✓ ETH Price: $${ethPrice}`);
-  runtime2.log("⚛️ Fetching quantum entropy from QRNG...");
-  const entropyResponse = httpClient.sendRequest(runtime2, {
-    url: "https://qrng.anu.edu.au/API/jsonI.php?length=1&type=hex16&size=32",
-    method: "GET"
-  }).result();
-  const entropyData = ok(entropyResponse) ? json(entropyResponse) : null;
+  runtime2.log(`✓ Price Check: $${ethPrice}`);
+  const entropyData = ok(entropyResult) ? json(entropyResult) : null;
   const entropyFromAPI = entropyData?.data?.[0];
   let entropy;
   if (entropyFromAPI) {
@@ -14254,23 +14259,18 @@ var brainHandler = async (runtime2, payload) => {
     runtime2.log(`✓ Quantum Entropy: ${entropy.substring(0, 16)}...`);
   } else {
     entropy = "0x00000000000000000000000000000000";
-    runtime2.log(`⚠️ QRNG API returned null - USING FALLBACK ENTROPY`);
-    runtime2.log(`✓ Fallback Entropy: ${entropy.substring(0, 16)}...`);
+    runtime2.log(`⚠️ QRNG API fallback used`);
   }
-  runtime2.log("\uD83D\uDD10 Fetching security data from GoPlus Labs...");
-  const securityResponse = httpClient.sendRequest(runtime2, {
-    url: `https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${tokenAddress}`,
-    method: "GET"
-  }).result();
-  const securityData = ok(securityResponse) ? json(securityResponse) : null;
+  const securityData = ok(securityResult) ? json(securityResult) : null;
   const tokenData = securityData?.result?.[tokenAddress.toLowerCase()] || {};
   const isHoneypot = String(tokenData.is_honeypot) === "1";
   const trustList = String(tokenData.trust_list) === "1";
-  runtime2.log(`✓ Security Check - Honeypot: ${isHoneypot}, Trust List: ${trustList}`);
+  runtime2.log(`✓ Security Check - Honeypot: ${isHoneypot}, Trust: ${trustList}`);
   runtime2.log("\uD83E\uDD16 Calling OpenAI for risk analysis...");
   const context = {
     current_price: ethPrice,
     asking_price: requestData.askingPrice || null,
+    amount: requestData.amount || null,
     security_metadata: {
       is_honeypot: isHoneypot,
       trust_list: trustList,
@@ -14291,9 +14291,10 @@ Evaluation Criteria:
 1. Honeypot Check: If is_honeypot is true, decision MUST be REJECT
 2. Price Manipulation: If asking_price deviates >50% from current_price, decision MUST be REJECT
 3. High Risk: If risk_score >= 7, decision MUST be REJECT
-4. Trust: If trust_list is true, lower risk score by 2-3 points
-5. Price Analysis: If asking_price is provided, compare to current_price. Flag deviations >10%
-6. Risk Score Range: MUST be between 0 and 10 (where 0=lowest risk, 10=highest risk)
+4. High Value: If (amount * asking_price) > 50,000 USD, increase risk score by 1-2 points
+5. Trust: If trust_list is true, lower risk score by 2-3 points
+6. Price Analysis: If asking_price is provided, compare to current_price. Flag deviations >10%
+7. Risk Score Range: MUST be between 0 and 10 (where 0=lowest risk, 10=highest risk)
 
 Decision Rules:
 - REJECT: Honeypot OR price deviation >50% OR risk_score >= 7

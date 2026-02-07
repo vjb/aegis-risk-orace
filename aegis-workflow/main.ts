@@ -67,49 +67,52 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     // Fetch real data from APIs using CRE SDK's HTTPClient
     const httpClient = new cre.capabilities.HTTPClient();
 
-    // 1. Fetch ETH price from CoinGecko (note: could be extended to fetch specific token price)
-    runtime.log("📊 Fetching ETH price from CoinGecko...");
-    const priceResponse = httpClient.sendRequest(runtime, {
-        url: "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
-        method: "GET"
-    }).result();
+    // 1-3. Fetch data parallelized (Price, Entropy, Security)
+    runtime.log("📊 Initiating parallel data fetching...");
 
-    const priceData = ok(priceResponse) ? json(priceResponse) : null;
+    const [priceResult, entropyResult, securityResult] = await Promise.all([
+        // 1. Fetch ETH price from CoinGecko
+        httpClient.sendRequest(runtime, {
+            url: "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+            method: "GET"
+        }).result(),
+
+        // 2. Fetch quantum entropy from QRNG
+        httpClient.sendRequest(runtime, {
+            url: "https://qrng.anu.edu.au/API/jsonI.php?length=1&type=hex16&size=32",
+            method: "GET"
+        }).result(),
+
+        // 3. Fetch security data from GoPlus Labs
+        httpClient.sendRequest(runtime, {
+            url: `https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${tokenAddress}`,
+            method: "GET"
+        }).result()
+    ]);
+
+    // Process Price Results
+    const priceData = ok(priceResult) ? json(priceResult) : null;
     const ethPrice = String(priceData?.ethereum?.usd || "0");
-    runtime.log(`✓ ETH Price: $${ethPrice}`);
+    runtime.log(`✓ Price Check: $${ethPrice}`);
 
-    // 2. Fetch quantum entropy from QRNG
-    runtime.log("⚛️ Fetching quantum entropy from QRNG...");
-    const entropyResponse = httpClient.sendRequest(runtime, {
-        url: "https://qrng.anu.edu.au/API/jsonI.php?length=1&type=hex16&size=32",
-        method: "GET"
-    }).result();
-
-    const entropyData = ok(entropyResponse) ? json(entropyResponse) : null;
+    // Process Entropy Results
+    const entropyData = ok(entropyResult) ? json(entropyResult) : null;
     const entropyFromAPI = entropyData?.data?.[0];
-
     let entropy: string;
     if (entropyFromAPI) {
         entropy = entropyFromAPI;
         runtime.log(`✓ Quantum Entropy: ${entropy.substring(0, 16)}...`);
     } else {
         entropy = "0x00000000000000000000000000000000";
-        runtime.log(`⚠️ QRNG API returned null - USING FALLBACK ENTROPY`);
-        runtime.log(`✓ Fallback Entropy: ${entropy.substring(0, 16)}...`);
+        runtime.log(`⚠️ QRNG API fallback used`);
     }
 
-    // 3. Fetch security data from GoPlus Labs (DYNAMIC token and chain)
-    runtime.log("🔐 Fetching security data from GoPlus Labs...");
-    const securityResponse = httpClient.sendRequest(runtime, {
-        url: `https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${tokenAddress}`,
-        method: "GET"
-    }).result();
-
-    const securityData = ok(securityResponse) ? json(securityResponse) : null;
+    // Process Security Results
+    const securityData = ok(securityResult) ? json(securityResult) : null;
     const tokenData = securityData?.result?.[tokenAddress.toLowerCase()] || {};
     const isHoneypot = String(tokenData.is_honeypot) === "1";
     const trustList = String(tokenData.trust_list) === "1";
-    runtime.log(`✓ Security Check - Honeypot: ${isHoneypot}, Trust List: ${trustList}`);
+    runtime.log(`✓ Security Check - Honeypot: ${isHoneypot}, Trust: ${trustList}`);
 
     // 4. Call OpenAI for AI risk analysis
     runtime.log("🤖 Calling OpenAI for risk analysis...");

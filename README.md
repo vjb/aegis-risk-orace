@@ -26,17 +26,31 @@ AI agents (ElizaOS, LangChain, etc.) are increasingly executing autonomous DeFi 
 
 ```mermaid
 sequenceDiagram
-    participant Agent as AI Agent (ElizaOS)
+    participant Agent as AI Agent (ElizaOS, LangChain, etc.)
     participant Oracle as Aegis Risk Oracle (CRE DON)
     participant APIs as External APIs (CoinGecko, GoPlus, QRNG, OpenAI)
     participant Vault as Aegis Vault (Smart Contract)
 
     Agent->>Oracle: POST /risk-assessment (token, chain, amount)
-    Oracle->>APIs: Fetch Security & Price Data
+    
+    rect rgb(240, 240, 240)
+    note right of Oracle: Parallel Fetching (CRE Best Practice)
+    par Fetch Market Data
+        Oracle->>APIs: Get Price (CoinGecko)
+    and Fetch Security Data
+        Oracle->>APIs: Get Security (GoPlus)
+    and Fetch Entropy
+        Oracle->>APIs: Get Entropy (QRNG)
+    end
     APIs-->>Oracle: Return Data
-    Oracle->>Oracle: AI Decision Engine (Consensus)
+    end
+
+    Oracle->>APIs: AI Risk Analysis (OpenAI GPT-4)
+    APIs-->>Oracle: Return Analysis
+    
     Oracle->>Oracle: Sign Result (DON Key)
     Oracle-->>Agent: Signed Risk result (Decision, Score, Sig)
+    
     Agent->>Vault: swapWithOracle(token, amount, signedResult, signature)
     Vault->>Vault: Verify DON Signature
     Vault->>Vault: Enforce Risk Policy (Score < 7 && EXECUTE)
@@ -47,7 +61,7 @@ sequenceDiagram
 
 1. **CRE Workflow** ([aegis-workflow/main.ts](aegis-workflow/main.ts))
    - HTTP-triggered risk oracle
-   - Multi-API integration (CoinGecko, GoPlus Labs, QRNG, OpenAI)
+   - **Parallelized Multi-API Fetching**: Optimized data retrieval logic
    - Zod payload validation
    - Signed result generation
 
@@ -235,6 +249,7 @@ But this is optional - the config file method is preferred for CRE workflows.
 - ⚡ **Real-Time**: Live API integrations (no mock data)
 - 📝 **Audit Trail**: All decisions (EXECUTE/REJECT) are signed
 - 💰 **Value Analysis**: Flags high-value trades (> $50k USD) for enhanced scrutiny
+- 🚀 **Parallelized**: Fetches price, entropy, and security data in parallel (CRE Best Practice)
 
 ---
 
