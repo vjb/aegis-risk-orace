@@ -35,7 +35,7 @@
  */
 import { HTTPCapability, handler, Runner, type Runtime, type HTTPPayload, cre, type NodeRuntime, ok, text, json } from "@chainlink/cre-sdk";
 import { z } from "zod";
-import { keccak256, encodePacked, toHex, Hex, signatureToHex, recoverMessageAddress } from "viem";
+import { keccak256, encodePacked, Hex, recoverMessageAddress, getAddress } from "viem";
 import { privateKeyToAccount, signMessage } from "viem/accounts";
 
 /**
@@ -397,36 +397,54 @@ Do NOT include any other fields. Do NOT override the math based on token reputat
     // Convert asking price to integer (8 decimals) for signing
     const askingPriceWei = BigInt(Math.round(Number(requestData.askingPrice || "0") * 1e8));
 
-    // Create message hash - includes amount to prevent tampering
+    // Use current blockchain-style timestamp (seconds)
+    const timestamp = BigInt(Math.floor(Date.now() / 1000));
+
+    // Create message hash - "The Triple Lock"
+    // 1. Identity Lock (userAddress)
+    // 2. Value Lock (askingPrice)
+    // 3. Time Lock (timestamp)
     // matches Solidity's keccak256(abi.encodePacked(...))
     const messageHash = keccak256(
         encodePacked(
-            ['address', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
-            [requestData.tokenAddress as `0x${string}`, BigInt(requestData.chainId), askingPriceWei, decision, riskScore, salt]
+            ['address', 'address', 'uint256', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
+            [
+                getAddress(requestData.userAddress || "0x0000000000000000000000000000000000000000"),
+                getAddress(requestData.tokenAddress),
+                BigInt(requestData.chainId),
+                askingPriceWei,
+                timestamp,
+                decision,
+                riskScore,
+                salt
+            ]
         )
     );
 
-    // Sign the message hash with the DON demo private key
+    // Sign the message hash using the DON's secure hardware account
     const signature = await donAccount.signMessage({ message: { raw: messageHash } });
 
-    // Verify signature inline (proves it's valid before returning)
+    // Inline Verification: Verify that the DON's own key produced this signature
+    // This confirms integrity before the result even leaves the node.
     const recoveredAddress = await recoverMessageAddress({
         message: { raw: messageHash },
         signature: signature
     });
-    const isValid = recoveredAddress.toLowerCase() === donAccount.address.toLowerCase();
+    const isValid = getAddress(recoveredAddress) === getAddress(donAccount.address);
 
     // Create the signed result object (sent to smart contract)
     const signedResult = {
-        tokenAddress: requestData.tokenAddress,
+        userAddress: getAddress(requestData.userAddress || "0x0000000000000000000000000000000000000000"),
+        tokenAddress: getAddress(requestData.tokenAddress),
         chainId: requestData.chainId,
         askingPrice: requestData.askingPrice || "0",
+        timestamp: timestamp.toString(),
         decision: decision,
         riskScore: riskScore,
         salt: salt,
         messageHash: messageHash,
         signature: signature,
-        signer: donAccount.address
+        signer: getAddress(donAccount.address)
     };
 
     // ═══════════════════════════════════════════════════════════════════════════

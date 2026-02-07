@@ -11,7 +11,7 @@
  * └─────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { keccak256, encodePacked, Hex, recoverMessageAddress } from "viem";
+import { keccak256, encodePacked, Hex, recoverMessageAddress, getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 // ANSI color codes
@@ -25,7 +25,7 @@ const BOLD = "\x1b[1m";
 // The known DON address (what the smart contract would store)
 const DON_DEMO_PRIVATE_KEY: Hex = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const donAccount = privateKeyToAccount(DON_DEMO_PRIVATE_KEY);
-const EXPECTED_DON_ADDRESS = donAccount.address;
+const EXPECTED_DON_ADDRESS = getAddress(donAccount.address);
 
 // An attacker's private key (different from DON)
 const ATTACKER_PRIVATE_KEY: Hex = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
@@ -39,9 +39,11 @@ const usedSalts = new Set<string>();
  */
 async function verifyDONSignature(
     signedResult: {
+        userAddress: string;
         tokenAddress: string;
         chainId: string;
         askingPrice: string;
+        timestamp: string;
         decision: string;
         riskScore: number;
         salt: Hex;
@@ -51,13 +53,16 @@ async function verifyDONSignature(
     }
 ): Promise<{ valid: boolean; reason: string; recoveredAddress?: string }> {
     // 1. Reconstruct the message hash (same as what DON signed)
+    // schema: userAddress, tokenAddress, chainId, askingPrice, timestamp, decision, riskScore, salt
     const reconstructedHash = keccak256(
         encodePacked(
-            ['address', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
+            ['address', 'address', 'uint256', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
             [
-                signedResult.tokenAddress as `0x${string}`,
+                getAddress(signedResult.userAddress),
+                getAddress(signedResult.tokenAddress),
                 BigInt(signedResult.chainId),
                 BigInt(Math.round(Number(signedResult.askingPrice || "0") * 1e8)),
+                BigInt(signedResult.timestamp),
                 signedResult.decision,
                 signedResult.riskScore,
                 signedResult.salt
@@ -77,11 +82,11 @@ async function verifyDONSignature(
     });
 
     // 4. Check if signer is the expected DON address
-    if (recoveredAddress.toLowerCase() !== EXPECTED_DON_ADDRESS.toLowerCase()) {
+    if (getAddress(recoveredAddress) !== getAddress(EXPECTED_DON_ADDRESS)) {
         return {
             valid: false,
-            reason: `Invalid signer: expected ${EXPECTED_DON_ADDRESS}, got ${recoveredAddress}`,
-            recoveredAddress
+            reason: `Invalid signer: expected ${EXPECTED_DON_ADDRESS}, got ${getAddress(recoveredAddress)}`,
+            recoveredAddress: getAddress(recoveredAddress)
         };
     }
 
@@ -90,7 +95,14 @@ async function verifyDONSignature(
         return { valid: false, reason: "Salt already used - replay attack detected", recoveredAddress };
     }
 
-    // 6. Mark salt as used
+    // 6. Check for expiration (5 minute window)
+    const now = Math.floor(Date.now() / 1000);
+    const signedAt = Number(signedResult.timestamp);
+    if (now - signedAt > 300) {
+        return { valid: false, reason: "Signature expired - transaction is no longer valid", recoveredAddress };
+    }
+
+    // 7. Mark salt as used
     usedSalts.add(signedResult.salt);
 
     return { valid: true, reason: "Signature verified successfully", recoveredAddress };
@@ -106,11 +118,13 @@ async function createForgedSignature(originalResult: any): Promise<any> {
     // Recalculate message hash for the forged data
     forgedResult.messageHash = keccak256(
         encodePacked(
-            ['address', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
+            ['address', 'address', 'uint256', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
             [
+                forgedResult.userAddress as `0x${string}`,
                 forgedResult.tokenAddress as `0x${string}`,
                 BigInt(forgedResult.chainId),
                 BigInt(Math.round(Number(forgedResult.askingPrice || "0") * 1e8)),
+                BigInt(forgedResult.timestamp),
                 forgedResult.decision,
                 forgedResult.riskScore,
                 forgedResult.salt as Hex
@@ -167,13 +181,17 @@ async function main() {
     // Create a sample signed result (simulating what the workflow outputs)
     const sampleSalt = "0x" + "a1b2c3d4e5f6".padStart(64, '0') as Hex;
     const sampleAskingPrice = "2100.00";
+    const sampleUser = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as `0x${string}`;
+    const sampleTimestamp = BigInt(Math.floor(Date.now() / 1000));
     const sampleHash = keccak256(
         encodePacked(
-            ['address', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
+            ['address', 'address', 'uint256', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
             [
+                sampleUser,
                 "0x4200000000000000000000000000000000000006" as `0x${string}`,
                 BigInt("8453"),
                 BigInt(Math.round(Number(sampleAskingPrice) * 1e8)),
+                sampleTimestamp,
                 "EXECUTE",
                 0,
                 sampleSalt
@@ -183,9 +201,11 @@ async function main() {
     const sampleSignature = await donAccount.signMessage({ message: { raw: sampleHash } });
 
     const validSignedResult = {
+        userAddress: sampleUser,
         tokenAddress: "0x4200000000000000000000000000000000000006",
         chainId: "8453",
         askingPrice: sampleAskingPrice,
+        timestamp: sampleTimestamp.toString(),
         decision: "EXECUTE",
         riskScore: 0,
         salt: sampleSalt,
@@ -227,9 +247,31 @@ async function main() {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    //  TEST 3: Spoof Attack Detection
+    //  TEST 3: Identity Hijack Detection (Wrong userAddress)
     // ═══════════════════════════════════════════════════════════════════════════
-    console.log(`\n${BOLD}━━━ TEST 3: Spoof Attack Detection ━━━${RESET}`);
+    console.log(`\n${BOLD}━━━ TEST 3: Identity Hijack Detection ━━━${RESET}`);
+    console.log(`Original Approved User: ${validSignedResult.userAddress}`);
+
+    // Attacker tries to use the signature for their own wallet
+    const hijackedResult = {
+        ...validSignedResult,
+        userAddress: "0x3C44CdDdB2a900a37541703080e1234567890abc",
+        salt: ("0x" + "deadbeef".padStart(64, '0')) as Hex
+    };
+
+    console.log(`Malicious User:        ${hijackedResult.userAddress}`);
+
+    const test3 = await verifyDONSignature(hijackedResult);
+    if (test3.valid) {
+        console.log(`\n${RED}⚠️  VULNERABLE: Hijacked signature accepted!${RESET}`);
+    } else {
+        console.log(`\n${GREEN}✅ BLOCKED: ${test3.reason}${RESET}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  TEST 4: Spoof Attack Detection
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log(`\n${BOLD}━━━ TEST 4: Spoof Attack Detection ━━━${RESET}`);
     console.log(`${YELLOW}Attacker Key: ${attackerAccount.address}${RESET}`);
     console.log(`Attempting to forge an EXECUTE decision...`);
 
@@ -244,19 +286,19 @@ async function main() {
     console.log(`Forged Decision: ${GREEN}EXECUTE${RESET} (changed from REJECT)`);
     console.log(`Forged Signature: ${forgedResult.signature.substring(0, 22)}...`);
 
-    const test3 = await verifyDONSignature(forgedResult);
-    if (test3.valid) {
+    const test4 = await verifyDONSignature(forgedResult);
+    if (test4.valid) {
         console.log(`\n${RED}⚠️  VULNERABLE: Forged signature accepted!${RESET}`);
     } else {
-        console.log(`\n${GREEN}✅ BLOCKED: ${test3.reason}${RESET}`);
-        console.log(`   Attacker: ${RED}${test3.recoveredAddress}${RESET}`);
+        console.log(`\n${GREEN}✅ BLOCKED: ${test4.reason}${RESET}`);
+        console.log(`   Attacker: ${RED}${test4.recoveredAddress}${RESET}`);
         console.log(`   Expected: ${CYAN}${EXPECTED_DON_ADDRESS}${RESET}`);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    //  TEST 4: Tamper Attack Detection (Changing Amount)
+    //  TEST 5: Tamper Attack Detection (Changing Amount)
     // ═══════════════════════════════════════════════════════════════════════════
-    console.log(`\n${BOLD}━━━ TEST 4: Tamper Attack Detection ━━━${RESET}`);
+    console.log(`\n${BOLD}━━━ TEST 5: Tamper Attack Detection ━━━${RESET}`);
     console.log(`Original:  $${validSignedResult.askingPrice} → ${GREEN}VALID${RESET}`);
 
     // Attacker tries to change the price to $5000 in the signed payload
@@ -269,12 +311,54 @@ async function main() {
     console.log(`Tampered:  $${tamperedResult.askingPrice} (Modified after signing)`);
     console.log(`Signature: ${tamperedResult.signature.substring(0, 22)}... (SAME)`);
 
-    const test4 = await verifyDONSignature(tamperedResult);
-    if (test4.valid) {
+    const test5 = await verifyDONSignature(tamperedResult);
+    if (test5.valid) {
         console.log(`\n${RED}⚠️  VULNERABLE: Tampered price accepted!${RESET}`);
     } else {
-        console.log(`\n${GREEN}✅ BLOCKED: ${test4.reason}${RESET}`);
+        console.log(`\n${GREEN}✅ BLOCKED: ${test5.reason}${RESET}`);
         console.log(`   Crypto check failed because hash changed while signature remained static.`);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  TEST 6: Time Lock / Expiration
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log(`\n${BOLD}━━━ TEST 6: Time Lock (Expiration) ━━━${RESET}`);
+
+    // Create an old result (10 minutes ago)
+    const oldTimestamp = BigInt(Math.floor(Date.now() / 1000) - 600);
+    const oldHash = keccak256(
+        encodePacked(
+            ['address', 'address', 'uint256', 'uint256', 'uint256', 'string', 'uint8', 'bytes32'],
+            [
+                sampleUser,
+                validSignedResult.tokenAddress as `0x${string}`,
+                BigInt(validSignedResult.chainId),
+                BigInt(Math.round(Number(validSignedResult.askingPrice) * 1e8)),
+                oldTimestamp,
+                validSignedResult.decision,
+                validSignedResult.riskScore,
+                validSignedResult.salt
+            ]
+        )
+    );
+    const oldSignature = await donAccount.signMessage({ message: { raw: oldHash } });
+
+    const expiredResult = {
+        ...validSignedResult,
+        timestamp: oldTimestamp.toString(),
+        messageHash: oldHash,
+        signature: oldSignature,
+        salt: ("0x" + "deadf00d".padStart(64, '0')) as Hex
+    };
+
+    console.log(`Signed At: ${new Date(Number(oldTimestamp) * 1000).toLocaleTimeString()}`);
+    console.log(`Now:       ${new Date().toLocaleTimeString()} (Window: 5min)`);
+
+    const test6 = await verifyDONSignature(expiredResult);
+    if (test6.valid) {
+        console.log(`\n${RED}⚠️  VULNERABLE: Expired signature accepted!${RESET}`);
+    } else {
+        console.log(`\n${GREEN}✅ BLOCKED: ${test6.reason}${RESET}`);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -283,10 +367,12 @@ async function main() {
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`${BOLD}    📊 SECURITY VERIFICATION SUMMARY${RESET}`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`    Test 1 (Valid Signature):   ${test1.valid ? GREEN + "PASSED ✓" : RED + "FAILED ✗"}${RESET}`);
-    console.log(`    Test 2 (Replay Attack):     ${!test2.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
-    console.log(`    Test 3 (Spoof Attack):      ${!test3.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
-    console.log(`    Test 4 (Tamper Attack):     ${!test4.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
+    console.log(`    Test 1 (Protocol Compliance): ${test1.valid ? GREEN + "PASSED ✓" : RED + "FAILED ✗"}${RESET}`);
+    console.log(`    Test 2 (Replay Attack):       ${!test2.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
+    console.log(`    Test 3 (Identity Hijack):     ${!test3.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
+    console.log(`    Test 4 (Spoof Attack):        ${!test4.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
+    console.log(`    Test 5 (Tamper Attack):       ${!test5.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
+    console.log(`    Test 6 (Time Lock):           ${!test6.valid ? GREEN + "BLOCKED ✓" : RED + "VULNERABLE ✗"}${RESET}`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 }
 
