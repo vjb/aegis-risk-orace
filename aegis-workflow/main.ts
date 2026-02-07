@@ -117,6 +117,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const context = {
         current_price: ethPrice,
         asking_price: requestData.askingPrice || null,
+        amount: requestData.amount || null,
         security_metadata: {
             is_honeypot: isHoneypot,
             trust_list: trustList,
@@ -140,9 +141,10 @@ Evaluation Criteria:
 1. Honeypot Check: If is_honeypot is true, decision MUST be REJECT
 2. Price Manipulation: If asking_price deviates >50% from current_price, decision MUST be REJECT
 3. High Risk: If risk_score >= 7, decision MUST be REJECT
-4. Trust: If trust_list is true, lower risk score by 2-3 points
-5. Price Analysis: If asking_price is provided, compare to current_price. Flag deviations >10%
-6. Risk Score Range: MUST be between 0 and 10 (where 0=lowest risk, 10=highest risk)
+4. High Value: If (amount * asking_price) > 50,000 USD, increase risk score by 1-2 points
+5. Trust: If trust_list is true, lower risk score by 2-3 points
+6. Price Analysis: If asking_price is provided, compare to current_price. Flag deviations >10%
+7. Risk Score Range: MUST be between 0 and 10 (where 0=lowest risk, 10=highest risk)
 
 Decision Rules:
 - REJECT: Honeypot OR price deviation >50% OR risk_score >= 7
