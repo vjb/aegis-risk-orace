@@ -4,6 +4,8 @@
 
 Aegis is a production-ready risk oracle that prevents AI agents from executing scam trades by analyzing token security, detecting price manipulation, and providing cryptographically-signed risk assessments.
 
+**🔗 GitHub**: https://github.com/vjb/aegis-risk-orace
+
 [![Chainlink](https://img.shields.io/badge/Chainlink-CRE-375BD2?style=flat&logo=chainlink)](https://chain.link)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -265,9 +267,8 @@ MIT License - See [LICENSE](LICENSE) file
 
 Built for Chainlink Hackathon 2026 - Risk & Compliance Category
 
-**Developer**: [Your Name/Team]  
-**GitHub**: [Your GitHub Profile]  
-**Demo Video**: [YouTube/Loom Link]
+**GitHub**: https://github.com/vjb/aegis-risk-orace  
+**Demo Video**: [Coming Soon - Recording in Progress]
 
 ---
 
