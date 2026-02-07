@@ -32,7 +32,7 @@ We have implemented a comprehensive test suite to demonstrate the synthesis of m
 | **PASS** | Fair Trade | WETH on Base | Price markup is 0%, token is trusted by GoPlus, no technical flags. | ✅ `EXECUTE` |
 | **Honeypot** | Security | Known Honeypot | `is_honeypot: true` detected. Immediate rejection for absolute safety. | ❌ `REJECT` |
 | **Manipulation** | Economy | WETH (Markup) | Asking price is >50% above market. Detected as direct price manipulation. | ❌ `REJECT` |
-| **Composite** | Multi-Factor | WETH (20% + High) | 20% Markup (+4) AND >$50k value (+4) = Total 8/10. Rejects high-exposure trades with minor flags. | ❌ `REJECT` |
+| **Composite** | Multi-Factor | `test-payload-suspicious.json` | **AI Synthesis**: High-Value ($250k) + Proxy/Mintable flags detected on `SUS-TOKEN`. | ❌ `REJECT` |
 | **Invalid** | Integrity | Null/Missing | Schema validation failed at Zod layer. Prevents ingestion of malformed data. | ❌ `REJECT` |
 
 ## 🚀 Technical Features
@@ -51,5 +51,5 @@ From the project root:
 ./test-aegis.ps1
 
 # 2. Run a specific scenario manually
-echo '/app/test-payload-fail.json' | cre workflow simulate ./aegis-workflow --target staging-settings
+echo '/app/test-payload-suspicious.json' | cre workflow simulate ./aegis-workflow --target staging-settings
 ```
