@@ -1,9 +1,0 @@
-# CRE Project Settings
-# schemaVersion: 1.0.0
-
-dev:
-  experimental-chains:
-    - chain-selector: 31337
-    #rpc-url: "http://host.docker.internal:8545"
-      rpc-url: "https://eth.llamarpc.com"
-      forwarder: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
