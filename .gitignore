@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.bun/
+*.wasm
+tmp.*
+tmp.js
+tmp.wasm
+
+# Environment Variables (NEVER# Secrets and API keys
+.env
+secrets.yaml
+**/*secret*
+**/config.staging.json
+**/config.production.json
+aegis-workflow/config.staging.json
+aegis-workflow/config.production.jsons.yaml
+aegis-workflow/config.staging.json
+
+# Chainlink CRE Build Artifacts
+.cre/
+dist/
+target/
+cre-templates-main/
+
+# Foundry / Solidity Artifacts
+cache/
+out/
+broadcast/
+
+# OS Junk
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+aegis-final/
+aegis-workflow-corrupt/
+.cre-config/
+
+llms-full-ts.txt
+CRE Bootcamp_ Building AI-Powered Prediction Markets.pdf
+
+
+.cre-config/cre.yaml
+aegis-workflow/tmp.wasm

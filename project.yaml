@@ -1,0 +1,10 @@
+dev:
+  user-workflow:
+    workflow-name: "aegis"
+  workflow-artifacts:
+    workflow-path: "/app/aegis-workflow/main.ts"
+    config-path: "/app/aegis-workflow/config.staging.json"
+  experimental-chains:
+    - chain-selector: 31337
+      rpc-url: "https://eth.llamarpc.com"
+      forwarder: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"

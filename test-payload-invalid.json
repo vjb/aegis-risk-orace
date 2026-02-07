@@ -1,0 +1,5 @@
+{
+    "_comment": "ERROR Scenario - Missing required fields (should be caught by Zod validation)",
+    "_expected": "REJECT - Validation error",
+    "askingPrice": "2000.00"
+}
