@@ -104,9 +104,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         // Fallback to a stable demo price if rate limited or failed
         ethPrice = "2065.00";
         priceSource = priceStatus === 429 ? "Demo Fallback (Rate Limited)" : "Demo Fallback (API Error)";
-        runtime.log(`⚠️ Price Fetch Failed (${priceStatus}), using fallback: $${ethPrice}`);
     }
-    runtime.log(`✓ Market Reference: $${ethPrice} ETH [${priceSource}]`);
 
     // Process Entropy Results
     const entropyData = ok(entropyResult) ? json(entropyResult) : null;
@@ -134,8 +132,19 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const isMintable = String(tokenData.is_mintable) === "1";
     const ownerModifiable = String(tokenData.can_take_back_ownership) === "1" || String(tokenData.owner_changeable) === "1";
 
+    const isEthEquivalent = tokenAddress.toLowerCase().includes("0x4200000000000000000000000000000000000006") ||
+        tokenAddress.toLowerCase().includes("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
+
+    // Log Price results ONLY if relevant to the token being analyzed
+    if (isEthEquivalent) {
+        if (priceStatus === 200) {
+            runtime.log(`✓ Market Reference: $${ethPrice} ETH [${priceSource}]`);
+        } else {
+            runtime.log(`⚠️ Market Reference: $${ethPrice} ETH [${priceSource}]`);
+        }
+    }
+
     // 🎭 DEMO MODE: Injecting suspicious signals for the test-payload-suspicious.json address
-    // This ensures we can demonstrate "Composite Risk" without depending on a live bad token.
     let isProxyFinal = isProxy;
     let isMintableFinal = isMintable;
     if (tokenAddress.toLowerCase() === "0x5555555555555555555555555555555555555555") {
@@ -143,6 +152,9 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         isMintableFinal = true;
         runtime.log("🎭 [DEMO] Injecting Suspicious Signals (Proxy + Mintable)");
     }
+
+    const askingPriceStr = requestData.askingPrice ? `$${requestData.askingPrice}` : "N/A";
+    runtime.log(`📊 Trade Analysis: Asking ${askingPriceStr} for Token ${tokenAddress.substring(0, 10)}...`);
 
     runtime.log(`✓ Security Signals - Honeypot: ${isHoneypot}, Tax (B/S): ${buyTax}%/${sellTax}%, Restrictions: ${cannotBuy ? 'Buy BLOCKED ' : ''}${cannotSell ? 'Sell BLOCKED' : 'None'}`);
     runtime.log(`✓ Metadata Flags - Proxy: ${isProxyFinal}, Mintable: ${isMintableFinal}, Owner Changeable: ${ownerModifiable}`);
@@ -153,15 +165,13 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     // Normalize prices and calculate deviation
     const marketPrice = Number(ethPrice);
     const userPrice = Number(requestData.askingPrice || "0");
-    const isEthEquivalent = tokenAddress.toLowerCase().includes("0x4200000000000000000000000000000000000006") ||
-        tokenAddress.toLowerCase().includes("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 
     let deviationPercent = 0;
     if (isEthEquivalent && marketPrice > 0) {
         deviationPercent = Math.abs((userPrice - marketPrice) / marketPrice) * 100;
     }
 
-    const totalValueUsd = Number(requestData.amount || "0") * userPrice;
+    const totalValueUsd = Number(requestData.amount || "0") * (userPrice || marketPrice);
     const isHighValue = totalValueUsd > 50000;
 
     // Build context for AI analysis

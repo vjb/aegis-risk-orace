@@ -14267,9 +14267,7 @@ var brainHandler = async (runtime2, payload) => {
   } else {
     ethPrice = "2065.00";
     priceSource = priceStatus === 429 ? "Demo Fallback (Rate Limited)" : "Demo Fallback (API Error)";
-    runtime2.log(`⚠️ Price Fetch Failed (${priceStatus}), using fallback: $${ethPrice}`);
   }
-  runtime2.log(`✓ Market Reference: $${ethPrice} ETH [${priceSource}]`);
   const entropyData = ok(entropyResult) ? json(entropyResult) : null;
   const entropyFromAPI = entropyData?.data?.[0];
   let entropy;
@@ -14291,6 +14289,14 @@ var brainHandler = async (runtime2, payload) => {
   const isProxy = String(tokenData.is_proxy) === "1";
   const isMintable = String(tokenData.is_mintable) === "1";
   const ownerModifiable = String(tokenData.can_take_back_ownership) === "1" || String(tokenData.owner_changeable) === "1";
+  const isEthEquivalent = tokenAddress.toLowerCase().includes("0x4200000000000000000000000000000000000006") || tokenAddress.toLowerCase().includes("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
+  if (isEthEquivalent) {
+    if (priceStatus === 200) {
+      runtime2.log(`✓ Market Reference: $${ethPrice} ETH [${priceSource}]`);
+    } else {
+      runtime2.log(`⚠️ Market Reference: $${ethPrice} ETH [${priceSource}]`);
+    }
+  }
   let isProxyFinal = isProxy;
   let isMintableFinal = isMintable;
   if (tokenAddress.toLowerCase() === "0x5555555555555555555555555555555555555555") {
@@ -14298,17 +14304,18 @@ var brainHandler = async (runtime2, payload) => {
     isMintableFinal = true;
     runtime2.log("\uD83C\uDFAD [DEMO] Injecting Suspicious Signals (Proxy + Mintable)");
   }
+  const askingPriceStr = requestData.askingPrice ? `$${requestData.askingPrice}` : "N/A";
+  runtime2.log(`\uD83D\uDCCA Trade Analysis: Asking ${askingPriceStr} for Token ${tokenAddress.substring(0, 10)}...`);
   runtime2.log(`✓ Security Signals - Honeypot: ${isHoneypot}, Tax (B/S): ${buyTax}%/${sellTax}%, Restrictions: ${cannotBuy ? "Buy BLOCKED " : ""}${cannotSell ? "Sell BLOCKED" : "None"}`);
   runtime2.log(`✓ Metadata Flags - Proxy: ${isProxyFinal}, Mintable: ${isMintableFinal}, Owner Changeable: ${ownerModifiable}`);
   runtime2.log("\uD83E\uDD16 Calling OpenAI for risk analysis...");
   const marketPrice = Number(ethPrice);
   const userPrice = Number(requestData.askingPrice || "0");
-  const isEthEquivalent = tokenAddress.toLowerCase().includes("0x4200000000000000000000000000000000000006") || tokenAddress.toLowerCase().includes("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
   let deviationPercent = 0;
   if (isEthEquivalent && marketPrice > 0) {
     deviationPercent = Math.abs((userPrice - marketPrice) / marketPrice) * 100;
   }
-  const totalValueUsd = Number(requestData.amount || "0") * userPrice;
+  const totalValueUsd = Number(requestData.amount || "0") * (userPrice || marketPrice);
   const isHighValue = totalValueUsd > 50000;
   const context = {
     market_price_eth: marketPrice,
