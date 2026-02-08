@@ -41,13 +41,13 @@ AI agents (like ElizaOS) are entering the DeFi economy, executing autonomous tra
 
 **Aegis Solution:** A decentralized **Orchestration Layer** that synthesizes multiple risk signals and provides cryptographically-signed verdicts. It acts as a middleware **Safeguard**, blocking malicious transactions *before* they hit the blockchain.
 
-> **Note:** We do not "take back" transactions. The `AegisVault` smart contract simply **reverts** the transaction if the signature is invalid or carries a REJECT verdict, preventing the trade from ever happening.
+> **Note:** We do not "take back" transactions. The `AegisVault` smart contract simply **blocks** the transaction (via EVM revert) if the signature is invalid or carries a REJECT verdict, preventing the trade from ever happening.
 
 ---
 
 ## 🏗️ Architecture
 
-Aegis uses a **"Verify, then Trust"** architecture. No trade can execute without a valid **Quad-Lock Signature** from the Aegis Oracle.
+Aegis uses a **"Verify, then Trust"** architecture. No trade can execute without a valid **Quad-Lock Signature** from the Aegis Oracle. **Crucially, the verdict ("EXECUTE" or "REJECT") is cryptographically bound in the signature hash, so a "REJECT" signature cannot be tampered with to execute a trade.**
 
 ```mermaid
 sequenceDiagram
@@ -90,7 +90,7 @@ We don't rely on a single source of truth. Aegis aggregates data from:
 | **[ANU QRNG](https://qrng.anu.edu.au/)** | **Liveness & Nonce:** Uses Quantum Random Numbers to generate a unique salt for the signature (Security). | [`main.ts:L81`](./aegis-workflow/main.ts#L81) |
 | **[OpenAI](https://openai.com/)** | **Synthesis Engine:** GPT-4o-mini analyzes the raw data to spot "Combo Fails" (moderate risks that stack up). | [`main.ts:L134`](./aegis-workflow/main.ts#L134) |
 
-> **Clarification:** The **Quantum Entropy** (QRNG) is used explicitly for **Signing Mechanics** (generating a non-deterministic salt) to prevent signature collisions. It is *not* used for the risk evaluation itself.
+**Clarification:** The **Quantum Entropy** (QRNG) is used explicitly for **Signing Mechanics** (generating a non-deterministic salt) to prevent signature collisions. It is *not* used for the risk evaluation itself.
 
 ### 2. Verifiable Audit Trail (Pinata / IPFS)
 
@@ -104,10 +104,10 @@ We don't rely on a single source of truth. Aegis aggregates data from:
 
 We strictly adhered to the `CRE Best Practices` guide to ensure a production-grade implementation:
 
-*   ✅ **Parallel Execution:** We use `Promise.all()` to fetch CoinGecko, GoPlus, and QRNG simultaneously, minimizing runtime costs and latency.
-*   ✅ **Input Sanitization:** All inputs are validated using **Zod** schemas to prevent injection attacks.
-*   ✅ **Secret Management:** API keys are never hardcoded; they are retrieved securely using `runtime.getSecret()`.
-*   ✅ **Handler Pattern:** We use the standard `handler(trigger, callback)` pattern for maximum compatibility.
+*   ✅ **Parallel Execution:** We use `Promise.all()` to fetch CoinGecko, GoPlus, and QRNG simultaneously ([`main.ts:L70-L85`](./aegis-workflow/main.ts#L70-L85)), minimizing runtime costs and latency.
+*   ✅ **Input Sanitization:** All inputs are validated using **Zod** schemas ([`main.ts:L40`](./aegis-workflow/main.ts#L40)) to prevent injection attacks.
+*   ✅ **Secret Management:** API keys are never hardcoded; they are retrieved securely using `runtime.getSecret()` ([`main.ts:L20`](./aegis-workflow/main.ts#L20)).
+*   ✅ **Handler Pattern:** We use the standard `handler(trigger, callback)` pattern ([`main.ts:L256`](./aegis-workflow/main.ts#L256)) for maximum compatibility.
 
 ---
 
@@ -115,8 +115,8 @@ We strictly adhered to the `CRE Best Practices` guide to ensure a production-gra
 
 Aegis leverages the **ElizaOS** multi-agent framework to provide a conversational interface for risk assessment.
 
-*   **Character:** The "Aegis" character (`characters/aegis.json`) is designed to be a "Zero-Trust Security Officer".
-*   **Plugin:** The custom plugin (`integrations/elizaos/`) bridges the gap between natural language user intents ("Is this token safe?") and the structured CRE risk engine.
+*   **Character:** The "Aegis" character ([`eliza/character.json`](./eliza/character.json)) is designed to be a "Zero-Trust Security Officer".
+*   **Plugin:** The custom plugin ([`integrations/elizaos/`](./integrations/elizaos/)) bridges the gap between natural language user intents ("Is this token safe?") and the structured CRE risk engine.
 
 [**➡️ View ElizaOS Integration**](./eliza/README.md)
 
