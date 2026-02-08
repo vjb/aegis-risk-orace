@@ -16,9 +16,9 @@ Aegis is a production-ready risk oracle that prevents AI agents from executing s
 | **CRE Workflow** | ✅ | `aegis-workflow/main.ts` - Simulated via CRE CLI |
 | **External APIs** | ✅ | CoinGecko, GoPlus, QRNG (parallel fetching) |
 | **LLM Integration** | ✅ | GPT-4o-mini for multi-factor risk synthesis |
+| **Compliance Storage** | ✅ | Pinata/IPFS integration for verifiable audit archiving |
 | **On-Chain Verification** | ✅ | `contracts/AegisVault.sol` (Local Anvil & Base Sepolia ready) |
-| **Cross-Chain (CCIP)** | ✅ | `contracts/AegisVault.sol` (Mocked L2 Messaging Interface) |
-| **Local Chain Demo** | ✅ | `deploy-local.ps1` + `test-contract.ps1` (Foundry Integration) |
+| **Cryptographic Locks** | ✅ | Identity, Value, Time, and Reasoning (Quad-Lock Standard) |
 
 ---
 
@@ -37,29 +37,32 @@ sequenceDiagram
     participant Agent as AI Agent (ElizaOS)
     participant CRE as Aegis (Chainlink CRE)
     participant APIs as External APIs
+    participant IPFS as Pinata (IPFS Archive)
     participant Vault as AegisVault.sol
 
     Agent->>CRE: Risk Assessment Request
     
-    par Parallel Fetching
+    par Parallel Data Fetching
         CRE->>APIs: CoinGecko (Price)
         CRE->>APIs: GoPlus (Security)
         CRE->>APIs: QRNG (Entropy)
     end
     
-    CRE->>APIs: GPT-4o-mini (Synthesis)
-    CRE->>CRE: Triple Lock Signing
-    CRE-->>Agent: Signed Verdict
-    Agent->>Vault: Execute with Signature
-    Vault->>Vault: Verify → Execute/Reject
+    CRE->>APIs: GPT-4o-mini (Reasoning Engine)
+    CRE->>IPFS: Archive Audit Brief (Verifiable CID)
+    CRE->>CRE: Quad-Lock Cryptographic Signing
+    CRE-->>Agent: Signed Verdict + Proofs
+    Agent->>Vault: Trigger Swap with Signature
+    Vault->>Vault: Verify Quad-Locker → Execute
 ```
 
-### The "Triple Lock" Standard
-Aegis implements an institutional-grade security standard that binds every risk verdict to three immutable factors. This prevents the most common "Agent interception" attacks where a malicious actor might try to replay an old signature or modify target values.
+### The "Quad-Lock" Security Standard
+Aegis v2.0 implements an institutional-grade security standard that binds every risk verdict to four immutable factors. This prevents agent interception, data tampering, and "black-box" AI risks.
 
-1.  **Identity Lock:** The signature is cryptographically bound to the user's **Wallet Address**. This ensures that an assessment generated for one user cannot be "stolen" and used by another to authorized a different transaction.
-2.  **Value Lock:** The **Asset Price** is captured from a decentralized oracle at the millisecond of analysis. If the price on-chain deviates significantly from the price signed by Aegis, the `AegisVault.sol` contract will revert the transaction, protecting against slippage and price manipulation.
-3.  **Time Lock:** Every signature includes a unique **Quantum Salt** and a **Timestamp**. Verdicts have a strict 5-minute TTL (Time-To-Live). This prevents "Stale Data Attacks" where an attacker tries to use a "Safe" verdict from days ago on a token that has since been rugged.
+1.  **Identity Lock:** Bound to the user's **Wallet Address**. Assessments cannot be stolen and used by other users.
+2.  **Value Lock:** Bound to the **Asset Price** at the millisecond of analysis. Protects against on-chain price manipulation/slippage.
+3.  **Time Lock:** 5-minute TTL (Time-To-Live). Prevents "Stale Data Attacks" using old "Safe" verdicts on rugged tokens.
+4.  **Reasoning Lock (The Fourth Lock):** Every signature includes a **Keccak-256 Hash of the AI Reasoning**. This anchors the AI's internal logic to the on-chain transaction, ensuring the "Big Story" pinned to IPFS matches the decision made by the Oracle.
 
 ---
 
@@ -300,8 +303,9 @@ graph TD
     subgraph "Aegis Hub"
     Hub -->|1. Fetch Price| CG["CoinGecko"]
     Hub -->|2. Check Security| GP["GoPlus"]
-    Hub -->|3. Generate Entropy| QRNG["Quantum Source"]
-    Hub -->|4. Sign Verdict| Signer["🔑 Universal Signer Key"]
+    Hub -->|3. Record Audit| PIN["Pinata (IPFS)"]
+    Hub -->|4. Generate Entropy| QRNG["Quantum Source"]
+    Hub -->|5. Sign Verdict| Signer["🔑 Universal Signer Key"]
     end
     
     Signer -->|Signed Verdict| Base["🔵 Base (AegisVault)"]
