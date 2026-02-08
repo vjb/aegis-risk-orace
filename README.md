@@ -148,10 +148,10 @@ Run the Chainlink runtime environment simulation directly via Docker:
 
 ```powershell
 # Run a PASS scenario (Low risk)
-docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-pass.json"
+docker exec aegis_dev sh -c "cd /app && cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload /app/tests/payloads/test-payload-pass.json"
 
 # Run a FAIL scenario (High risk / Honeypot)
-docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-fail.json"
+docker exec aegis_dev sh -c "cd /app && cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload /app/tests/payloads/test-payload-fail.json"
 ```
 
 ### 2. Run Component Tests

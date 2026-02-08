@@ -79,10 +79,10 @@ The easiest way to test these is via the **Uber Tester**:
 Or run a specific payload simulation manually via Docker:
 ```bash
 # Test PASS scenario
-docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-pass.json"
+docker exec aegis_dev sh -c "cd /app && cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload /app/tests/payloads/test-payload-pass.json"
 
 # Test FAIL scenario  
-docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-fail.json"
+docker exec aegis_dev sh -c "cd /app && cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload /app/tests/payloads/test-payload-fail.json"
 ```
 
 ## Chain IDs Reference
