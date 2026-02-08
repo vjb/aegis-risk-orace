@@ -155,6 +155,8 @@ To visualize the CRE workflow, we built a **Next.js 16 Visualization Dashboard**
 ### 3. Blocked Verdict (Red)
 If the AI detects risk (e.g., Honeypot), the generated signature **locks in the 'REJECT' verdict**. If the agent submits this to the chain, the AegisVault contract will verify the 'REJECT' status and **revert the transaction**.
 
+> **🛡️ Why this matters:** Automated agents need **accountability**. If an agent loses money, we need to know exactly *why* it thought the trade was safe. Conversely, if a trade is blocked, Aegis provides a cryptographically-verifiable reason, ensuring a clear audit trail for compliance and debugging.
+
 ![Aegis Verdict - Denied State](./docs/images/UserInterface-denied.PNG)
 
 ### 🚀 One-Click Launch
@@ -258,6 +260,19 @@ Aegis is designed to be a **Universal Risk Oracle**. Because the risk assessment
 1.  **Unified Security Policy:** One risk engine protects billions in liquidity across all chains.
 2.  **Zero Bridging Latency:** The signature is generated off-chain and submitted directly to the destination chain.
 3.  **Historical Audits (The Graph):** We will index `VerdictExecuted` events to create a permanent, queryable history of all AI agent decisions for compliance reporting.
+
+---
+
+## 🛠️ Behind the Scenes: Built with Antigravity
+
+Aegis wasn't built the traditional way. To match the speed of the Agent economy, we leveraged **Google Antigravity**, an advanced agentic coding environment.
+
+This project was orchestrated by an AI Agent co-pilot, switching between the world's most capable language models to solve specific engineering challenges:
+*   **Gemini 2.0 Pro & Flash:** For rapid iteration, complex workflow logic, and real-time documentation synthesis.
+*   **Claude 3.5 Sonnet & Opus:** For deep architectural reviews, agent planning, and refining the "Mission Control" UI aesthetics.
+*   **GPT-4o:** For synthesizing risk signals and defining the core AI reasoning engine.
+
+By using an agentic workflow to build an agentic security protocol, we were able to move from concept to a multi-layered, cryptographically-secure Oracle in just 48 hours.
 
 ---
 
