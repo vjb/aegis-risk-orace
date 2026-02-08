@@ -234,10 +234,6 @@ Per the **Risk & Compliance Track** requirements, here are the direct links to t
 
 ---
 
----
-
----
-
 ## 🔮 Next Steps: The Cross-Chain "Aegis Hub"
 
 Aegis is architected as a **Universal Risk Oracle**. Because the risk assessment happens off-chain in the secure Chainlink Runtime Environment (CRE), the **same** cryptographic signature can secure AI agents across any EVM chain.
