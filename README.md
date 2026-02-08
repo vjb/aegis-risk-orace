@@ -139,6 +139,34 @@ Before running the Quick Start, ensure your environment is ready.
 
 ---
 
+## 🛠️ Chainlink CRE Development
+
+**For judges and developers verifying the CRE workflow specifically:**
+
+### 1. Run CRE Simulation (Manual)
+Run the Chainlink runtime environment simulation directly via Docker:
+
+```powershell
+# Run a PASS scenario (Low risk)
+docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-pass.json"
+
+# Run a FAIL scenario (High risk / Honeypot)
+docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-fail.json"
+```
+
+### 2. Run Component Tests
+These scripts isolate specific parts of the Chainlink workflow:
+
+```powershell
+# 🧠 Verify AI Logic & CRE Workflow (Mocked Input)
+.\test-aegis.ps1
+
+# 🔐 Verify Off-Chain Cryptography (Signatures & Replay Protection)
+.\test-signature.ps1
+```
+
+---
+
 ## 📁 Project Structure
 
 ```bash
