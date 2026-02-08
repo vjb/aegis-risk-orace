@@ -54,8 +54,12 @@ sequenceDiagram
     Vault->>Vault: Verify → Execute/Reject
 ```
 
-### The Triple Lock Standard
-Signatures bind verdicts to **Identity** (user), **Value** (price), and **Time** (5-min expiry) — matching CRE institutional security standards.
+### The "Triple Lock" Standard
+A cryptographic standard inspired by institutional custody. The verdict is valid **ONLY** if signed by the DON and matches three parameters:
+
+1.  **Identity:** The signature is bound to the specific user wallet (Preventing front-running/interception).
+2.  **Value:** The asset price is locked at the moment of analysis (Preventing slippage/manipulation).
+3.  **Time:** A strict 5-minute TTL (Time-To-Live) prevents replay of stale risk data.
 
 ---
 
@@ -184,7 +188,7 @@ docker exec aegis_dev sh -c "cd /app && cre workflow simulate ./aegis-workflow -
 [INFO] Synthesizing Risk with GPT-4o... [DONE]
 [SUCCESS] Verdict: PASS
 [OUTPUT] {
-  "riskScore": 98,
+  "riskScore": 2,
   "signature": "0x7a2...b91",
   "timestamp": 1709234000
 }
@@ -296,7 +300,7 @@ graph TD
     Opt -->|Execute| Velodrome
 ```
 
-**Why this wins:**
+**Strategic Roadmap & Advantage:**
 1.  **Unified Security Policy:** One risk engine protects billions in liquidity across all chains.
 2.  **Zero Bridging Latency:** The signature is generated off-chain and submitted directly to the destination chain.
 3.  **Historical Audits (The Graph):** We will index `VerdictExecuted` events to create a permanent, queryable history of all AI agent decisions for compliance reporting.

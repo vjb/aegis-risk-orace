@@ -63,6 +63,7 @@ const requestSchema = z.object({
     askingPrice: z.string().optional(),
     amount: z.string().optional(),
     userAddress: z.string().optional(),
+    coingeckoId: z.string().optional(), // 🚀 DYNAMIC: Allows checking any token price
 });
 
 type RiskAssessmentRequest = z.infer<typeof requestSchema>;
@@ -76,6 +77,7 @@ interface AIAnalysisResult {
 }
 
 const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Promise<string> => {
+    // ... (keep existing logging setup) ...
     // ANSI color codes for terminal output
     const GREEN = "\x1b[32m";
     const RED = "\x1b[31m";
@@ -95,7 +97,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         runtime.log("📝 No payload provided, using defaults");
         requestData = {
             tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-            chainId: "8453"
+            chainId: "8453",
+            coingeckoId: "ethereum"
         };
     } else {
         try {
@@ -119,6 +122,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     const tokenAddress = requestData.tokenAddress;
     const chainId = requestData.chainId;
+    const priceId = requestData.coingeckoId || "ethereum"; // Default to ETH if not provided
 
     runtime.log(`📋 Request: Token ${tokenAddress} on Chain ${chainId}`);
 
@@ -142,9 +146,9 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     runtime.log("━━━ 📊  DATA ACQUISITION ━━━");
 
     const [priceResult, entropyResult, securityResult] = await Promise.all([
-        // 1. Fetch ETH price from CoinGecko
+        // 1. Fetch Dynamic Token price from CoinGecko
         httpClient.sendRequest(runtime as any, {
-            url: "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+            url: `https://api.coingecko.com/api/v3/simple/price?ids=${priceId}&vs_currencies=usd`,
             method: "GET"
         }).result(),
 
@@ -168,8 +172,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     let ethPrice: string;
     let priceSource = "Market (CoinGecko)";
 
-    if (priceStatus === 200 && priceData?.ethereum?.usd) {
-        ethPrice = String(priceData.ethereum.usd);
+    if (priceStatus === 200 && priceData?.[priceId]?.usd) {
+        ethPrice = String(priceData[priceId].usd);
     } else {
         // Fallback to a stable demo price if rate limited or failed
         ethPrice = "2065.00";
