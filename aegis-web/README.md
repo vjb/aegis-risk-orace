@@ -17,7 +17,7 @@ A cryptographically valid signature triggers the "Approved" state.
 ![Approved State](../docs/images/UserInterface-approved.PNG)
 
 ### 3. Blocked Verdict (Red)
-If the AI detects risk (e.g., Honeypot), the transaction is blocked and no signature is produced.
+If the AI detects risk (e.g., Honeypot), the generated signature **locks in the 'REJECT' verdict**. If the agent submits this to the chain, the AegisVault contract will verify the 'REJECT' status and **revert the transaction**.
 
 ![Denied State](../docs/images/UserInterface-denied.PNG)
 
