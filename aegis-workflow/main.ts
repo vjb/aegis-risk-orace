@@ -99,13 +99,18 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     runtime.log(`\n${CYAN}━━━ 🤖  AI SYNTHESIS (Verifiable Reasoning) ━━━${RESET}`);
     const openaiKey = runtime.config.openaiApiKey || await runtime.getSecret({ id: "OPENAI_API_KEY" });
 
+    const askingPrice = Number(requestData.askingPrice || "0");
+    const deviation = marketPrice > 0 ? Math.abs((askingPrice - marketPrice) / marketPrice) * 100 : 0;
+
     const context = {
         market_price: marketPrice,
+        asking_price: askingPrice,
+        price_deviation_percent: deviation.toFixed(2) + "%",
         security: securityData,
         trade: requestData
     };
 
-    runtime.log(`   📤 [OAI] Sending Audit Context (${JSON.stringify(context).length} bytes)...`);
+    runtime.log(`   📤 [OAI] Sending Audit Context (Dev: ${context.price_deviation_percent})...`);
 
     const aiCall = await httpClient.sendRequest(runtime as any, {
         url: "https://api.openai.com/v1/chat/completions",
@@ -114,7 +119,12 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         body: Buffer.from(JSON.stringify({
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: "You are the Aegis Risk Officer. Provide a detailed, human-readable audit. Output JSON: {risk_score: number, decision: 'EXECUTE'|'REJECT', reasoning: 'string'}. Note: Standard assets (WETH, USDC, LINK) on major chains (Base, Ethereum, Arbitrum) are baseline trusted unless security data shows specific red flags." },
+                {
+                    role: "system",
+                    content: "You are the Aegis Risk Officer. Provide a detailed, human-readable audit. Output JSON: {risk_score: number, decision: 'EXECUTE'|'REJECT', reasoning: 'string'}. " +
+                        "ECONOMIC GUARDRAIL: If the asking_price deviates by more than 10% from the market_price, you MUST REJECT the trade due to economic manipulation, even if the asset is WETH, USDC, or LINK. " +
+                        "ASSET TRUST: Standard assets are baseline trusted for security, but never for price manipulation."
+                },
                 { role: "user", content: `Context: ${JSON.stringify(context)}` }
             ],
             response_format: { type: "json_object" }
