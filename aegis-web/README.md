@@ -16,6 +16,11 @@ A cryptographically valid signature triggers the "Approved" state.
 
 ![Approved State](../docs/images/UserInterface-approved.PNG)
 
+### 3. Blocked Verdict (Red)
+If the AI detects risk (e.g., Honeypot), the transaction is blocked and no signature is produced.
+
+![Denied State](../docs/images/UserInterface-denied.PNG)
+
 ## Features
 - **Parallel Scanning Visualization** - Real-time indicators for Market, Entropy, and Security checks
 - **Glassmorphic UI** - Dark theme with Aceternity/Shadcn components

@@ -152,6 +152,11 @@ To visualize the CRE workflow, we built a **Next.js 16 Visualization Dashboard**
 
 ![Aegis Verdict - Approved State](./docs/images/UserInterface-approved.PNG)
 
+### 3. Blocked Verdict (Red)
+If the AI detects risk (e.g., Honeypot), the transaction is blocked and no signature is produced.
+
+![Aegis Verdict - Denied State](./docs/images/UserInterface-denied.PNG)
+
 ### 🚀 One-Click Launch
 We've made it trivial to spin up the full UI + Agent stack:
 
