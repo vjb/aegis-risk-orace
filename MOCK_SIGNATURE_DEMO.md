@@ -1,41 +1,61 @@
-# Aegis Risk Oracle - Mock Signature Demo
+# Aegis Risk Oracle - Verifiable AI Signature Demo
 
-## What Was Added
+## The Triple Lock Standard
 
-Added **mock DON signature** to the workflow output to demonstrate how production deployment would work.
+Aegis implements the **Triple Lock Standard** for all AI risk verdicts. This ensures that every signature is cryptographically bound to the specific context of the trade.
+
+1.  **Identity Lock**: Bound to the user's wallet address.
+2.  **Value Lock**: Bound to the token price at the time of analysis.
+3.  **Time Lock**: Valid for a 5-minute window to prevent stale risk data.
 
 ## Signed Result Output
 
-The workflow now logs a structured, signed result that shows what would be submitted to the blockchain:
-
-```mermaid
-graph TD
-    A[Agent Request] --> B[Aegis Oracle]
-    B --> C{AI Analysis}
-    C -->|EXECUTE| D[Sign with DON Key]
-    C -->|REJECT| E[Sign Failure]
-    D --> F[Return Signed Result]
-    E --> F
-```
+The `run-full-flow.ps1` script demonstrates the live generation and verification of these payloads:
 
 ```json
 {
-  "result": {
-    "tokenAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "assessment": {
+    "tokenAddress": "0x4200000000...0006",
     "chainId": "8453",
-    "riskScore": 5,
+    "riskScore": 2,
     "decision": "EXECUTE",
-    "reasoning": "The honeypot check is false...",
-    "price": "2051.25",
-    "entropy": "e30aef203515e8f4ef259551981836345a65dbc00caf147c3c057277b9ef7925",
-    "timestamp": 1770481412737
+    "timestamp": 1770481412
   },
-  "signature": "0xe30aef203515e8f4ef259551981836345a65dbc00caf147c3c057277b9ef7925",
-  "donPublicKey": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-  "_note": "In production: signature would be created by DON consensus, verified on-chain by Aegis smart contract"
+  "signature": "0x544b9cb5b90b53453574...",
+  "donPublicKey": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 }
 ```
 
+## Security Demonstrations
+
+You can run the interactive security suite to see these locks in action:
+
+```powershell
+# Run the standalone signature verification demo
+.\tests\test-crypto.ps1
+```
+
+### Scenarios Covered:
+- ✅ **Valid Flow**: Successful verification of a fresh DON signature.
+- ✅ **Replay Attack**: Blocked when trying to reuse a salt/hash.
+- ✅ **Identity Hijack**: Blocked when a malicious user tries to use someone else's assessment.
+- ✅ **Price Tamper**: Blocked when the asset price is modified after signing.
+- ✅ **Spoof Attack**: Blocked when an attacker tries to sign with their own key.
+
+## Production Architecture
+
+In a production environment, this payload bridges the gap between AI intuition and on-chain security:
+
+1.  **AI Analysis**: Chainlink CRE nodes analyze risk.
+2.  **Consensus**: Multiple nodes reach consensus on the risk score and decision.
+3.  **Threshold Signing**: The DON generates a single threshold signature.
+4.  **On-Chain Verification**: `AegisVault.sol` verifies the signature and enforces the risk policy.
+
+---
+
+## Technical Proof (For Video)
+
+> "Aegis doesn't just return data; it returns **signed proof**. By using the Triple Lock standard, we ensure that an AI's decision is securely bound to the user's identity and the current market value. As you can see in the demo, the Aegis smart contract automatically rejects any payload where the signature doesn't match the authorized DON or where an attacker attempts to replay an old approval."
 ## Production Flow (Explained for Hackathon Demo)
 
 ### 1. Agent Calls Oracle

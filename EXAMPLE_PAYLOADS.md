@@ -71,12 +71,18 @@ interface RiskAssessmentRequest {
 
 ## Testing
 
+The easiest way to test these is via the **Uber Tester**:
+```powershell
+.\test-everything.ps1
+```
+
+Or run a specific payload simulation manually via Docker:
 ```bash
 # Test PASS scenario
-docker exec aegis_dev sh -c "cat test-payload-pass.json | cre workflow simulate ./aegis-workflow --target staging-settings"
+docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-pass.json"
 
 # Test FAIL scenario  
-docker exec aegis_dev sh -c "cat test-payload-fail.json | cre workflow simulate ./aegis-workflow --target staging-settings"
+docker exec aegis_dev sh -c "cre workflow simulate ./aegis-workflow --target staging-settings --http-payload /app/tests/payloads/test-payload-fail.json"
 ```
 
 ## Chain IDs Reference

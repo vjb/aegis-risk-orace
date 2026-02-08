@@ -11,8 +11,9 @@
 - ✅ Best practices compliance
 
 ### 2. Test Suite
-- ✅ AI Risk Analysis Phase (`test-aegis.ps1`)
-- ✅ Cryptographic Security Phase (`test-crypto.ps1`)
+- ✅ AI Risk Analysis Phase (`tests/test-aegis.ps1`)
+- ✅ Cryptographic Security Phase (`tests/test-crypto.ps1`)
+- ✅ The Uber Tester (`test-everything.ps1`)
 - ✅ All tests passing with proper results
 - ✅ Cross-chain demonstration (Base + BSC)
 
@@ -22,15 +23,16 @@
 - ✅ EXAMPLE_PAYLOADS.md
 - ✅ MOCK_SIGNATURE_DEMO.md
 - ✅ VIDEO_SCRIPT.md
+- ✅ Final Walkthrough and Checklist update
 
 ### 4. Smart Contracts
-- ✅ AegisVault.sol (On-chain verification reference)
+- ✅ AegisVault.sol (On-chain verification with Replay Protection)
 
 ## ⚠️ TODO Before Submission
 
 ### 4. Video Demo (REQUIRED)
 - [ ] Record 3-5 minute demo following VIDEO_SCRIPT.md
-- [ ] Show all 3 test scenarios running
+- [ ] Show `.\test-everything.ps1` running (The "Uber Tester")
 - [ ] Explain architecture and Chainlink integration
 - [ ] Upload to YouTube/Loom
 - [ ] Add link to README.md
@@ -38,37 +40,25 @@
 ### 5. GitHub Repository (REQUIRED)
 **Status**: Git repo exists and is pushed to remote.
 
-**Actions needed**:
-```bash
-# Check remote status
-git remote -v
-
-# If no remote, add one:
-git remote add origin https://github.com/YOUR_USERNAME/aegis-risk-oracle.git
-
-# Push to GitHub
-git add .
-git commit -m "Final hackathon submission: Aegis Risk Oracle"
-git push -u origin master
-
-# Make repo public on GitHub.com
-```
+**Actions taken**:
+- ✅ Pushed to `main` branch
+- ✅ Cleaned root directory
+- ✅ Verified `.gitignore`
 
 **Ensure repo includes**:
 - ✅ All source code
 - ✅ README.md (with video link after recording)
-- ✅ Test files
+- ✅ Test files (in `tests/` directory)
 - ✅ Documentation
-- ⚠️ Remove sensitive data (check .gitignore covers API keys)
+- ✅ Triple Lock Security details
 
 ### 6. Final Checklist
 - [ ] Video uploaded and link added to README
 - [ ] GitHub repo is PUBLIC
 - [ ] All Chainlink files linked in README
-- [ ] Test script works (`./test-aegis.sh`)
+- [ ] Test script works (`.\test-everything.ps1`)
 - [ ] .env and secrets NOT committed
 - [ ] Add your name/contact to README
-- [ ] Create GitHub repo description with project summary
 
 ## 📋 Submission Form
 
