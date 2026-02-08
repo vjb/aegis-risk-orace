@@ -117,10 +117,13 @@ try {
 
 Write-Host "   ✅ CRE Analysis Complete!" -ForegroundColor Green
 Write-Host ""
+# Convert Unix timestamp to datetime (compatible with older PowerShell)
+$timestampDate = (Get-Date "1970-01-01 00:00:00").AddSeconds($result.timestamp)
+
 Write-Host "   📊 Risk Assessment:" -ForegroundColor White
 Write-Host "      Decision: $($result.decision)" -ForegroundColor $(if ($result.decision -eq "EXECUTE") { "Green" } else { "Red" })
 Write-Host "      Risk Score: $($result.riskScore)/10" -ForegroundColor DarkGray
-Write-Host "      Timestamp: $(Get-Date -UnixTimeSeconds $result.timestamp -Format 'HH:mm:ss')" -ForegroundColor DarkGray
+Write-Host "      Timestamp: $($timestampDate.ToString('HH:mm:ss'))" -ForegroundColor DarkGray
 Write-Host ""
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -168,9 +171,10 @@ $USER_PRIVATE_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6
 Write-Host "   Calling AegisVault.swapWithOracle()..." -ForegroundColor Yellow
 
 # Call the smart contract
+# IMPORTANT: First parameter must match the tokenAddress in the assessment struct
 $txResult = & $castPath send $CONTRACT_ADDRESS `
     "swapWithOracle(string,uint256,(string,string,uint256,string,uint256),bytes)" `
-    "WETH" `
+    $tokenAddress `
     1000000000000000000 `
     $assessment `
     $signature `
