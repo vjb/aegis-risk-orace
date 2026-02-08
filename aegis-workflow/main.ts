@@ -212,13 +212,11 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const isEthEquivalent = tokenAddress.toLowerCase().includes("0x4200000000000000000000000000000000000006") ||
         tokenAddress.toLowerCase().includes("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 
-    // Log Price results ONLY if relevant to the token being analyzed
-    if (isEthEquivalent) {
-        if (priceStatus === 200) {
-            runtime.log(`✓  Market Price: $${ethPrice} ETH [${GREEN}LIVE${RESET} - CoinGecko]`);
-        } else {
-            runtime.log(`⚠️  Market Price: $${ethPrice} ETH [${YELLOW}FALLBACK${RESET}]`);
-        }
+    // Log Price results (Generic)
+    if (priceStatus === 200) {
+        runtime.log(`✓  Market Price: $${ethPrice} [${GREEN}LIVE${RESET} - CoinGecko (${priceId})]`);
+    } else {
+        runtime.log(`⚠️  Market Price: $${ethPrice} [${YELLOW}FALLBACK${RESET}]`);
     }
 
     // 🎭 DEMO MODE: Injecting suspicious signals for the test-payload-suspicious.json address

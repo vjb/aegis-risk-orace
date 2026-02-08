@@ -1,0 +1,12 @@
+{
+    "_comment": "PASS Scenario - Chainlink Token (Dynamic Price Check)",
+    "_token": "LINK (Chainlink)",
+    "_chain": "Base (Chain ID 8453)",
+    "_expected": "EXECUTE - Low risk",
+    "tokenAddress": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+    "chainId": "8453",
+    "askingPrice": "15.00",
+    "amount": "100",
+    "userAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "coingeckoId": "chainlink"
+}

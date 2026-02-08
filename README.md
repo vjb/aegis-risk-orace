@@ -55,11 +55,24 @@ sequenceDiagram
 ```
 
 ### The "Triple Lock" Standard
-A cryptographic standard inspired by institutional custody. The verdict is valid **ONLY** if signed by the DON and matches three parameters:
+Aegis implements an institutional-grade security standard that binds every risk verdict to three immutable factors. This prevents the most common "Agent interception" attacks where a malicious actor might try to replay an old signature or modify target values.
 
-1.  **Identity:** The signature is bound to the specific user wallet (Preventing front-running/interception).
-2.  **Value:** The asset price is locked at the moment of analysis (Preventing slippage/manipulation).
-3.  **Time:** A strict 5-minute TTL (Time-To-Live) prevents replay of stale risk data.
+1.  **Identity Lock:** The signature is cryptographically bound to the user's **Wallet Address**. This ensures that an assessment generated for one user cannot be "stolen" and used by another to authorized a different transaction.
+2.  **Value Lock:** The **Asset Price** is captured from a decentralized oracle at the millisecond of analysis. If the price on-chain deviates significantly from the price signed by Aegis, the `AegisVault.sol` contract will revert the transaction, protecting against slippage and price manipulation.
+3.  **Time Lock:** Every signature includes a unique **Quantum Salt** and a **Timestamp**. Verdicts have a strict 5-minute TTL (Time-To-Live). This prevents "Stale Data Attacks" where an attacker tries to use a "Safe" verdict from days ago on a token that has since been rugged.
+
+---
+
+## 🧠 Dynamic Intelligence (Multi-Token Support)
+
+Aegis is no longer limited to just Ethereum. The CRE workflow now supports dynamic token analysis.
+
+**How it works:**
+The orchestration layer accepts an optional `coingeckoId` in the request payload. 
+- **In Production:** The AI Agent (ElizaOS) or the Mission Control Dashboard automatically resolves the correct ID from token metadata before triggering the check.
+- **Default:** If omitted, the system defaults to `ethereum` to ensure core protocol safety.
+
+This allows Aegis to act as a **Cross-Chain Risk Hub**, providing the same level of security for LINK, SOL, AVAX, or any asset indexed by global price oracles.
 
 ---
 

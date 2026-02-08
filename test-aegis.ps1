@@ -57,6 +57,7 @@ function Run-Test($ScenarioName, $PayloadFile, $ExpectedNote, $Color = "Cyan") {
 
 # --- RUN WORKFLOW SCENARIOS ---
 Run-Test "Pass Scenario (WETH on Base)" "/app/tests/payloads/test-payload-pass.json" "EXECUTE - Clean asset" "Green"
+Run-Test "Pass Scenario (LINK on Base)" "/app/tests/payloads/test-payload-link.json" "EXECUTE - Clean asset (Dynamic Price)" "Green"
 Run-Test "Safety Fail (Honeypot on BSC)" "/app/tests/payloads/test-payload-fail.json" "REJECT - Safety critical" "Red"
 Run-Test "Economic Fail (Price Manipulation)" "/app/tests/payloads/test-payload-manipulation.json" "REJECT - Market outlier" "Magenta"
 Run-Test "Composite Risk (Suspicious Metadata)" "/app/tests/payloads/test-payload-suspicious.json" "REJECT - High technical risk" "Yellow"
