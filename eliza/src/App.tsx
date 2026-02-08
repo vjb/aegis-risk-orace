@@ -78,7 +78,7 @@ export default function App() {
                     <div className="h-1/3 min-h-[250px] bg-black/50 border border-white/10 rounded-xl p-4 backdrop-blur-md relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
                         <h3 className="text-sm font-bold text-purple-400 mb-4 tracking-widest uppercase">Target Acquisition & Analysis</h3>
-                        <WorkflowVisualizer currentStep={currentStep} />
+                        <WorkflowVisualizer status={workflowStatus} currentStep={currentStep} />
                         <div className="mt-4">
                             <ScanPipeline status={workflowStatus} />
                         </div>

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Brain, Lock, Activity, CheckCircle2 } from 'lucide-react';
+import { Brain, Lock, Activity, CheckCircle2, Hammer } from 'lucide-react';
 
 interface Props {
     status: string;
@@ -23,10 +23,10 @@ export default function WorkflowVisualizer({ status, currentStep }: Props) {
                 {/* Header */}
                 <div className="bg-blue-950/30 px-4 py-2 border-b border-blue-500/20 flex justify-between items-center">
                     <span className="text-[10px] uppercase tracking-widest text-blue-300 font-bold">Aegis Protocol Engine</span>
-                    {status === 'ACTIVE' && (
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
-                            <span className="text-[9px] text-blue-400/80 font-mono">PROCESSING</span>
+                    {status !== 'IDLE' && status !== 'COMPLETE' && (
+                        <div className="flex items-center gap-2 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">
+                            <Hammer className="w-3 h-3 text-blue-400 animate-pulse" />
+                            <span className="text-[9px] text-blue-400 font-mono font-bold">AGENT TOOL: CHECK_RISK</span>
                         </div>
                     )}
                 </div>
