@@ -44,10 +44,11 @@ function Run-Test($ScenarioName, $PayloadFile, $ExpectedNote, $Color = "Cyan") {
             return
         }
 
-        # Colorize output
+        # Highlight cryptographic logs
         if ($line -match "REJECT") { Write-Host $rawLine -ForegroundColor Red }
         elseif ($line -match "EXECUTE") { Write-Host $rawLine -ForegroundColor Green }
         elseif ($line -match "VERIFIED: Signer matches DON") { Write-Host $rawLine -ForegroundColor Cyan }
+        elseif ($line -match "🔐 SIGNING:|Hash:|Salt:|Sig:") { Write-Host $rawLine -ForegroundColor Yellow }
         elseif ($line -match "⚠️|❌") { Write-Host $rawLine -ForegroundColor Yellow }
         else { Write-Host $rawLine }
     }
@@ -55,10 +56,10 @@ function Run-Test($ScenarioName, $PayloadFile, $ExpectedNote, $Color = "Cyan") {
 }
 
 # --- RUN WORKFLOW SCENARIOS ---
-Run-Test "Pass Scenario (WETH on Base)" "/app/test-payload-pass.json" "EXECUTE - Clean asset" "Green"
-Run-Test "Safety Fail (Honeypot on BSC)" "/app/test-payload-honeypot.json" "REJECT - Safety critical" "Red"
-Run-Test "Economic Fail (Price Manipulation)" "/app/test-payload-manipulation.json" "REJECT - Market outlier" "Magenta"
-Run-Test "Composite Risk (Suspicious Metadata)" "/app/test-payload-suspicious.json" "REJECT - High technical risk" "Yellow"
+Run-Test "Pass Scenario (WETH on Base)" "/app/tests/payloads/test-payload-pass.json" "EXECUTE - Clean asset" "Green"
+Run-Test "Safety Fail (Honeypot on BSC)" "/app/tests/payloads/test-payload-fail.json" "REJECT - Safety critical" "Red"
+Run-Test "Economic Fail (Price Manipulation)" "/app/tests/payloads/test-payload-manipulation.json" "REJECT - Market outlier" "Magenta"
+Run-Test "Composite Risk (Suspicious Metadata)" "/app/tests/payloads/test-payload-suspicious.json" "REJECT - High technical risk" "Yellow"
 
 Write-Host "`n════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "  ✅ ANALYSIS SUITE COMPLETE" -ForegroundColor Cyan

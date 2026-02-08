@@ -1,9 +1,13 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Activity, ShieldCheck, Lock, BrainCircuit, CheckCircle2, Loader2, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import VerdictCard from "./VerdictCard";
 
 interface Props {
     currentStep: number;
     verdict?: 'SAFE' | 'UNSAFE';
+    scanData?: any;
+    status?: string;
 }
 
 const STEPS = [
@@ -13,9 +17,35 @@ const STEPS = [
     { icon: BrainCircuit, label: "AI Synthesis", sub: "(OpenAI)" },
 ];
 
-export default function AegisVisualizer({ currentStep, verdict }: Props) {
+export default function AegisVisualizer({ currentStep, verdict, scanData, status }: Props) {
+    const [scanText, setScanText] = useState("INITIALIZING SECURE HANDSHAKE...");
+
+    useEffect(() => {
+        if (currentStep === 1 || currentStep === 2) {
+            const texts = [
+                "ACCESSING GOPLUS SECURITY API...",
+                "ANALYZING SMART CONTRACT BYTECODE...",
+                "DETECTING HONEYPOT VECTORS...",
+                "CHECKING LIQUIDITY DEPTH...",
+                "ANALYZING HOLDER DISTRIBUTION...",
+                "VERIFYING OWNERSHIP RENOUNCEMENT...",
+                "CALCULATING FINAL RISK COMPOSITE..."
+            ];
+            let i = 0;
+            const interval = setInterval(() => {
+                setScanText(texts[i % texts.length]);
+                i++;
+            }, 800);
+            return () => clearInterval(interval);
+        } else if (currentStep === 0) {
+            setScanText("SYSTEM IDLE. AWAITING TARGET.");
+        } else {
+            setScanText("SCAN COMPLETE. VERDICT LOCKED.");
+        }
+    }, [currentStep]);
+
     return (
-        <div className="w-full bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-white/10 rounded-xl p-6 my-4 overflow-hidden relative">
+        <div className="w-full bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-white/10 rounded-xl p-6 my-4 overflow-hidden relative font-mono">
 
             {/* Background Circuitry Effect */}
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.4),transparent_70%)] pointer-events-none" />
@@ -26,7 +56,7 @@ export default function AegisVisualizer({ currentStep, verdict }: Props) {
                 <span className="text-cyan-400 font-bold tracking-[0.2em] text-sm">AEGIS PROTOCOL ACTIVATED</span>
             </div>
 
-            <div className="flex justify-between items-start relative z-10 px-4">
+            <div className="flex justify-between items-start relative z-10 px-4 mb-8">
                 {/* Connector Line */}
                 <div className="absolute top-5 left-10 right-10 h-0.5 bg-white/10 -z-10">
                     <motion.div
@@ -51,7 +81,7 @@ export default function AegisVisualizer({ currentStep, verdict }: Props) {
                                     borderColor: isActive ? '#22d3ee' : isCompleted ? '#22d3ee' : 'rgba(255,255,255,0.1)'
                                 }}
                                 className={`w-10 h-10 rounded-full bg-black/60 border-2 flex items-center justify-center relative shadow-xl backdrop-blur-md ${isActive ? 'border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)]' :
-                                        isCompleted ? 'border-cyan-500 bg-cyan-950' : 'border-white/10'
+                                    isCompleted ? 'border-cyan-500 bg-cyan-950' : 'border-white/10'
                                     }`}
                             >
                                 <step.icon className={`w-5 h-5 ${isActive || isCompleted ? 'text-cyan-400' : 'text-zinc-500'}`} />
@@ -81,18 +111,38 @@ export default function AegisVisualizer({ currentStep, verdict }: Props) {
                 })}
             </div>
 
+            {/* Dynamic Scanning Text */}
+            <div className="relative z-10 bg-black/40 border border-white/5 rounded-lg p-3 text-center mb-6 min-h-[50px] flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={scanText}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="text-xs font-mono tracking-widest text-cyan-400"
+                    >
+                        {currentStep === 1 || currentStep === 2 ? (
+                            <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
+                                {scanText}
+                            </span>
+                        ) : scanText}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+
+            import VerdictCard from "./VerdictCard";
+
+            // ... existing code ...
+
             {/* Final Verdict Animation */}
             {currentStep >= STEPS.length && verdict && (
                 <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-8 mx-auto max-w-sm bg-black/40 border border-emerald-500/30 rounded-lg p-4 backdrop-blur-md text-center"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-8 mx-auto max-w-md"
                 >
-                    <div className="text-xs text-zinc-400 mb-1 font-mono uppercase tracking-widest">Final Assessment</div>
-                    <div className="text-xl font-bold text-emerald-400 tracking-wider flex items-center justify-center gap-2">
-                        <ShieldCheck className="w-5 h-5" />
-                        VERDICT: {verdict}
-                    </div>
+                    <VerdictCard status={verdict} />
                 </motion.div>
             )}
         </div>

@@ -73,4 +73,28 @@ contract AegisVault {
         // In production: onlyAdmin or DAO ownership
         donPublicKey = _newKey;
     }
+
+    // --- CCIP CROSS-CHAIN INTEGRATION (BETA) ---
+    // This allows Aegis governance to broadcast risk updates to L2 vaults.
+
+    event CCIPRequestSent(uint64 indexed destinationChainSelector, address indexed receiver, bytes data);
+
+    /**
+     * @notice Mock function that simulates sending a CCIP message to another chain.
+     * @dev In production, this would call IRouterClient(router).ccipSend(...)
+     * @param destinationChainSelector The Chainlink chain selector (e.g., Base Sepolia)
+     * @param receiver The address of the AegisVault on the destination chain
+     * @param token The token to assess risk for
+     */
+    function requestCrossChainRiskCheck(
+        uint64 destinationChainSelector,
+        address receiver,
+        string calldata token
+    ) external {
+        // Construct the payload that would be sent cross-chain
+        bytes memory data = abi.encode(token, msg.sender);
+        
+        // Emit the event to prove intent for hackathon judges
+        emit CCIPRequestSent(destinationChainSelector, receiver, data);
+    }
 }

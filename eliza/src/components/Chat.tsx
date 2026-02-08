@@ -61,7 +61,7 @@ export default function Chat({ onIntent }: ChatProps) {
                 content: data.text
             }]);
 
-            if (data.content || userMsg.toLowerCase().includes('swap')) {
+            if (data.content || userMsg.toLowerCase().includes('swap') || userMsg.toLowerCase().includes('buy') || userMsg.toLowerCase().includes('trade')) {
                 onIntent(userMsg);
             }
 
@@ -97,8 +97,8 @@ export default function Chat({ onIntent }: ChatProps) {
                                 className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div className={`max-w-[80%] p-4 rounded-2xl relative overflow-hidden backdrop-blur-md ${m.role === 'agent'
-                                        ? 'bg-zinc-900/80 border border-purple-500/30 text-zinc-100 rounded-tl-none shadow-[0_0_15px_rgba(168,85,247,0.1)]'
-                                        : 'bg-indigo-600/20 border border-indigo-500/30 text-white rounded-tr-none'
+                                    ? 'bg-zinc-900/80 border border-purple-500/30 text-zinc-100 rounded-tl-none shadow-[0_0_15px_rgba(168,85,247,0.1)]'
+                                    : 'bg-indigo-600/20 border border-indigo-500/30 text-white rounded-tr-none'
                                     }`}>
                                     {m.role === 'agent' && <div className="absolute top-0 left-0 w-1 h-full bg-purple-500/50" />}
                                     <p className="text-sm leading-relaxed">{m.content}</p>

@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Brain, Lock, Activity, CheckCircle2 } from 'lucide-react';
 
 interface Props {
-    status: 'IDLE' | 'ACTIVE' | 'COMPLETED' | 'REJECTED';
+    status: string;
     currentStep: number;
 }
 
@@ -45,16 +45,16 @@ export default function WorkflowVisualizer({ status, currentStep }: Props) {
 
                     {steps.map((step, index) => {
                         const isActive = status !== 'IDLE' && currentStep >= index;
-                        const isScanActive = status === 'ACTIVE' && currentStep === index;
-                        const isCompleted = status === 'COMPLETED' || (status !== 'IDLE' && currentStep > index);
+                        const isScanActive = status !== 'IDLE' && status !== 'COMPLETE' && currentStep === index;
+                        const isCompleted = status === 'COMPLETE' || (status !== 'IDLE' && currentStep > index);
 
                         return (
                             <div key={step.id} className="relative z-10 flex flex-col items-center">
 
                                 {/* Node Icon Circle */}
                                 <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isActive
-                                        ? 'bg-[#0f1019] border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]'
-                                        : 'bg-[#0a0a12] border-zinc-800 text-zinc-700'
+                                    ? 'bg-[#0f1019] border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]'
+                                    : 'bg-[#0a0a12] border-zinc-800 text-zinc-700'
                                     }`}>
                                     <step.icon className={`w-6 h-6 transition-colors duration-500 ${isActive ? 'text-white' : 'text-zinc-700'
                                         }`} />

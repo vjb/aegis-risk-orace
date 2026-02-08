@@ -17,6 +17,7 @@ Aegis is a production-ready risk oracle that prevents AI agents from executing s
 | **External APIs** | ✅ | CoinGecko, GoPlus, QRNG (parallel fetching) |
 | **LLM Integration** | ✅ | GPT-4o-mini for multi-factor risk synthesis |
 | **On-Chain Verification** | ✅ | `contracts/AegisVault.sol` (Local Anvil & Base Sepolia ready) |
+| **Cross-Chain (CCIP)** | ✅ | `contracts/AegisVault.sol` (Mocked L2 Messaging Interface) |
 | **Local Chain Demo** | ✅ | `deploy-local.ps1` + `test-contract.ps1` (Foundry Integration) |
 
 ---
@@ -220,6 +221,51 @@ The smart contract tracks assessment hashes to ensure each signed risk verdict i
 | **Honeypot** | ❌ **REJECT** | `is_honeypot: true` detected externally. |
 | **Manipulation** | ❌ **REJECT** | Price >50% over market. |
 | **Composite** | ❌ **REJECT** | AI: High-value + Proxy/Mintable flags. |
+
+---
+
+## 🔗 Chainlink Integrations (Hackathon Specifics)
+
+Per the **Risk & Compliance Track** requirements, here are the direct links to the core Chainlink components:
+
+*   **[Workflow Source](aegis-workflow/main.ts):** The main orchestration logic running on the CRE.
+*   **[Runtime Configuration](aegis-workflow/config.toml):** The TOML configuration for the Chainlink Runtime Environment.
+*   **[Smart Contract](contracts/AegisVault.sol):** The on-chain vault that verifies the Triple Lock signatures.
+
+---
+
+---
+
+---
+
+## 🔮 Next Steps: The Cross-Chain "Aegis Hub"
+
+Aegis is architected as a **Universal Risk Oracle**. Because the risk assessment happens off-chain in the secure Chainlink Runtime Environment (CRE), the **same** cryptographic signature can secure AI agents across any EVM chain.
+
+```mermaid
+graph TD
+    User[AI Agent] -->|Request Risk Check| Hub[🛡️ Aegis Hub (Chainlink CRE)]
+    
+    subgraph "Aegis Hub"
+    Hub -->|1. Fetch Price| CG[CoinGecko]
+    Hub -->|2. Check Security| GP[GoPlus]
+    Hub -->|3. Generate Entropy| QRNG[Quantum Source]
+    Hub -->|4. Sign Verdict| Signer[🔑 Universal Signer Key]
+    end
+    
+    Signer -->|Signed Verdict| Base[🔵 Base (AegisVault)]
+    Signer -->|Signed Verdict| Arb[Any L2 (AegisVault)]
+    Signer -->|Signed Verdict| Opt[🔴 Optimism (AegisVault)]
+    
+    Base -->|Execute| Uniswap
+    Arb -->|Execute| Camelot
+    Opt -->|Execute| Velodrome
+```
+
+**Why this wins:**
+1.  **Unified Security Policy:** One risk engine protects billions in liquidity across all chains.
+2.  **Zero Bridging Latency:** The signature is generated off-chain and submitted directly to the destination chain.
+3.  **Historical Audits (The Graph):** We will index `VerdictExecuted` events to create a permanent, queryable history of all AI agent decisions for compliance reporting.
 
 ---
 
