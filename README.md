@@ -97,18 +97,14 @@ const [priceResult, entropyResult, securityResult] = await Promise.all([
 # Full E2E Demo (AI → Signature → Blockchain)
 .\run-full-flow.ps1   # 🚀 Complete integration: CRE analysis -> Anvil execution
 
-# OR run individual components:
-
 # 1. Start Anvil & Deploy Contract (Local Chain)
 .\deploy-local.ps1    # Starts Anvil on port 8545 & deploys AegisVault.sol
 
-# 2. Run Integration Tests
-.\test-contract.ps1   # 🧪 E2E: CRE Verdict → Contract Execution
-# 2. Run Integration Tests
-.\test-contract.ps1   # 🧪 E2E: CRE Verdict → Contract Execution
-.\test-signature.ps1  # 🔐 Off-chain Crypto Verification Demo (NO ANVIL REQUIRED)
+# 2. Run Individual Components
+.\test-contract.ps1   # 🧪 Contract Integration (Anvil Required)
+.\test-signature.ps1  # 🔐 Cryptographic Proofs (NO ANVIL REQUIRED)
 
-# 3. Start Full Demo Stack (Frontend + Backend)
+# 3. Visual Demo Suite (Frontend + ElizaOS)
 .\start-aegis.ps1     # Frontend: localhost:3005, Backend: localhost:3011
 .\stop-aegis.ps1      # Stop all services
 ```
@@ -135,15 +131,7 @@ Result: Proves full stack integration with live demo
 - Replay attacks are blocked by the contract
 - No manual copy-paste needed — fully automated
 
-### 🌐 Frontend UI + ElizaOS Agent
-
-**`start-aegis.ps1`** launches the full demo stack:
-
-```powershell
-.\start-aegis.ps1   # Starts both services in separate windows
-```
-
-### 🌐 Frontend UI + ElizaOS Agent
+### 🌐 Visual Dashboard (Simulation Mode)
 
 **`start-aegis.ps1`** launches the visual demo stack (No blockchain required):
 
