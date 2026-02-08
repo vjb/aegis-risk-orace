@@ -91,6 +91,9 @@ const [priceResult, entropyResult, securityResult] = await Promise.all([
 ## 🚀 Quick Start
 
 ```powershell
+# THE UBER TESTER (Verify ALL systems in one command)
+.\test-everything.ps1 # 🛡️ Environment → APIs → Crypto → Contract → E2E
+
 # Full E2E Demo (AI → Signature → Blockchain)
 .\run-full-flow.ps1   # 🚀 Complete integration: CRE analysis -> Anvil execution
 

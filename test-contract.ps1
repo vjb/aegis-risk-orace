@@ -62,7 +62,7 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 
 # Prepare RiskAssessment struct (tokenAddress, chainId, riskScore, decision, timestamp)
 $timestamp = [Math]::Floor((Get-Date).ToUniversalTime().Subtract([datetime]'1970-01-01').TotalSeconds)
-$assessment = "(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,8453,3,EXECUTE,$timestamp)"
+$assessment = "(WETH,8453,3,EXECUTE,$timestamp)"
 $signature = "0x1234567890abcdef"  # Mock signature (contract accepts any non-empty)
 
 Write-Host "   Token: WETH (0xC02a...6Cc2)" -ForegroundColor DarkGray
@@ -87,7 +87,7 @@ Write-Host "🧪 TEST 2: REJECT Verdict → Trade Should Be Blocked" -Foreground
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
 
 # High risk score + REJECT decision
-$assessmentReject = "(0xDEADBEEF00000000000000000000000000000000,8453,9,REJECT,$timestamp)"
+$assessmentReject = "(SCAM,8453,9,REJECT,$timestamp)"
 
 Write-Host "   Token: SCAM (0xDEAD...0000)" -ForegroundColor DarkGray
 Write-Host "   Risk Score: 9 (High Risk)" -ForegroundColor DarkGray
@@ -132,3 +132,9 @@ Write-Host "   • CRE verdicts control on-chain execution" -ForegroundColor Dar
 Write-Host "   • Risk scores are enforced by smart contract" -ForegroundColor DarkGray
 Write-Host "   • Replay attacks are prevented" -ForegroundColor DarkGray
 Write-Host ""
+
+if ($FailedTests -gt 0) {
+    exit 1
+} else {
+    exit 0
+}

@@ -1,10 +1,4 @@
-#!/usr/bin/env bun
-/**
- * Aegis API Health Check - Tests all external APIs
- * Usage: bun run test-all-apis.ts
- */
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || Bun.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Test configuration
 const CONFIG = {

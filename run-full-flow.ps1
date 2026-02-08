@@ -276,3 +276,5 @@ Write-Host "  • Chainlink CRE for AI orchestration ✓" -ForegroundColor DarkG
 Write-Host "  • Cryptographic signatures for trust ✓" -ForegroundColor DarkGray
 Write-Host "  • On-chain enforcement via Solidity ✓" -ForegroundColor DarkGray
 Write-Host ""
+
+exit 0
