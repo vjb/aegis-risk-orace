@@ -130,7 +130,40 @@ Result: Proves full stack integration with live demo
 - Replay attacks are blocked by the contract
 - No manual copy-paste needed — fully automated
 
+### 🌐 Frontend UI + ElizaOS Agent
+
+**`start-aegis.ps1`** launches the full demo stack:
+
+```powershell
+.\start-aegis.ps1   # Starts both services in separate windows
+```
+
+**What You Get:**
+- **Frontend (`localhost:3005`)**: Mission Control UI with real-time risk feed
+  - Live token scanning interface
+  - Multi-agent workflow visualization
+  - Security alerts and verdict display
+  - Built with Next.js 14 + Tailwind CSS
+
+- **ElizaOS Backend (`localhost:3011`)**: AI agent server
+  - Chat-based risk analysis interface
+  - Intent parsing for DeFi commands
+  - Integration point for agent orchestration
+  - Character: Aegis (compliance-focused agent)
+
+**Demo Flow:**
+1. User inputs token address in frontend
+2. ElizaOS agent receives intent → triggers CRE workflow
+3. Risk verdict appears in real-time feed
+4. Frontend shows APPROVE/REJECT decision with score
+
+**To Stop:**
+```powershell
+.\stop-aegis.ps1   # Gracefully stops both services
+```
+
 ---
+
 
 ## 📁 Project Structure
 
