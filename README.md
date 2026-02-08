@@ -141,7 +141,7 @@ We tested Aegis against real-world threats to ensure robustness.
 
 ## 🎛️ Simulation Dashboard (Mission Control)
 
-![Aegis Mission Control - Risk Stream](../docs/images/UserInterface.PNG)
+![Aegis Mission Control - Risk Stream](./docs/images/UserInterface.PNG)
 
 To visualize the CRE workflow, we built a **Next.js 16 Visualization Dashboard** ([`aegis-web/`](./aegis-web/)).
 
@@ -150,7 +150,7 @@ To visualize the CRE workflow, we built a **Next.js 16 Visualization Dashboard**
 *   **Eliza Chat:** Talk directly to the `Aegis` agent to ask "Is this token safe?" or "Why was my trade rejected?".
 *   **Verdict Indicators:** Clear GREEN/RED status lights that update only when a cryptographically valid signature is received.
 
-![Aegis Verdict - Approved State](../docs/images/UserInterface-approved.PNG)
+![Aegis Verdict - Approved State](./docs/images/UserInterface-approved.PNG)
 
 ### 🚀 One-Click Launch
 We've made it trivial to spin up the full UI + Agent stack:
