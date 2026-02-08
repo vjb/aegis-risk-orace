@@ -1,6 +1,20 @@
 # 🌐 Aegis Web
 
-**Next.js 14 Mission Control UI** for the Aegis Risk Oracle.
+![Aegis Web Interface](../docs/images/UserInterface.PNG)
+
+**Next.js 16 Visualization Dashboard** for the Aegis Risk Oracle.
+
+## 📸 Visual Tour
+
+### 1. The Risk Synthesis Stream
+Real-time visualization of the CRE workflow execution.
+
+![Risk Stream](../docs/images/UserInterface.PNG)
+
+### 2. Validated Verdict (Green)
+A cryptographically valid signature triggers the "Approved" state.
+
+![Approved State](../docs/images/UserInterface-approved.PNG)
 
 ## Features
 - **Parallel Scanning Visualization** - Real-time indicators for Market, Entropy, and Security checks
