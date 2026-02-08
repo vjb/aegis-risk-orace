@@ -88,8 +88,9 @@ Before running the Quick Start, ensure your environment is ready.
 3.  **Secrets Configuration (CRITICAL):**
     ```bash
     cp .env.example .env
-    # ⚠️ Open .env and add your OPENAI_API_KEY
+    # ⚠️ Open .env and add your OPENAI_API_KEY and PINATA_JWT
     ```
+([.env](file:///c:/Users/vjbel/hacks/chainhack/.env))
 
 ---
 
@@ -110,6 +111,7 @@ docker exec aegis_dev sh -c "cd /app && cre workflow simulate ./aegis-workflow -
 ```bash
 docker exec aegis_dev sh -c "cd /app/aegis-workflow && bun run verify-signature.ts"
 ```
+([verify-signature.ts](file:///c:/Users/vjbel/hacks/chainhack/aegis-workflow/verify-signature.ts))
 
 ---
 
@@ -121,12 +123,13 @@ docker exec aegis_dev sh -c "cd /app/aegis-workflow && bun run verify-signature.
 ```powershell
 .\test-everything.ps1 # 🛡️ Environment → APIs → Crypto → Contract → E2E
 ```
+([test-everything.ps1](file:///c:/Users/vjbel/hacks/chainhack/test-everything.ps1))
 
 **Option B: The Visual Dashboard (Frontend + ElizaOS)**
 ```powershell
 .\start-aegis.ps1     # Frontend: localhost:3005, Backend: localhost:3011
-.\stop-aegis.ps1      # Stop all services
 ```
+([start-aegis.ps1](file:///c:/Users/vjbel/hacks/chainhack/start-aegis.ps1) | [stop-aegis.ps1](file:///c:/Users/vjbel/hacks/chainhack/stop-aegis.ps1))
 
 ---
 
@@ -137,8 +140,8 @@ docker exec aegis_dev sh -c "cd /app/aegis-workflow && bun run verify-signature.
 **🚀 AEGIS FULL E2E DEMO: AI → SIGNATURE → BLOCKCHAIN**
 
 * **Step 1:** ✅ Prerequisites (Anvil, Docker, Contract)
-* **Step 2:** 🧠 AI Risk Analysis (Chainlink CRE)
-* **Step 3:** 💾 **IPFS Audit Archiving (Pinata)**
+* **Step 2:** 🧠 AI Risk Analysis ([Chainlink CRE](file:///c:/Users/vjbel/hacks/chainhack/aegis-workflow/main.ts))
+* **Step 3:** 💾 **IPFS Audit Archiving ([Pinata](file:///c:/Users/vjbel/hacks/chainhack/aegis-workflow/main.ts))**
 * **Step 4:** 🔐 Signed Transaction Prep (Quad-Lock)
 * **Step 5:** ⛓️ On-Chain Execution (Anvil)
 * **Step 6:** 🛡️ Replay Attack Prevention
@@ -223,6 +226,7 @@ These scripts isolate specific parts of the Chainlink workflow:
 # 🔐 Verify Off-Chain Cryptography (Signatures & Replay Protection)
 .\test-signature.ps1
 ```
+([test-aegis.ps1](file:///c:/Users/vjbel/hacks/chainhack/test-aegis.ps1) | [test-signature.ps1](file:///c:/Users/vjbel/hacks/chainhack/test-signature.ps1))
 
 ---
 
@@ -230,18 +234,18 @@ These scripts isolate specific parts of the Chainlink workflow:
 
 ```bash
 aegis-risk-oracle/
-├── aegis-workflow/       # ⛓️ Chainlink CRE Workflow (main.ts)
+├── [aegis-workflow/](file:///c:/Users/vjbel/hacks/chainhack/aegis-workflow/)       # ⛓️ Chainlink CRE Workflow ([main.ts](file:///c:/Users/vjbel/hacks/chainhack/aegis-workflow/main.ts))
 ├── aegis-web/            # 🌐 Next.js 14 Frontend (Mission Control UI)
-├── contracts/            # 🔐 Solidity (AegisVault.sol)
+├── [contracts/](file:///c:/Users/vjbel/hacks/chainhack/contracts/)            # 🔐 Solidity ([AegisVault.sol](file:///c:/Users/vjbel/hacks/chainhack/contracts/AegisVault.sol))
 ├── tests/                # 🧪 Unit Tests & Payloads
 │   ├── payloads/         # 📄 JSON test cases (Pass/Honeypot/etc.)
 │   └── *.ts/*.ps1        # 📁 Individual component tests
-├── run-full-flow.ps1     # 🎬 E2E DEMO: AI → Signature → Blockchain → Replay
-├── deploy-local.ps1      # 🔗 Deploy AegisVault to local Anvil chain
-├── test-contract.ps1     # 🧪 Contract integration tests (Approve/Reject/Replay)
-├── test-signature.ps1    # 🔐 Off-chain signature verification demo
-├── start-aegis.ps1       # 🚀 Start demo stack (Front + Backend)
-└── stop-aegis.ps1        # 🛑 Stop demo stack
+├── [run-full-flow.ps1](file:///c:/Users/vjbel/hacks/chainhack/run-full-flow.ps1)     # 🎬 E2E DEMO: AI → Signature → Blockchain → Replay
+├── [deploy-local.ps1](file:///c:/Users/vjbel/hacks/chainhack/deploy-local.ps1)      # 🔗 Deploy AegisVault to local Anvil chain
+├── [test-contract.ps1](file:///c:/Users/vjbel/hacks/chainhack/test-contract.ps1)     # 🧪 Contract integration tests (Approve/Reject/Replay)
+├── [test-signature.ps1](file:///c:/Users/vjbel/hacks/chainhack/test-signature.ps1)    # 🔐 Off-chain signature verification demo
+├── [start-aegis.ps1](file:///c:/Users/vjbel/hacks/chainhack/start-aegis.ps1)       # 🚀 Start demo stack (Front + Backend)
+└── [stop-aegis.ps1](file:///c:/Users/vjbel/hacks/chainhack/stop-aegis.ps1)        # 🛑 Stop demo stack
 ```
 
 ---
@@ -262,8 +266,8 @@ Every risk verdict is cryptographically bound to three immutable factors:
 
 Aegis uses standard asymmetric cryptography to bridge the "Off-Chain" and "On-Chain" worlds trustlessly.
 
-* **Off-Chain (The Signer):** The Chainlink CRE environment holds a secure **Private Key**. Once the AI Risk Officer calculates a verdict, the CRE signs a hash of the data using this private key. This ensures the data originated from the trusted Aegis hardware and hasn't been tampered with.
-* **On-Chain (The Vault):** The `AegisVault.sol` smart contract is deployed with the corresponding **Public Key**. When the agent submits the transaction, the contract uses `ecrecover` to compare the signature against the stored Public Key. If it doesn't match, the transaction reverts immediately.
+* **Off-Chain (The Signer):** The Chainlink CRE environment holds a secure **Private Key**. Once the AI Risk Officer calculates a verdict, the CRE signs a hash of the data using this private key. This ensures the data originated from the trusted Aegis hardware and hasn't been tampered with. (See [main.ts](file:///c:/Users/vjbel/hacks/chainhack/aegis-workflow/main.ts))
+* **On-Chain (The Vault):** The [`AegisVault.sol`](file:///c:/Users/vjbel/hacks/chainhack/contracts/AegisVault.sol) smart contract is deployed with the corresponding **Public Key**. When the agent submits the transaction, the contract uses `ecrecover` to compare the signature against the stored Public Key. If it doesn't match, the transaction reverts immediately.
 
 ### 3. Replay Protection
 
