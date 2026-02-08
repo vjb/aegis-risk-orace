@@ -49,9 +49,9 @@ sequenceDiagram
     end
     
     CRE->>APIs: GPT-4o-mini (Reasoning Engine)
-    CRE->>IPFS: Archive Audit Brief (Verifiable CID)
+    CRE->>IPFS: Archive JSON Audit Brief (Verifiable CID)
     CRE->>CRE: Quad-Lock Cryptographic Signing
-    CRE-->>Agent: Signed Verdict + Proofs
+    CRE-->>Agent: Signed Verdict + CID Proof
     Agent->>Vault: Trigger Swap with Signature
     Vault->>Vault: Verify Quad-Locker → Execute
 ```
@@ -138,9 +138,10 @@ docker exec aegis_dev sh -c "cd /app/aegis-workflow && bun run verify-signature.
 
 * **Step 1:** ✅ Prerequisites (Anvil, Docker, Contract)
 * **Step 2:** 🧠 AI Risk Analysis (Chainlink CRE)
-* **Step 3:** 🔐 Signed Transaction Prep
-* **Step 4:** ⛓️ On-Chain Execution (Anvil)
-* **Step 5:** 🛡️ Replay Attack Prevention
+* **Step 3:** 💾 **IPFS Audit Archiving (Pinata)**
+* **Step 4:** 🔐 Signed Transaction Prep (Quad-Lock)
+* **Step 5:** ⛓️ On-Chain Execution (Anvil)
+* **Step 6:** 🛡️ Replay Attack Prevention
 
 **Result:** Proves full stack integration with live demo.
 
