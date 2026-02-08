@@ -244,18 +244,18 @@ Aegis is architected as a **Universal Risk Oracle**. Because the risk assessment
 
 ```mermaid
 graph TD
-    User[AI Agent] -->|Request Risk Check| Hub[🛡️ Aegis Hub (Chainlink CRE)]
+    User["AI Agent"] -->|Request Risk Check| Hub["🛡️ Aegis Hub (Chainlink CRE)"]
     
     subgraph "Aegis Hub"
-    Hub -->|1. Fetch Price| CG[CoinGecko]
-    Hub -->|2. Check Security| GP[GoPlus]
-    Hub -->|3. Generate Entropy| QRNG[Quantum Source]
-    Hub -->|4. Sign Verdict| Signer[🔑 Universal Signer Key]
+    Hub -->|1. Fetch Price| CG["CoinGecko"]
+    Hub -->|2. Check Security| GP["GoPlus"]
+    Hub -->|3. Generate Entropy| QRNG["Quantum Source"]
+    Hub -->|4. Sign Verdict| Signer["🔑 Universal Signer Key"]
     end
     
-    Signer -->|Signed Verdict| Base[🔵 Base (AegisVault)]
-    Signer -->|Signed Verdict| Arb[Any L2 (AegisVault)]
-    Signer -->|Signed Verdict| Opt[🔴 Optimism (AegisVault)]
+    Signer -->|Signed Verdict| Base["🔵 Base (AegisVault)"]
+    Signer -->|Signed Verdict| Arb["Any L2 (AegisVault)"]
+    Signer -->|Signed Verdict| Opt["🔴 Optimism (AegisVault)"]
     
     Base -->|Execute| Uniswap
     Arb -->|Execute| Camelot
