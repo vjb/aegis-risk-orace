@@ -160,6 +160,8 @@ We've made it trivial to spin up the full UI + Agent stack:
 ```
 
 > **Note:** The UI runs on `http://localhost:3005` and connects to the Eliza agent on port `3011`.
+>
+> **⚠️ Judging Note:** The Web UI is a **simulation dashboard** designed to visualize the backend logic. The core innovation is the **TypeScript Workflow** (`aegis-workflow/main.ts`) running in the CRE, which operates independently of any frontend.
 
 ---
 
