@@ -10,7 +10,7 @@ The `AegisVault` contract demonstrates how AI agents can execute trades **only**
 
 ```solidity
 function swapWithOracle(
-    string memory token,
+    address token,
     uint256 amount,
     RiskAssessment memory assessment,
     bytes memory signature
