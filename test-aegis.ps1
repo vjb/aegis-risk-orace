@@ -49,8 +49,19 @@ function Run-Test($ScenarioName, $PayloadFile, $ExpectedNote, $Color = "Cyan") {
             if ($line -match "EXECUTE") { Write-Host $rawLine -ForegroundColor Green }
             else { Write-Host $rawLine -ForegroundColor Red }
         }
+        elseif ($line -match "--- VERIFIABLE AI AUDIT ---") {
+            $GLOBAL:InAuditBlock = $true
+            Write-Host $rawLine -ForegroundColor Cyan
+        }
+        elseif ($line -match "COMPLIANCE ARCHIVE|CRYPTOGRAPHIC TRIPLE-LOCK") {
+            $GLOBAL:InAuditBlock = $false
+            Write-Host $rawLine -ForegroundColor Yellow
+        }
+        elseif ($GLOBAL:InAuditBlock -eq $true) {
+            Write-Host $rawLine -ForegroundColor Yellow
+        }
         elseif ($line -match "INPUT RECEIVED|AI AUDIT|PROTECTION ACTIVE") { Write-Host $rawLine -ForegroundColor Cyan }
-        elseif ($line -match "DATA ACQUISITION|AI SYNTHESIS|COMPLIANCE ARCHIVE|CRYPTOGRAPHIC TRIPLE-LOCK") { Write-Host $rawLine -ForegroundColor Yellow }
+        elseif ($line -match "DATA ACQUISITION|AI SYNTHESIS") { Write-Host $rawLine -ForegroundColor Yellow }
         elseif ($line -match "Fetch|Send|Ping") { Write-Host $rawLine -ForegroundColor Gray }
         elseif ($line -match "Success|Audit Pinned|Resolved|Scan") { Write-Host $rawLine -ForegroundColor Green }
         elseif ($line -match "Fallback|Warning|Error") { Write-Host $rawLine -ForegroundColor Yellow }
