@@ -108,6 +108,28 @@ const [priceResult, entropyResult, securityResult] = await Promise.all([
 .\stop-aegis.ps1      # Stop all services
 ```
 
+### 🎬 E2E Demo Showcase
+
+**`run-full-flow.ps1`** demonstrates the complete integration:
+
+```
+🚀 AEGIS FULL E2E DEMO: AI → SIGNATURE → BLOCKCHAIN
+
+Step 1: ✅ Prerequisites (Anvil, Docker, Contract)
+Step 2: 🧠 AI Risk Analysis (Chainlink CRE)
+Step 3: 🔐 Signed Transaction Prep
+Step 4: ⛓️  On-Chain Execution (Anvil)
+Step 5: 🛡️  Replay Attack Prevention
+
+Result: Proves full stack integration with live demo
+```
+
+**What It Proves:**
+- AI analysis flows directly to blockchain execution
+- Cryptographic signatures prevent tampering
+- Replay attacks are blocked by the contract
+- No manual copy-paste needed — fully automated
+
 ---
 
 ## 📁 Project Structure
@@ -119,10 +141,13 @@ aegis-risk-oracle/
 ├── contracts/            # 🔐 Solidity (AegisVault.sol)
 ├── eliza/                # 🤖 ElizaOS Agent (character.json)
 ├── integrations/         # 🔌 Agent plugins (ElizaOS, LangChain)
+├── run-full-flow.ps1     # 🎬 E2E DEMO: AI → Signature → Blockchain → Replay
+├── deploy-local.ps1      # 🔗 Deploy AegisVault to local Anvil chain
+├── test-contract.ps1     # 🧪 Contract integration tests (Approve/Reject/Replay)
+├── test-signature.ps1    # 🔐 Off-chain signature verification demo
 ├── test-aegis.ps1        # 🧪 AI risk analysis test suite
 ├── test-crypto.ps1       # 🔐 Cryptographic proof tests
 ├── test-all-apis.ts      # 📡 API connectivity tests
-├── deploy-local.ps1      # 🔗 Deploy AegisVault to local Anvil chain
 ├── start-aegis.ps1       # 🚀 Start demo stack
 └── stop-aegis.ps1        # 🛑 Stop demo stack
 ```
