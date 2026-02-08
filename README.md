@@ -90,15 +90,17 @@ const [priceResult, entropyResult, securityResult] = await Promise.all([
 ## 🚀 Quick Start
 
 ```powershell
-# Windows: Start full demo stack
-.\start-aegis.ps1     # Frontend: localhost:3005, Backend: localhost:3011
-.\stop-aegis.ps1      # Stop all services
+```powershell
+# 1. Start Anvil & Deploy Contract (Local Chain)
+.\deploy-local.ps1    # Starts Anvil on port 8545 & deploys AegisVault
 
-# Docker: Run CRE workflow tests
-docker-compose up -d  # Or: docker build -t aegis-dev . && docker run -it aegis-dev bash
-docker exec -it aegis_dev bash
-./test-aegis.ps1      # AI risk analysis
-./test-crypto.ps1     # Cryptographic proofs
+# 2. Run Integration Tests
+.\test-contract.ps1   # 🧪 E2E: CRE Verdict → Contract Execution
+.\test-signature.ps1  # 🔐 Off-chain Crypto Verification Demo
+
+# 3. Start Full Demo Stack (Frontend + Backend)
+.\start-aegis.ps1     # Frontend: localhost:3005
+```
 ```
 
 ---
