@@ -95,7 +95,8 @@ const [priceResult, entropyResult, securityResult] = await Promise.all([
 .\stop-aegis.ps1      # Stop all services
 
 # Docker: Run CRE workflow tests
-docker build -t aegis-dev . && docker run -it aegis-dev bash
+docker-compose up -d  # Or: docker build -t aegis-dev . && docker run -it aegis-dev bash
+docker exec -it aegis_dev bash
 ./test-aegis.ps1      # AI risk analysis
 ./test-crypto.ps1     # Cryptographic proofs
 ```
