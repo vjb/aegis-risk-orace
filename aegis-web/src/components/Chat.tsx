@@ -20,7 +20,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Activity, Lock, Zap, ArrowRight, Loader2, Check } from 'lucide-react';
+import { Shield, Activity, Lock, Zap, ArrowRight, Loader2, Check, Brain, Search, AlertTriangle, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/moving-border";
@@ -43,8 +43,8 @@ export default function Chat({ onIntent }: ChatProps) {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [scanningStatus, setScanningStatus] = useState<ScanningStatus>('idle');
-    const [activeSteps, setActiveSteps] = useState<boolean[]>([false, false, false]); // [Market, Entropy, Security]
-    const [completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false]); // Tracks which steps are done
+    const [activeSteps, setActiveSteps] = useState<boolean[]>([false, false, false]); // [Market, Security, AI]
+    const [completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false]);
     const [messages, setMessages] = useState<Message[]>([
         { id: '1', role: 'agent', content: "Systems Online. Aegis Protocol Active. Awaiting Command." },
     ]);
@@ -90,21 +90,29 @@ export default function Chat({ onIntent }: ChatProps) {
             setCompletedSteps([false, false, false]);
             await new Promise(resolve => setTimeout(resolve, 800));
 
-            // Simultaneous start - all indicators light up at once
+            // Simultaneous start - Market & Security
             setScanningStatus('scanning');
-            setActiveSteps([true, true, true]);
+            setActiveSteps([true, true, false]);
 
-            // Staggered completion - Market (fastest), Security (mid), Entropy (slowest)
-            setTimeout(() => setCompletedSteps(prev => [true, prev[1], prev[2]]), 1200); // Market done
-            setTimeout(() => setCompletedSteps(prev => [prev[0], prev[1], true]), 2200); // Security done
-            await new Promise(resolve => setTimeout(resolve, 3500)); // Wait for Entropy
+            // Staggered completion
+            setTimeout(() => setCompletedSteps(prev => [true, prev[1], prev[2]]), 1500); // Market done
+            setTimeout(() => setCompletedSteps(prev => [prev[0], true, prev[2]]), 2200); // Security done
+
+            // AI Handoff
+            setTimeout(() => {
+                setActiveSteps([true, true, true]);
+                setScanningStatus('analyzing');
+            }, 2300);
+
+            // AI Sub-tasks simulation (just visual timing)
+            await new Promise(resolve => setTimeout(resolve, 4500)); // AI thinking time
             setCompletedSteps([true, true, true]); // All done
 
             if (isScamToken) {
                 setMessages(prev => [...prev, {
                     id: Date.now().toString(),
                     role: 'agent',
-                    content: `❌ [AEGIS_DENIED] Critical security protocol triggered.\n\nAsset: SCAM-TOKEN\nVerdict: REJECT\nReason: Malicious proxy pattern and Mintable contract detected. Liquidity at extreme risk.\n\nSecurity Score: 10/10 (Critical)`,
+                    content: `❌ [AEGIS_DENIED] Critical security protocol triggered.\n\nAsset: SCAM-TOKEN\nVerdict: REJECT\nACTIVE RISK FLAGS (Bitmask: 352):\n\n  [!] IMPERSONATION DETECTED (Flag 32)\n      "Token name spoofs major brand 'Coinbase'."\n\n  [!] WASH TRADING (Flag 64)\n      "Volume is 125x higher than available Liquidity."\n\n  [!] PHISHING SCAM (Flag 256)\n      "URL contains malicious keyword 'claim-rewards'."\n\nSecurity Score: 0/100 (Critical)`,
                     isVerdict: true
                 }]);
                 setIsLoading(false);
@@ -257,9 +265,22 @@ export default function Chat({ onIntent }: ChatProps) {
                                 </div>
                                 {scanningStatus !== 'idle' && (
                                     <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-white/5">
-                                        <InlinePipelineStep active={activeSteps[0]} completed={completedSteps[0]} icon={<Activity className="w-4 h-4" />} label="MARKET DATA" />
-                                        <InlinePipelineStep active={activeSteps[1]} completed={completedSteps[1]} icon={<Zap className="w-4 h-4" />} label="QUANTUM ENTROPY" />
-                                        <InlinePipelineStep active={activeSteps[2]} completed={completedSteps[2]} icon={<Lock className="w-4 h-4" />} label="SECURITY SCORE" />
+                                        <InlinePipelineStep active={activeSteps[0]} completed={completedSteps[0]} icon={<Activity className="w-4 h-4" />} label="MARKET DATA (CoinGecko)" />
+                                        <InlinePipelineStep active={activeSteps[1]} completed={completedSteps[1]} icon={<Shield className="w-4 h-4" />} label="SECURITY AUDIT (GoPlus)" />
+                                        <InlinePipelineStep active={activeSteps[2]} completed={completedSteps[2]} icon={<Brain className="w-4 h-4" />} label="AI FORENSIC SCAN (GPT-4o)" />
+
+                                        {activeSteps[2] && !completedSteps[2] && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                className="ml-8 flex flex-col gap-1 border-l-2 border-cyan-500/20 pl-4 py-2"
+                                            >
+                                                <SubTask label="Checking Impersonation..." delay={0} />
+                                                <SubTask label="Analyzing Volume/Liquidity..." delay={0.5} />
+                                                <SubTask label="Profiling Deployer..." delay={1} />
+                                                <SubTask label="Scanning Metadata..." delay={1.5} />
+                                            </motion.div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -295,6 +316,19 @@ export default function Chat({ onIntent }: ChatProps) {
                 </div>
             </CardContent>
         </Card>
+    );
+}
+
+function SubTask({ label, delay }: { label: string, delay: number }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay }}
+            className="flex items-center gap-2 text-[10px] text-cyan-300/70"
+        >
+            <Loader2 className="w-3 h-3 animate-spin" /> {label}
+        </motion.div>
     );
 }
 

@@ -17,7 +17,11 @@ const RISK_FLAGS = {
     VOLATILITY_WARN: 2,
     SUSPICIOUS_CODE: 4,
     OWNERSHIP_RISK: 8,
-    HONEYPOT_FAIL: 16
+    HONEYPOT_FAIL: 16,
+    IMPERSONATION_RISK: 32,
+    WASH_TRADING: 64,
+    SUSPICIOUS_DEPLOYER: 128,
+    PHISHING_SCAM: 256
 };
 
 const ERROR_CODES = {
@@ -30,6 +34,7 @@ const ERROR_CODES = {
 const configSchema = z.object({
     openaiApiKey: z.string().optional(),
     pinataJwt: z.string().optional(),
+    coingeckoApiKey: z.string().optional(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -75,13 +80,29 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     const httpClient = new cre.capabilities.HTTPClient();
 
+    let apiKeySecret = runtime.config.coingeckoApiKey;
+    if (!apiKeySecret) {
+        const secret = await runtime.getSecret({ id: "COINGECKO_API_KEY" });
+        // Handle potential object return from getSecret
+        if (typeof secret === 'object' && secret !== null) {
+            apiKeySecret = (secret as any).value || (secret as any).secret || JSON.stringify(secret);
+        } else {
+            apiKeySecret = secret as string;
+        }
+    }
+
+    const cgApiKey = apiKeySecret || ""; // Ensure string
+
+    runtime.log(`${CYAN}🔑 API Key Check:${RESET} Type=${typeof cgApiKey} Length=${cgApiKey.length}`);
+
     // 2. Deterministic Data Acquisition
     runtime.log(`\n${YELLOW}━━━ 🌐  PARALLEL SIGNAL ACQUISITION ━━━${RESET}`);
 
     const [cgResult, gpResult] = await Promise.all([
         httpClient.sendRequest(runtime as any, {
-            url: `https://api.coingecko.com/api/v3/simple/price?ids=${requestData.coingeckoId || 'ethereum'}&vs_currencies=usd`,
-            method: "GET"
+            url: `https://api.coingecko.com/api/v3/simple/price?ids=${requestData.coingeckoId || 'ethereum'}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true`,
+            method: "GET",
+            headers: cgApiKey ? { "x-cg-demo-api-key": cgApiKey } : {}
         }).result(),
         httpClient.sendRequest(runtime as any, {
             url: `https://api.gopluslabs.io/api/v1/token_security/${requestData.chainId}?contract_addresses=${requestData.tokenAddress}`,
@@ -108,7 +129,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const openaiKey = runtime.config.openaiApiKey || await runtime.getSecret({ id: "OPENAI_API_KEY" });
 
     // Calculate Deviation for Context
-    let marketPrice = (coingecko as any)[requestData.coingeckoId || 'ethereum']?.usd || 0;
+    const cgData = (coingecko as any)[requestData.coingeckoId || 'ethereum'] || {};
+    let marketPrice = cgData.usd || 0;
 
     // DEMO FALLBACK: If API fails to return price (rate limit), use safe default to unblock demo
     if (marketPrice === 0 && (requestData.coingeckoId === 'ethereum' || !requestData.coingeckoId)) {
@@ -119,15 +141,48 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const askingPrice = Number(requestData.askingPrice || "0");
     const deviation = marketPrice > 0 ? ((askingPrice - marketPrice) / marketPrice) * 100 : 0;
 
+    // Enhanced Metrics for New Flags
+    const volume24h = cgData.usd_24h_vol || 0;
+    const marketCap = cgData.usd_market_cap || 0;
+    // Liquidity Proxy: For hackathon, use Market Cap as primary liquidity indicator if DEX data missing
+    const liquidity = marketCap;
+    const volLiqRatio = liquidity > 0 ? volume24h / liquidity : 0;
+
+    // Security Data
+    const tokenSecurity = (goplus as any).result?.[requestData.tokenAddress.toLowerCase()] || {};
+    const creatorAddress = tokenSecurity.creator_address || "";
+    const ownerAddress = tokenSecurity.owner_address || "";
+    const isOwnerCreator = creatorAddress && ownerAddress && (creatorAddress.toLowerCase() === ownerAddress.toLowerCase());
+    const isVanity = creatorAddress.startsWith("0x0000") || creatorAddress.startsWith("0xdead");
+
     const riskContext = {
-        coingecko,
-        goplus,
+        market: {
+            price_usd: marketPrice,
+            volume_24h: volume24h,
+            market_cap: marketCap,
+            vol_liq_ratio: volLiqRatio.toFixed(2)
+        },
         trade: {
             asking_price: askingPrice,
-            market_price: marketPrice,
             deviation_percent: deviation.toFixed(2) + "%"
+        },
+        security: {
+            is_honeypot: tokenSecurity.is_honeypot === "1",
+            owner_address: ownerAddress,
+            creator_address: creatorAddress,
+            is_open_source: tokenSecurity.is_open_source === "1",
+            metadata: {
+                token_name: tokenSecurity.token_name,
+                token_symbol: tokenSecurity.token_symbol
+            }
         }
     };
+
+    // 📝 LOGGING MANDATE: Data Ingestion
+    runtime.log(`${CYAN}📊 DATA METRICS:${RESET}`);
+    runtime.log(`   Price: $${marketPrice} | Vol: $${volume24h.toLocaleString()} | Liq(MCap): $${marketCap.toLocaleString()}`);
+    runtime.log(`   Vol/Liq Ratio: ${volLiqRatio.toFixed(2)}x`);
+    runtime.log(`   Owner: ${ownerAddress.slice(0, 6)}... | Creator: ${creatorAddress.slice(0, 6)}...`);
 
     const prompt = `
     Analyze this DeFi Token Trade. Return a JSON object with 'flags' (array of integers) and 'reasoning'.
@@ -136,18 +191,28 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     ${JSON.stringify(riskContext)}
     
     RISK MAP (Bitmask):
-    1 = Low Liquidity (Context: Only flag if <$50k AND Token is >24h old. New tokens start low.)
-    2 = High Volatility (Context: Flag if price drop >30% in 1h OR Price Deviation > 10% from Market.)
-    4 = Suspicious Code (Context: Look for 'blacklist', 'pause', or hidden fees in metadata.)
-    8 = Centralized Owner (Context: Flag if ownership not renounced after 7 days.)
-    16 = Honeypot (CRITICAL: If GoPlus says is_honeypot=true).
+    1 = Low Liquidity (Context: Flag if Market Cap < $50k.)
+    2 = High Volatility (Context: Flag if Price Deviation > 10% from Market.)
+    4 = Suspicious Code (Context: Look for 'blacklist', 'pause', or hidden fees.)
+    8 = Centralized Owner (Context: Flag if ownership not renounced.)
+    16 = Honeypot (CRITICAL: If is_honeypot=true).
+    32 = Impersonation (Context: Check if name/symbol spoofs 'USDC', 'OpenAI', 'Coinbase' but contract is different.)
+    64 = Wash Trading (Context: Flag if Vol/Liq Ratio > 5.0).
+    128 = Suspicious Deployer (Context: Flag if Creator == Owner OR Creator starts with 0x0000/0xdead).
+    256 = Phishing Scam (Context: Check metadata for 'claim', 'airdrop', 'giveaway').
 
     INSTRUCTIONS:
-    - Be a "Smart Judge".
-    - CHECK PRICE: If 'asking_price' is >10% different from 'market_price', YOU MUST FLAG '2' (High Volatility/Manipulation).
-    - If GoPlus indicates honeypot, you MUST include flag 16.
+    - Be a "Deterministic Judge". Strict Thresholds.
+    - CHECK PRICE: If 'asking_price' is >10% different from 'market_price', YOU MUST FLAG '2'.
+    - CHECK WASH TRADING: If vol_liq_ratio > 5.0, YOU MUST FLAG '64'.
+    - CHECK DEPLOYER: If creator_address == owner_address, YOU MUST FLAG '128'.
+    - If GoPlus says is_honeypot=true, YOU MUST include flag 16.
     - Return JSON ONLY: {"flags": [number], "reasoning": "string"}
     `;
+
+    // 📝 LOGGING MANDATE: Prompt Context
+    runtime.log(`${CYAN}📝 PROMPT CONTEXT (Snippet):${RESET}`);
+    runtime.log(`   ${JSON.stringify(riskContext, null, 2)}`);
 
     const aiCall = await httpClient.sendRequest(runtime as any, {
         url: "https://api.openai.com/v1/chat/completions",
@@ -166,7 +231,13 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         return JSON.stringify({ verdict: false, riskCode: ERROR_CODES.LLM_FAIL.toString(), salt: requestData.vrfSalt });
     }
 
-    const aiParsed = JSON.parse((json(aiCall) as any).choices[0].message.content) as AIAnalysisResult;
+    const aiResponseRaw = (json(aiCall) as any).choices[0].message.content;
+    const aiParsed = JSON.parse(aiResponseRaw) as AIAnalysisResult;
+
+    // 📝 LOGGING MANDATE: LLM Output
+    runtime.log(`${CYAN}🤖 AI RAW OUTPUT:${RESET}`);
+    runtime.log(`   ${aiResponseRaw}`);
+
     const flags = aiParsed.flags || [];
     const reasoningText = aiParsed.reasoning || "REASONING_NOT_FOUND";
 
@@ -182,7 +253,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     runtime.log(`\n${YELLOW}━━━ 🔐  DETERMINISTIC SIGNING ━━━${RESET}`);
     const timestamp = BigInt(Math.floor(Date.now() / 1000));
     const salt = (requestData.vrfSalt || "0x" + "0".repeat(64)) as Hex;
-    const askingPriceWei = BigInt(Math.round(Number(requestData.askingPrice || "0") * 1e8));
+    const askingPriceWei = BigInt(Math.round(askingPrice * 1e8));
 
     const messageHash = keccak256(
         encodePacked(
@@ -202,6 +273,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     const signature = await donAccount.signMessage({ message: { raw: messageHash } });
 
+    // 📝 LOGGING MANDATE: Final Payload
     return JSON.stringify({
         verdict: finalVerdict,
         riskCode: riskCode.toString(),

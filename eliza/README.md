@@ -1,45 +1,17 @@
-# 🤖 Eliza
+# 🤖 Aegis ElizaOS Plugin
 
-**ElizaOS Agent** powering the Aegis Risk Oracle demo.
+Integration for the **ElizaOS** agent framework. This plugin allows an autonomous AI agent to "consult" the Aegis Oracle before taking any on-chain action.
 
-## Character: Aegis
+## How it Works
+1.  **Intent Detection**: The agent detects a user's intent to "swap" or "invest".
+2.  **Pre-Flight Check**: The agent pauses execution and calls the Aegis Plugin.
+3.  **Oracle Query**: The plugin formats a request to the Chainlink DON.
+4.  **Decision Gate**:
+    - **Approve**: Agent proceeds with the transaction.
+    - **Deny**: Agent politely refuses and explains the risk factors (cited from the Oracle's reasoning).
 
-The agent is defined in `character.json` with the persona of a **robotic, authoritative compliance architect**.
-
-### Personality
-- **Tone**: Technical, direct, no emojis
-- **Role**: Lead Compliance Architect for the Aegis Protocol
-- **Knowledge**: Chainlink CRE, Triple Lock Security, GoPlus signals
-
-### Example Interaction
-```
-User: "Swap 1 ETH for PEPE"
-Aegis: "REQUEST RECEIVED. INITIATING SWAP PARAMETER VALIDATION via Chainlink CRE. STANDBY FOR COMPLIANCE CHECK."
-```
-
-## 🧩 ElizaOS Integration
-
-This project implements the **ElizaOS** multi-agent framework to power the "Aegis" character.
-
-**Key Features for Judges:**
-1.  **Custom Character:** The `characters/aegis.json` defines a strict, security-focused personality that refuses to hallucinate safety.
-2.  **Plugin Architecture:** Uses the standard ElizaOS plugin structure (see `src/aegisPlugin.ts`), manually invoked by the demo server for deterministic testing.
-3.  **Conversational Risk:** Bridges the gap between raw data (JSON) and human understanding by explaining *why* a token is unsafe in plain English.
-
-## Quick Start
-```bash
-npm install
-npm run dev:server  # Starts on port 3011
-```
-
-## Files
-| File | Purpose |
-| :--- | :--- |
-| `character.json` | Aegis persona definition |
-| `src/server.ts` | Backend API server |
-
-## API Endpoint
-```
-POST http://localhost:3011/message
-Body: { "text": "swap 100 AVAX" }
+## Usage
+Add to your Eliza character config:
+```json
+"plugins": ["@elizaos/plugin-aegis"],
 ```

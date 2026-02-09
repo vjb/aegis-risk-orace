@@ -1,60 +1,21 @@
-# 🌐 Aegis Web
+# 🛸 Aegis Mission Control (Frontend)
 
-![Aegis Web Interface](../docs/images/UserInterface.PNG)
+The **Aegis Mission Control** is a Next.js application that visualizes the security analysis process. It provides a "Hollywood-style" interface to demonstrate the rigorous checks performed by the Aegis Oracle.
 
-**Next.js 16 Visualization Dashboard** for the Aegis Risk Oracle.
+## 🎨 The "Tri-Vector" UI
+We visualize the 3-step security pipeline:
+1.  **Market Data**: Verifying price stability and liquidity depth.
+2.  **Security Audit**: Checking smart contract bytecode for honeypots.
+3.  **AI Forensics**: Using LLMs to detect "soft" risks like social engineering and wash trading.
 
-## 📸 Visual Tour
+## 🔐 "Backend-for-Frontend" (IPFS)
+To keep the Oracle consensus lightweight, we don't store text logs on-chain.
+- The **Oracle** returns a minimal signature (Verdict + Risk Code).
+- The **Frontend** immediately uploads the full rich-text audit log to **Pinata (IPFS)** via a secure API route (`/api/pinata`).
+- This creates an immutable, public record of *why* a decision was made, without clogging the blockchain execution layer.
 
-### 1. The Risk Synthesis Stream
-Real-time visualization of the CRE workflow execution.
-
-![Risk Stream](../docs/images/UserInterface.PNG)
-
-### 2. Validated Verdict (Green)
-A cryptographically valid signature triggers the "Approved" state.
-
-![Approved State](../docs/images/UserInterface-approved.PNG)
-
-### 3. Blocked Verdict (Red)
-If the AI detects risk (e.g., Honeypot), the generated signature **locks in the 'REJECT' verdict**. If the agent submits this to the chain, the AegisVault contract will verify the 'REJECT' status and **revert the transaction**.
-
-![Denied State](../docs/images/UserInterface-denied.PNG)
-
-## Features
-- **Parallel Scanning Visualization** - Real-time indicators for Market, Entropy, and Security checks
-- **Glassmorphic UI** - Dark theme with Aceternity/Shadcn components
-- **DON-Signed Verdicts** - Visual distinction for cryptographically verified results
-- **ElizaOS Chat** - Conversational interface to the Aegis agent
-
-## Tech Stack
-| Component | Technology |
-| :--- | :--- |
-| Framework | Next.js 16 (App Router) |
-| Styling | Tailwind CSS + Shadcn UI + Aceternity UI |
-| Animation | Framer Motion |
-
-## 🌐 Visual Analytics
-
-Aegis Web provides the **Real-Time Reserve Health Checks** and **Automated Risk Monitoring** visualization required by the track.
-
-**Key Features for Judges:**
-1.  **Parallel scanning UI:** Shows CoinGecko, GoPlus, and QRNG scanning in real-time.
-2.  **Verdict Visualization:** Clear GREEN/RED indicators based on the cryptographically signed result.
-3.  **Audit Trail Link:** Direct links to the IPFS audit logs for every transaction.
-
-## Quick Start
+## 🚀 Setup
 ```bash
 npm install
-npm run dev -- -p 3005
+npm run dev
 ```
-
-## Key Files
-| File | Purpose |
-| :--- | :--- |
-| `src/components/Chat.tsx` | Main chat interface with parallel scanning UI |
-| `src/components/ui/` | Shadcn + Aceternity UI components |
-| `src/app/page.tsx` | App entry point |
-
-## Backend Connection
-Connects to ElizaOS agent at `http://localhost:3011/message`

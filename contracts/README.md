@@ -1,61 +1,17 @@
-# 🔐 Contracts
+# 🛡️ Aegis Smart Contracts
 
-**Solidity smart contracts** for on-chain verification of Aegis Risk Oracle verdicts.
+This directory contains the Solidity smart contracts for the Aegis Protocol.
 
-## AegisVault.sol
+## `AegisVault.sol`
+The core vault contract that holds funds and enforces Oracle-gated trading.
 
-The `AegisVault` contract demonstrates how AI agents can execute trades **only** when they have a valid signature from the Aegis DON.
-
-### Key Functions
-
-```solidity
-struct RiskAssessment {
-    address userAddress; // <-- Identity Binding
-    address tokenAddress;
-    uint256 chainId;
-    uint256 askingPrice;
-    uint256 timestamp;
-    string decision;
-    uint8 riskScore;
-    bytes32 salt;
-    bytes32 reasoningHash;
-}
-
-function swapWithOracle(
-    address token,
-    uint256 amount,
-    RiskAssessment memory assessment,
-    bytes memory signature
-) external
-```
-
-### Security Features
-1. **Signature Verification** - Uses `ecrecover` to validate DON signatures
-2. **Replay Protection** - Tracks processed request hashes
-3. **Risk Enforcement** - Reverts if `riskScore >= 7` or `decision != "EXECUTE"`
-
-### Triple Lock Standard
-The signature binds:
-- **Identity** - User address (prevents hijacking)
-- **Value** - Asset price (ensures immutability)
-- **Time** - 5-minute expiry (prevents replay)
-
-## 🛡️ Protocol Safeguards
-
-`AegisVault.sol` implements the mandatory **Protocol Safeguard Triggers**.
-
-**Key Features for Judges:**
-1.  **Transaction Revert:** The contract *reverts* (does not execute) if the signature is invalid or the risk score is too high.
-2.  **Non-Interactive Enforcement:** The agent cannot bypass the check; the `swapWithOracle` modifier is enforced at the EVM level.
-3.  **Cryptographic Binding:** The signature binds the specific `token`, `amount`, and `user` to the `verdict`, preventing front-running or parameter swapping.
+### Key Features
+- **VRF Salt Integration**: Consumes Chainlink VRF to generate random salts, preventing replay attacks and ensuring signature uniqueness.
+- **Bitmask Enforcement**: Decodes the `uint256 riskCode` to determine exactly which safety checks failed (e.g., specific error handling for "Honeypot" vs "Volatility").
+- **Threshold Signature Verification**: Verifies that the payload was signed by the authorized Chainlink DON address.
 
 ## Deployment
 ```bash
-# Deploy to Base Sepolia (example)
-forge create --rpc-url $BASE_SEPOLIA_RPC AegisVault --constructor-args $DON_PUBLIC_KEY
+# Deploy to Base Sepolia
+npx hardhat deploy --network base_sepolia
 ```
-
-## Files
-| File | Purpose |
-| :--- | :--- |
-| `AegisVault.sol` | Main vault with signature verification |
