@@ -31,6 +31,7 @@ interface Message {
     role: 'user' | 'agent';
     content: string;
     isVerdict?: boolean;
+    isScanReport?: boolean;
 }
 
 interface ChatProps {
@@ -108,7 +109,17 @@ export default function Chat({ onIntent }: ChatProps) {
             await new Promise(resolve => setTimeout(resolve, 4500)); // AI thinking time
             setCompletedSteps([true, true, true]); // All done
 
+            const pushScanReport = () => {
+                setMessages(prev => [...prev, {
+                    id: `scan-${Date.now()}`,
+                    role: 'agent',
+                    content: 'SCAN_COMPLETE',
+                    isScanReport: true
+                }]);
+            };
+
             if (isScamToken) {
+                pushScanReport();
                 setMessages(prev => [...prev, {
                     id: Date.now().toString(),
                     role: 'agent',
@@ -123,6 +134,7 @@ export default function Chat({ onIntent }: ChatProps) {
             }
 
             setScanningStatus('analyzing');
+            pushScanReport();
         }
 
         try {
@@ -228,17 +240,36 @@ export default function Chat({ onIntent }: ChatProps) {
                                         : "bg-indigo-600/20 border border-indigo-500/30 text-white rounded-tr-none",
                                     m.isVerdict && "border-cyan-500/50 bg-cyan-900/10 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
                                 )}>
-                                    {m.role === 'agent' && (
-                                        <div className={cn(
-                                            "absolute top-0 left-0 w-1 h-full",
-                                            m.isVerdict ? "bg-cyan-500/50" : "bg-purple-500/50"
-                                        )} />
-                                    )}
-                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
-                                    {m.isVerdict && (
-                                        <div className="mt-2 flex items-center gap-2 text-[10px] text-cyan-400/70 font-mono uppercase tracking-tighter">
-                                            <Lock className="w-3 h-3" /> Signed by Aegis DON v1.0
+                                    {m.isScanReport ? (
+                                        <div className="flex flex-col gap-2 min-w-[280px]">
+                                            <div className="flex items-center gap-2 mb-2 text-purple-400 text-xs font-mono uppercase">
+                                                <Brain className="w-3 h-3" /> Forensic Scan Complete
+                                            </div>
+                                            <InlinePipelineStep active={true} completed={true} icon={<Activity className="w-4 h-4" />} label="MARKET DATA (CoinGecko)" />
+                                            <InlinePipelineStep active={true} completed={true} icon={<Shield className="w-4 h-4" />} label="SECURITY AUDIT (GoPlus)" />
+                                            <InlinePipelineStep active={true} completed={true} icon={<Brain className="w-4 h-4" />} label="AI FORENSIC SCAN (GPT-4o)" />
+                                            <div className="ml-8 flex flex-col gap-1 border-l-2 border-green-500/20 pl-4 py-2 opacity-70">
+                                                <div className="flex items-center gap-2 text-[10px] text-green-400"><Check className="w-3 h-3" /> Impersonation Scan</div>
+                                                <div className="flex items-center gap-2 text-[10px] text-green-400"><Check className="w-3 h-3" /> Wash Trading Analysis</div>
+                                                <div className="flex items-center gap-2 text-[10px] text-green-400"><Check className="w-3 h-3" /> Deployer Profiling</div>
+                                                <div className="flex items-center gap-2 text-[10px] text-green-400"><Check className="w-3 h-3" /> Metadata Review</div>
+                                            </div>
                                         </div>
+                                    ) : (
+                                        <>
+                                            {m.role === 'agent' && (
+                                                <div className={cn(
+                                                    "absolute top-0 left-0 w-1 h-full",
+                                                    m.isVerdict ? "bg-cyan-500/50" : "bg-purple-500/50"
+                                                )} />
+                                            )}
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                                            {m.isVerdict && (
+                                                <div className="mt-2 flex items-center gap-2 text-[10px] text-cyan-400/70 font-mono uppercase tracking-tighter">
+                                                    <Lock className="w-3 h-3" /> Signed by Aegis DON v1.0
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </motion.div>
