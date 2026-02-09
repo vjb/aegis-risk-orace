@@ -19,9 +19,6 @@ Before any trade is approved, Aegis runs three parallel checks:
 2.  **Security Audit**: Contract vulnerability scanning (via GoPlus).
 3.  **AI Forensics**: GPT-4o powered semantic analysis of metadata, deployer history, and wash trading patterns.
 
-### 3. 💾 Compliance Archive (IPFS)
-- **On-Chain**: Only the `Verdict` (Bool) and `RiskCode` (Uint256) are stored on Ethereum/Base.
-- **Off-Chain**: The full "Forensic Report" (Reasoning, detailed logs) is cryptographically pinned to **IPFS (via Pinata)** for regulatory compliance and user transparency.
 
 ---
 
@@ -50,8 +47,6 @@ graph TD
     Bitmask -->|4. Consensus| Signature[Threshold Signature]
     
     Signature -->|5. Verify| Contract[AegisVault.sol]
-    
-    Node1 -->|6. Archive Log| IPFS[Pinata IPFS]
 ```
 
 ## 📦 Repository Structure

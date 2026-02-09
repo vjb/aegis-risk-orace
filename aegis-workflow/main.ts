@@ -33,7 +33,6 @@ const ERROR_CODES = {
 
 const configSchema = z.object({
     openaiApiKey: z.string().optional(),
-    pinataJwt: z.string().optional(),
     coingeckoApiKey: z.string().optional(),
 });
 

@@ -39,8 +39,8 @@
 1. HTTP trigger setup (line ~243)
 2. Zod validation (line ~10-18)
 3. API integrations section:
-   - "Then it fetches real-time data from four sources. Importantly, we fetch market data, security data, and entropy in parallel to maximize performance:"
-   - CoinGecko, GoPlus Labs, and QRNG (Fetched in parallel!)
+   - "Then it fetches real-time data from market and security sources in parallel to maximize performance:"
+   - CoinGecko and GoPlus Labs (Fetched in parallel!)
    - OpenAI GPT-4 (Contextual AI Risk analysis)
 
 **Show:**
@@ -63,7 +63,7 @@
 **Highlight in terminal:**
 - ✓ Payload validated
 - ✓ ETH Price: $2054
-- ✓ Quantum Entropy
+- ✓ Verifiable Randomness (VRF)
 - ✓ Security Check - Trust List: true
 - ✓ Risk Score: 5/10
 - ⚖️ FINAL VERDICT: **EXECUTE**
@@ -138,7 +138,7 @@
 
 ### Screen: README showing API integrations table
 **Voiceover:**
-> "Aegis integrates four external systems: CoinGecko for market data, GoPlus Labs for security analysis, QRNG for quantum randomness, and OpenAI GPT-4 for intelligent risk scoring. It also supports cross-chain deployment - this same oracle works on Base, BSC, Ethereum, or any EVM network."
+> "Aegis integrates three external systems: CoinGecko for market data, GoPlus Labs for security analysis, and OpenAI GPT-4 for intelligent risk scoring. It also supports cross-chain deployment - this same oracle works on Base, BSC, Ethereum, or any EVM network."
 
 **Show:**
 - API integrations table

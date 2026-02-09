@@ -120,7 +120,16 @@ export default function Chat({ onIntent }: ChatProps) {
 
             if (isScamToken) {
                 pushScanReport();
-                // ...
+                setMessages(prev => [...prev, {
+                    id: Date.now().toString(),
+                    role: 'agent',
+                    content: `❌ [AEGIS_DENIED] Critical security protocol triggered.\n\nAsset: SCAM-TOKEN\nVerdict: REJECT\nACTIVE RISK FLAGS (Bitmask: 352):\n\n  [!] IMPERSONATION DETECTED (Flag 32)\n      "Token name spoofs major brand 'Coinbase'."\n\n  [!] WASH TRADING (Flag 64)\n      "Volume is 125x higher than available Liquidity."\n\n  [!] PHISHING SCAM (Flag 256)\n      "URL contains malicious keyword 'claim-rewards'."\n\nSecurity Score: 0/100 (Critical)`,
+                    isVerdict: true
+                }]);
+                setIsLoading(false);
+                setScanningStatus('idle');
+                setActiveSteps([false, false, false]);
+                setCompletedSteps([false, false, false]);
                 return;
             }
 
@@ -137,26 +146,8 @@ export default function Chat({ onIntent }: ChatProps) {
 
             const data = await response.json();
 
-            // 🔍 Frontend "Backend-for-Frontend" Logic
-            // If we receive a verdict, we securely archive it to IPFS via our server-side API
+            // 🔍 Frontend Logic
             const resultData = data.content?.result || (data.text.includes("VERDICT") ? { verdict: data.text } : null);
-
-            if (resultData && (resultData.riskCode !== undefined || resultData.verdict)) {
-                // Fire-and-forget upload (don't block UI)
-                fetch('/api/pinata', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        pinataContent: {
-                            ...resultData,
-                            timestamp: new Date().toISOString()
-                        },
-                        pinataMetadata: {
-                            name: `AEGIS_AUDIT_${resultData.riskCode}_${Date.now()}`
-                        }
-                    })
-                }).catch(err => console.error("Pinata Upload Failed:", err));
-            }
 
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),

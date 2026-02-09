@@ -35,7 +35,6 @@
 > 2.  **Center (The Brain):** A large, glowing node labeled "Chainlink Runtime Environment (CRE)". Inside, show three parallel streams merging:
 >     *   "CoinGecko" (Price Data)
 >     *   "GoPlus" (Security Scan)
->     *   "QRNG" (Quantum Randomness)
 > 3.  **The Lock:** Show a "Cryptographic Key" stamping a document. Label this "Triple Lock Signature".
 > 4.  **Right Side (Output):** Show arrows branching out to multiple blockchains (Base, Optimism, Arbitrum). Show a "Smart Vault" on each chain unlocking only when it sees the stamped document.
 >
