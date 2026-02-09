@@ -25,28 +25,25 @@ Before any trade is approved, Aegis runs three parallel checks:
 ## 🛠️ Architecture
 
 ```mermaid
-graph TD
-    User[User / Eliza Agent] -->|1. Request Audit| AEGIS_API
-    AEGIS_API -->|2. Trigger Workflow| DON[Chainlink DON]
+sequenceDiagram
+    participant Agent as 🤖 AI Agent (ElizaOS)
+    participant CRE as 🛡️ Aegis (Chainlink CRE)
+    participant APIs as 📡 External APIs
+    participant Vault as ⛓️ AegisVault.sol
+
+    Agent->>CRE: 1. Request Risk Assessment (Token, Price, Chain)
     
-    subgraph "Chainlink Consensus Network"
-        Node1[Node 1]
-        Node2[Node 2]
-        Node3[Node 3]
-        Node4[Node 4]
-        Node5[Node 5]
+    par Parallel Data Fetching
+        CRE->>APIs: CoinGecko (Market Health)
+        CRE->>APIs: GoPlus (Security Scans)
     end
     
-    DON --> Node1 & Node2 & Node3 & Node4 & Node5
+    CRE->>APIs: 2. AI Synthesis (GPT-4o Risk Analysis)
+    CRE->>CRE: 3. Deterministic Signing (PrivKey)
+    CRE-->>Agent: 4. Return Signature (Verdict + RiskCode)
     
-    Node1 -->|Fetch| CG[CoinGecko] & GP[GoPlus]
-    Node1 -->|Analyze| GPT[OpenAI (Temp=0)]
-    
-    Node1 -->|3. Normalize| Bitmask[Risk Bitmask]
-    
-    Bitmask -->|4. Consensus| Signature[Threshold Signature]
-    
-    Signature -->|5. Verify| Contract[AegisVault.sol]
+    Agent->>Vault: 5. Execute Trade with Signature
+    Vault->>Vault: 6. Verify Signer & Data Integrity -> SWAP
 ```
 
 ## 📦 Repository Structure
@@ -63,7 +60,7 @@ graph TD
 
 ### Prerequisites
 - Node.js v20+
-- Docker (for Consensus Simulation)
+- Docker (Required for Local CRE Runtime & Consensus Simulation)
 - Bun or pnpm
 
 ### 1. Installation
