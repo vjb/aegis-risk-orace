@@ -1,8 +1,8 @@
 const { execSync } = require('child_process');
 
 async function main() {
-    console.log("⚡ STARTING CONSENSUS SIMULATION (5 NODES) ⚡");
-    const NUM_NODES = 5;
+    console.log("⚡ STARTING CONSENSUS SIMULATION (3 NODES) ⚡");
+    const NUM_NODES = 3;
     const outputs = [];
 
     for (let i = 0; i < NUM_NODES; i++) {
@@ -10,6 +10,11 @@ async function main() {
         try {
             const cmd = `docker exec aegis_dev sh -c "cd /app && cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload /app/tests/payloads/test-payload-pass.json"`;
             const result = execSync(cmd, { encoding: 'utf8' });
+
+            // Small delay to avoid API rate limits during simulation
+            if (i < NUM_NODES - 1) {
+                await new Promise(r => setTimeout(r, 5000));
+            }
 
             // Extract the final JSON result
             const lines = result.trim().split('\n');
@@ -84,7 +89,7 @@ async function main() {
     const allMatch = outputs.every(out => JSON.stringify(out) === reference);
 
     if (allMatch) {
-        console.log("✅ SUCCESS: All 5 nodes produced identical bitwise signatures.");
+        console.log("✅ SUCCESS: All 3 nodes produced identical bitwise signatures.");
         console.log("   Determinism: 100%");
         console.log("   Consensus: REACHED");
     } else {

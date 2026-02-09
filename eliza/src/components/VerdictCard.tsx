@@ -1,4 +1,4 @@
-import { ShieldCheck, Fingerprint, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Fingerprint, AlertTriangle, Twitter } from 'lucide-react';
 
 interface Props {
     status: 'SAFE' | 'UNSAFE';
@@ -9,6 +9,11 @@ export default function VerdictCard({ status }: Props) {
     const colorClass = isSafe ? 'text-emerald-400' : 'text-red-500';
     const borderClass = isSafe ? 'border-emerald-500/30' : 'border-red-500/30';
     const bgClass = isSafe ? 'bg-emerald-500/20' : 'bg-red-500/20';
+
+    const handleShare = () => {
+        const tweetText = "🚨 Aegis Risk Oracle just blocked a potential scam! 🛡️ Always verify before you swap. #AegisProtocol #Chainlink #DEFI @Chainlink";
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
+    };
 
     return (
         <div className={`w-full bg-black/80 border ${borderClass} rounded-xl p-6 backdrop-blur-xl relative overflow-hidden shadow-2xl`}>
@@ -57,6 +62,16 @@ export default function VerdictCard({ status }: Props) {
                     SECURE ENCLAVE VERIFIED
                 </span>
             </div>
+
+            {!isSafe && (
+                <button
+                    onClick={handleShare}
+                    className="mt-4 w-full bg-[#1DA1F2] hover:bg-[#1DA1F2]/90 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-[#1DA1F2]/20 group"
+                >
+                    <Twitter className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                    <span className="tracking-tight">WARN OTHERS INSTANTLY</span>
+                </button>
+            )}
         </div>
     );
 }

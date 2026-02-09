@@ -8,6 +8,7 @@ import { HTTPCapability, handler, Runner, type Runtime, type HTTPPayload, cre, o
 import { z } from "zod";
 import { keccak256, encodePacked, Hex, getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { sha1, toBase64 } from "./utils";
 
 const DON_DEMO_PRIVATE_KEY: Hex = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const donAccount = privateKeyToAccount(DON_DEMO_PRIVATE_KEY);
@@ -35,6 +36,8 @@ const ERROR_CODES = {
 const configSchema = z.object({
     openaiApiKey: z.string().optional(),
     coingeckoApiKey: z.string().optional(),
+    goplusAppKey: z.string().optional(),
+    goplusAppSecret: z.string().optional(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -54,6 +57,8 @@ interface AIAnalysisResult {
     flags: number[];
     reasoning: string;
 }
+
+// --- BRAIN HANDLER ---
 
 const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Promise<string> => {
     const GREEN = "\x1b[32m";
@@ -95,6 +100,69 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     runtime.log(`${CYAN}🔑 API Key Check:${RESET} Type=${typeof cgApiKey} Length=${cgApiKey.length}`);
 
+    // --- GoPlus Authentication (Robustness) ---
+    // Fetch GoPlus Secrets
+    let gpAppKey: string | undefined = runtime.config.goplusAppKey;
+    let gpAppSecret: string | undefined = runtime.config.goplusAppSecret;
+
+    if (!gpAppKey) {
+        const keySecret = await runtime.getSecret({ id: "GOPLUS_APP_KEY" });
+        if (typeof keySecret === 'object' && keySecret !== null) {
+            gpAppKey = (keySecret as any).value || (keySecret as any).secret || JSON.stringify(keySecret);
+        } else {
+            gpAppKey = keySecret as string;
+        }
+    }
+
+    if (!gpAppSecret) {
+        const secretSecret = await runtime.getSecret({ id: "GOPLUS_APP_SECRET" });
+        if (typeof secretSecret === 'object' && secretSecret !== null) {
+            gpAppSecret = (secretSecret as any).value || (secretSecret as any).secret || JSON.stringify(secretSecret);
+        } else {
+            gpAppSecret = secretSecret as string;
+        }
+    }
+
+    let gpHeaders: Record<string, string> = {};
+    if (gpAppKey && gpAppSecret) {
+        try {
+            const time = Math.floor(Date.now() / 1000);
+            const sign = sha1(gpAppKey + time + gpAppSecret);
+
+            runtime.log(`   🔐 GoPlus Auth: Exchanging Token...`);
+
+            // We need a separate HTTP call for token exchange
+            const tokenCall = await httpClient.sendRequest(runtime as any, {
+                url: "https://api.gopluslabs.io/api/v1/token",
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: toBase64(new TextEncoder().encode(JSON.stringify({
+                    app_key: gpAppKey,
+                    sign: sign,
+                    time: time
+                })))
+            }).result();
+
+            if (ok(tokenCall)) {
+                const tokenData = json(tokenCall) as any;
+                if (tokenData.code === 1 && tokenData.result?.access_token) {
+                    gpHeaders["Authorization"] = tokenData.result.access_token; // Bearer not needed for some versions, but usually it is token directly or Bearer. 
+                    // GoPlus docs say 'Authorization: <token>' (no Bearer prefix sometimes, or with. Docs say access_token).
+                    // Based on search "Authorization header... access_token". 
+                    gpHeaders["Authorization"] = `Bearer ${tokenData.result.access_token}`;
+                    // Let's assume Bearer standard. If fails, we might need to adjust.
+                    // Actually, re-reading search: "Authorization header... Bearer <access_token>"
+                    runtime.log(`   ✅ GoPlus Token Acquired`);
+                } else {
+                    runtime.log(`   ⚠️ GoPlus Token Error: ${JSON.stringify(tokenData)}`);
+                }
+            }
+        } catch (e) {
+            runtime.log(`   ⚠️ GoPlus Auth Failed: ${e}`);
+        }
+    }
+
+
     // 2. Deterministic Data Acquisition
     runtime.log(`\n${YELLOW}━━━ 🌐  PARALLEL SIGNAL ACQUISITION ━━━${RESET}`);
 
@@ -106,7 +174,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         }).result(),
         httpClient.sendRequest(runtime as any, {
             url: `https://api.gopluslabs.io/api/v1/token_security/${requestData.chainId}?contract_addresses=${requestData.tokenAddress}`,
-            method: "GET"
+            method: "GET",
+            headers: gpHeaders
         }).result()
     ]);
 
@@ -219,13 +288,13 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         url: "https://api.openai.com/v1/chat/completions",
         method: "POST",
         headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
-        body: Buffer.from(JSON.stringify({
+        body: toBase64(new TextEncoder().encode(JSON.stringify({
             model: "gpt-4o-mini",
             temperature: 0,
             seed: 42,
             messages: [{ role: "system", content: prompt }],
             response_format: { type: "json_object" }
-        })).toString('base64')
+        })))
     }).result();
 
     if (!ok(aiCall)) {
@@ -287,7 +356,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
 const initWorkflow = (config: Config) => {
     const http = new HTTPCapability();
-    return [handler(http.trigger({}), brainHandler)];
+    return [handler(http.trigger({ authorizedKeys: [] }), brainHandler)];
 };
 
 export async function main() {
