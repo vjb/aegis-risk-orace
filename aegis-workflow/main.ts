@@ -21,7 +21,8 @@ const RISK_FLAGS = {
     IMPERSONATION_RISK: 32,
     WASH_TRADING: 64,
     SUSPICIOUS_DEPLOYER: 128,
-    PHISHING_SCAM: 256
+    PHISHING_SCAM: 256,
+    AI_ANOMALY_WARNING: 512
 };
 
 const ERROR_CODES = {
@@ -206,6 +207,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     - CHECK WASH TRADING: If vol_liq_ratio > 5.0, YOU MUST FLAG '64'.
     - CHECK DEPLOYER: If creator_address == owner_address, YOU MUST FLAG '128'.
     - If GoPlus says is_honeypot=true, YOU MUST include flag 16.
+    - If you are UNCERTAIN or see conflicting signals (e.g. safe liquidity but suspicious metadata), YOU MUST FLAG '512'.
     - Return JSON ONLY: {"flags": [number], "reasoning": "string"}
     `;
 

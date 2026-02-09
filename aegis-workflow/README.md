@@ -22,6 +22,9 @@ We use a binary flag system to represent complex risks as a single `uint256`:
 - `16` (010000): **Honeypot** (GoPlus confirmed)
 - `32` (100000): **Impersonation** (Brand spoofing)
 - `64` (1000000): **Wash Trading** (Vol > 5x Liq)
+- `128` (10000000): **Suspicious Deployer** (Vanity/Owner check)
+- `256` (100000000): **Phishing Scam** (Metadata scan)
+- `512` (1000000000): **AI Anomaly** (Ambiguity/Gray Zone)
 
 ## 🧪 Testing
 We use the `simulate-consensus.ts` script to spawn 5 local Docker containers representing Chainlink Nodes. They all execute this workflow in parallel. We compare their outputs bit-by-bit to ensure 100% agreement.

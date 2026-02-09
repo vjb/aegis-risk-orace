@@ -4,7 +4,7 @@
 
 ### 1. CRE Workflow
 - ✅ Built and tested
-- ✅ 4 API integrations (CoinGecko, QRNG, GoPlus, OpenAI)
+- ✅ 3 API integrations (CoinGecko, GoPlus, OpenAI)
 - ✅ HTTP-triggered for agent integration
 - ✅ Zod validation and error handling
 - ✅ Mock DON signatures
@@ -72,7 +72,7 @@ When submitting to hackathon:
 ## 🎯 Winning Points
 
 **Your competitive advantages**:
-1. 4 API integrations (requirement is 1)
+1. 3 API integrations (requirement is 1)
 2. LLM integration (OpenAI GPT-4)
 3. Production-ready (Zod validation, error handling, best practices)
 4. Cross-chain support
