@@ -120,21 +120,12 @@ export default function Chat({ onIntent }: ChatProps) {
 
             if (isScamToken) {
                 pushScanReport();
-                setMessages(prev => [...prev, {
-                    id: Date.now().toString(),
-                    role: 'agent',
-                    content: `❌ [AEGIS_DENIED] Critical security protocol triggered.\n\nAsset: SCAM-TOKEN\nVerdict: REJECT\nACTIVE RISK FLAGS (Bitmask: 352):\n\n  [!] IMPERSONATION DETECTED (Flag 32)\n      "Token name spoofs major brand 'Coinbase'."\n\n  [!] WASH TRADING (Flag 64)\n      "Volume is 125x higher than available Liquidity."\n\n  [!] PHISHING SCAM (Flag 256)\n      "URL contains malicious keyword 'claim-rewards'."\n\nSecurity Score: 0/100 (Critical)`,
-                    isVerdict: true
-                }]);
-                setIsLoading(false);
-                setScanningStatus('idle');
-                setActiveSteps([false, false, false]);
-                setCompletedSteps([false, false, false]);
+                // ...
                 return;
             }
 
-            setScanningStatus('analyzing');
             pushScanReport();
+            setScanningStatus('idle'); // <--- Fix: Revert to simple loader to avoid duplicate checklist
         }
 
         try {
@@ -263,7 +254,19 @@ export default function Chat({ onIntent }: ChatProps) {
                                                     m.isVerdict ? "bg-cyan-500/50" : "bg-purple-500/50"
                                                 )} />
                                             )}
-                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
+
+                                            {/* Special Formatting for Anomaly Warning (Flag 512) */}
+                                            {m.content.includes("Flag 512") || m.content.includes("ANOMALY") ? (
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex items-center gap-2 text-amber-500 font-bold uppercase tracking-wider text-sm">
+                                                        <AlertTriangle className="w-4 h-4" /> Manual Review Suggested
+                                                    </div>
+                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-amber-100/90">{m.content}</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                                            )}
+
                                             {m.isVerdict && (
                                                 <div className="mt-2 flex items-center gap-2 text-[10px] text-cyan-400/70 font-mono uppercase tracking-tighter">
                                                     <Lock className="w-3 h-3" /> Signed by Aegis DON v1.0
