@@ -1,0 +1,3 @@
+#!/bin/sh
+cd /app
+cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload '{"_comment":"PASS Scenario - Trusted token with fair asking price","_token":"WETH (Wrapped Ether)","_chain":"Base (Chain ID 8453)","_expected":"EXECUTE - Low risk (score: 3-5)","tokenAddress":"0x4200000000000000000000000000000000000006","chainId":"8453","askingPrice":"2100.00","amount":"1.5","userAddress":"0x70997970C51812dc3A010C7d01b50e0d17dc79C8","coingeckoId":"ethereum","vrfSalt":"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"}'

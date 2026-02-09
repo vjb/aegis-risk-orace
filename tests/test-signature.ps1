@@ -28,13 +28,13 @@ if ($inDocker) {
     $bunPath = Get-Command bun -ErrorAction SilentlyContinue
     if ($bunPath) {
         Write-Host "[LOCAL] Running with Bun..." -ForegroundColor Yellow
-        Push-Location "$PSScriptRoot/aegis-workflow"
+        Push-Location "$PSScriptRoot/../aegis-workflow"
         bun run verify-signature.ts
         Pop-Location
     } else {
         # Try npx tsx as fallback
         Write-Host "[LOCAL] Running with npx tsx..." -ForegroundColor Yellow
-        Push-Location "$PSScriptRoot/aegis-workflow"
+        Push-Location "$PSScriptRoot/../aegis-workflow"
         npx tsx verify-signature.ts
         Pop-Location
     }

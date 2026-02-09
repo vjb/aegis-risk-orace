@@ -23,11 +23,11 @@ The `AegisVault.sol` contract is the on-chain enforcement layer of the protocol.
 
 ## 📜 Key Functions
 
-### `swapWithOracle(...)`
+### `executeTradeWithOracle(...)`
 Executes a token swap if and only if:
 - The Oracle signature is valid.
 - The risk score is within acceptable limits.
-- The verdict is `EXECUTE`.
+- The verdict is `EXECUTE` (true).
 - The timestamp is fresh.
 
 ### `updateOracle(address)`

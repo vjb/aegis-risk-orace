@@ -3,7 +3,19 @@
 > **"The Deterministic Shield for DeFi."**  
 > *Track: Risk & Compliance / Artificial Intelligence*
 
-Aegis is a **DeFi Safety Agent** powered by a **Decentralized Oracle Network (DON)**. It analyzes token safety using AI Forensics and Consensus Validation before allowing users to interact with high-risk contracts.
+### The Problem
+DeFi is plagued by "Rug Pulls" and sophisticated scams that basic smart contracts cannot detect. Users blindly interact with contracts, trusting only surface-level data.
+
+### The Solution
+**Aegis** is a **DeFi Safety Agent** powered by a **Decentralized Oracle Network (DON)**. It uses a novel "Split-Brain" architecture to bring **AI Forensics** on-chain, requiring **Consensus Validation** before allowing users to interact with high-risk contracts.
+
+---
+
+## 📺 Demo Video
+
+[![Watch the Demo](https://img.youtube.com/vi/PLACEHOLDER_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=PLACEHOLDER_VIDEO_ID)
+
+*(Click above to watch the full end-to-end walkthrough)*
 
 ---
 
@@ -15,7 +27,31 @@ Aegis uses a novel **Split-Brain Architecture** to ensure non-deterministic LLMs
 - **The "Left Brain" (Logic)**: Normalizes outputs into a **Deterministic Bitmask**.
 - **Consensus**: Nodes must agree on the exact Bitmask and Verdict to sign the transaction.
 
-### 2. 👁️ "Tri-Vector" Forensic Scan
+### 2. 🤖 AI Determinism (e^0)
+To ensure the DON reaches consensus on LLM outputs, we enforce strict determinism at the API level:
+- **Temperature: 0**: Flattens the probability distribution to always pick the most likely token.
+- **Seed: 42**: Uses OpenAI's `seed` parameter to ensure consistent backend sampling.
+- **JSON Schema**: Enforces a rigid output structure to prevent formatting variance.
+
+### 3. 🕸️ The Risk Bitmask Protocol
+Aegis condenses complex risk analysis into a single `uint256` bitmask for gas-efficient on-chain verification. Each bit represents a specific risk flag:
+
+| Bit | Value | Flag Description |
+| :--- | :--- | :--- |
+| 0 | `1` | **Low Liquidity** (<$50k) |
+| 1 | `2` | **High Volatility** (>10%) |
+| 2 | `4` | **Suspicious Code** |
+| 3 | `8` | **Renounced Ownership** |
+| 4 | `16` | **Honeypot Detected** |
+| 5 | `32` | **Impersonation Risk** |
+| 6 | `64` | **Wash Trading** |
+| 7 | `128` | **Suspicious Deployer** |
+| 8 | `256` | **Phishing Scam** |
+| 9 | `512` | **AI Anomaly Warning** |
+
+This allows the smart contract to enforce granular risk policies (e.g., "Allow Volatility but Block Honeypots") without complex string parsing.
+
+### 4. 👁️ "Tri-Vector" Forensic Scan
 Before any trade is approved, Aegis runs three parallel checks:
 1.  **Market Integrity**: Real-time price/liquidity analysis (via CoinGecko).
 2.  **Security Audit**: Contract vulnerability scanning (via GoPlus).
@@ -41,10 +77,10 @@ This project leverages the full Chainlink stack to ensure trust-minimized execut
 
 | Component | Usage in Aegis |
 | :--- | :--- |
-| **[Chainlink Runtime Environment (CRE)](aegis-workflow/main.ts)** | The core execution layer where the specific workflow logic (`aegis-workflow`) runs. |
-| **[Chainlink Functions](aegis-workflow/main.ts)** | Fetches external data from CoinGecko and GoPlus APIs securely. |
-| **[Decentralized Oracle Network (DON)](tests/simulate-consensus.ts)** | Validates the AI's analysis and signs the final verdict using `secp256k1` signatures. |
-| **[Chainlink VRF](aegis-workflow/utils.ts)** | (Simulated) Provides randomness for salt generation to prevent replay attacks. |
+| **[Chainlink Runtime Environment (CRE)](aegis-workflow/main.ts#L273)** | The core execution layer where the specific workflow logic (`aegis-workflow`) runs. |
+| **[Chainlink Functions](aegis-workflow/main.ts#L87)** | Fetches external data from CoinGecko and GoPlus APIs securely. |
+| **[Decentralized Oracle Network (DON)](tests/simulate-consensus.ts#L5)** | Validates the AI's analysis and signs the final verdict using `secp256k1` signatures. |
+| **[Chainlink VRF](aegis-workflow/utils.ts#L10)** | (Simulated) Provides randomness for salt generation to prevent replay attacks. |
 
 ---
 
@@ -93,10 +129,15 @@ sequenceDiagram
 ### 1. Installation
 Run the following commands to install dependencies for all components:
 ```bash
+# Install Dependencies
 npm install
 cd aegis-workflow && npm install
 cd ../aegis-web && npm install
 cd ../eliza && npm install
+
+# Setup Environment Variables
+cp .env.example .env
+# Edit .env and add your API keys (OpenAI, CoinGecko, GoPlus)
 ```
 
 ### 2. Start the Docker Environment

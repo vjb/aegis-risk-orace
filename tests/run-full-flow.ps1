@@ -64,30 +64,53 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 Write-Host ""
 
 # Use a safe token (WETH) payload for the successful demo flow
-$PAYLOAD_FILE = "/app/tests/payloads/test-payload-pass.json"
+# Use a safe token (WETH) payload for the successful demo flow
+$PAYLOAD_FILE = "$PSScriptRoot/payloads/test-payload-pass.json"
 
 Write-Host "   Token: WETH (Wrapped Ether on Base)" -ForegroundColor DarkGray
 Write-Host "   Payload: $PAYLOAD_FILE" -ForegroundColor DarkGray
 Write-Host ""
 
 # Run the CRE workflow simulation inside Docker
-$cmd = "cd /app && cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload $PAYLOAD_FILE"
+# Read and compress the payload JSON to pass directly
+$jsonContent = Get-Content $PAYLOAD_FILE -Raw | ConvertFrom-Json | ConvertTo-Json -Depth 10 -Compress
+# Escape single quotes for sh (replace ' with '\'')
+$shSafeJson = $jsonContent -replace "'", "'\''"
+
+# Generate specific shell script to avoid quoting hell
+$shScriptPath = "$PSScriptRoot/run-cre.sh"
+$shScriptContent = @"
+#!/bin/sh
+cd /app
+cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload '$shSafeJson'
+"@
+Set-Content -Path $shScriptPath -Value $shScriptContent -Encoding Ascii -NoNewline
+
+# Copy script to container and fix line endings (remove \r)
+docker cp "$shScriptPath" aegis_dev:/tmp/run-cre.sh
+try { docker exec aegis_dev sed -i 's/\r$//' /tmp/run-cre.sh } catch {}
+docker exec aegis_dev chmod +x /tmp/run-cre.sh
+
+# Execute script
+$cmd = "/tmp/run-cre.sh"
+# Cleanup happens after execution
 
 Write-Host "   Running CRE workflow..." -ForegroundColor Yellow
 
 # Capture the JSON result (similar to test-aegis.ps1)
 $GLOBAL:LastJsonResult = $null
-$output = docker exec aegis_dev sh -c "$cmd" 2>&1 | ForEach-Object {
+# Execute the script directly
+$output = docker exec aegis_dev $cmd 2>&1 | ForEach-Object {
     $rawLine = $_.ToString()
     $line = $rawLine.Trim()
     
-    # Capture JSON result line
-    if ($line -match '^\s*"\{.*tokenAddress.*\}"') {
+    # Capture JSON result line (v3.0 format: {"verdict":...})
+    if ($line -match '^\s*"\{.*verdict.*\}"') {
         $GLOBAL:LastJsonResult = $line.Trim('"')
     }
     
     # Also capture if it's a plain JSON object (no quotes)
-    if ($line -match '^\{.*tokenAddress.*\}$') {
+    if ($line -match '^\{.*verdict.*\}$') {
         $GLOBAL:LastJsonResult = $line
     }
     
@@ -135,15 +158,15 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 Write-Host ""
 
 # Extract data from CRE result
-$userAddress = $result.userAddress
-$tokenAddress = $result.tokenAddress
-$chainId = $result.chainId
-$askingPrice = $result.askingPrice
+$userAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" # Using sender as user for demo simplicity
+$tokenAddress = $result.tokenAddress || "0x4200000000000000000000000000000000000006" # Default WETH on Base
+$chainId = $result.chainId || "8453"
+$askingPrice = "2100" # From payload
 $timestamp = $result.timestamp
-$decision = $result.decision
-$riskScore = $result.riskScore
+$verdict = $result.verdict # Boolean
+$riskCode = $result.riskCode
 $salt = $result.salt
-$reasoningHash = $result.reasoningHash
+# reasoningHash is no longer part of the signed struct in v3.0
 
 # The signature from the CRE
 $signature = $result.signature
@@ -151,15 +174,18 @@ $signature = $result.signature
 # Convert asking price to integer (8 decimals) as expected by the contract signing logic
 $askingPriceWei = [Math]::Round([double]$askingPrice * 1e8)
 
-# Build the RiskAssessment struct for the smart contract (AegisVault v2.0)
-# Solidity struct: (address userAddress, address tokenAddress, uint256 chainId, uint256 askingPrice, uint256 timestamp, string decision, uint8 riskScore, bytes32 salt, bytes32 reasoningHash)
-$assessment = "($userAddress,$tokenAddress,$chainId,$askingPriceWei,$timestamp,$decision,$riskScore,$salt,$reasoningHash)"
+# Build the RiskAssessment struct for the smart contract (AegisVault v3.0)
+# Solidity struct: (address userAddress, address tokenAddress, uint256 chainId, uint256 askingPrice, uint256 timestamp, bool verdict, uint256 riskCode, bytes32 salt)
+# Note: Boolean must be passed as "true" or "false" string to cast
+$verdictStr = if ($verdict) { "true" } else { "false" }
+$assessment = "($userAddress,$tokenAddress,$chainId,$askingPriceWei,$timestamp,$verdictStr,$riskCode,$salt)"
 
 Write-Host "   📋 Transaction Parameters:" -ForegroundColor White
 Write-Host "      User:       $userAddress" -ForegroundColor DarkGray
 Write-Host "      Token:      $tokenAddress" -ForegroundColor DarkGray
 Write-Host "      Chain ID:   $chainId" -ForegroundColor DarkGray
-Write-Host "      Aegis Proof: $($reasoningHash.Substring(0, 20))..." -ForegroundColor DarkGray
+Write-Host "      Risk Code:  $riskCode" -ForegroundColor DarkGray
+Write-Host "      Verdict:    $verdictStr" -ForegroundColor DarkGray
 Write-Host "      Signature:   $($signature.Substring(0, 20))..." -ForegroundColor DarkGray
 Write-Host ""
 
@@ -176,10 +202,9 @@ $USER_PRIVATE_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6
 
 Write-Host "   Calling AegisVault.swapWithOracle()..." -ForegroundColor Yellow
 
-# Call the smart contract with the v2.0 struct definition
+# Call the smart contract with the v3.0 struct definition (executeTradeWithOracle)
 $txResult = & $castPath send $CONTRACT_ADDRESS `
-    "swapWithOracle(address,uint256,(address,address,uint256,uint256,uint256,string,uint8,bytes32,bytes32),bytes)" `
-    $tokenAddress `
+    "executeTradeWithOracle(uint256,(address,address,uint256,uint256,uint256,bool,uint256,bytes32),bytes)" `
     1000000000000000000 `
     $assessment `
     $signature `
@@ -232,8 +257,7 @@ Write-Host ""
 
 # Try to replay the exact same transaction
 $replayResult = & $castPath send $CONTRACT_ADDRESS `
-    "swapWithOracle(address,uint256,(address,address,uint256,uint256,uint256,string,uint8,bytes32,bytes32),bytes)" `
-    $tokenAddress `
+    "executeTradeWithOracle(uint256,(address,address,uint256,uint256,uint256,bool,uint256,bytes32),bytes)" `
     1000000000000000000 `
     $assessment `
     $signature `
