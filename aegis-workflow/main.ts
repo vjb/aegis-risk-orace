@@ -1,21 +1,35 @@
 /**
  * ┌──────────────────────────────────────────────────────────────────────────────┐
- * │                     AEGIS RISK ORACLE - CRE WORKFLOW v2.0                    │
- * │            VERIFIABLE AI SHIELD + PINATA/IPFS COMPLIANCE LAYER               │
+ * │                     AEGIS RISK ORACLE - CRE WORKFLOW v3.0                    │
+ * │            DETERMINISTIC CONSENSUS + VERIFIABLE AI AUDIT LAYER               │
  * └──────────────────────────────────────────────────────────────────────────────┘
  */
 import { HTTPCapability, handler, Runner, type Runtime, type HTTPPayload, cre, ok, text, json } from "@chainlink/cre-sdk";
 import { z } from "zod";
-import { keccak256, encodePacked, Hex, recoverMessageAddress, getAddress } from "viem";
+import { keccak256, encodePacked, Hex, getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-// Standard DON Demo Key (for Anvil verification)
 const DON_DEMO_PRIVATE_KEY: Hex = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const donAccount = privateKeyToAccount(DON_DEMO_PRIVATE_KEY);
 
+const RISK_FLAGS = {
+    LIQUIDITY_WARN: 1,
+    VOLATILITY_WARN: 2,
+    SUSPICIOUS_CODE: 4,
+    OWNERSHIP_RISK: 8,
+    HONEYPOT_FAIL: 16
+};
+
+const ERROR_CODES = {
+    API_FAIL: 200,
+    INVALID_TOKEN: 201,
+    LLM_FAIL: 202,
+    GENERAL_FAIL: 255
+};
+
 const configSchema = z.object({
     openaiApiKey: z.string().optional(),
-    pinataJwt: z.string().optional(), // 🚀 NEW: Pinata Auth
+    pinataJwt: z.string().optional(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -24,16 +38,15 @@ const requestSchema = z.object({
     tokenAddress: z.string().min(1),
     chainId: z.string().min(1),
     askingPrice: z.string().optional(),
-    amount: z.string().optional(),
     userAddress: z.string().optional(),
     coingeckoId: z.string().optional(),
+    vrfSalt: z.string().optional(),
 });
 
 type RiskAssessmentRequest = z.infer<typeof requestSchema>;
 
 interface AIAnalysisResult {
-    risk_score: number;
-    decision: string;
+    flags: number[];
     reasoning: string;
 }
 
@@ -43,21 +56,18 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const YELLOW = "\x1b[33m";
     const CYAN = "\x1b[36m";
     const RESET = "\x1b[0m";
-    const BOLD = "\x1b[1m";
 
-    runtime.log("━━━━━━ 🧠  AEGIS VERIFIABLE SHIELD ━━━━━━");
-    runtime.log("   🚀 [CRE] Chainlink Runtime Environment v1.0 | DON Secrets: Active");
+    runtime.log("━━━━━━ 🧠  AEGIS DETERMINISTIC SHIELD ━━━━━━");
+    runtime.log("   🚀 [CRE] Chainlink Runtime v3.0 | DON Consensus Mode: Active");
 
-    // 1. Payload Extraction
+    // 1. Payload & VRF Salt Extraction
     let requestData: RiskAssessmentRequest;
     try {
         const parsed = JSON.parse(payload.input?.toString() || "{}");
         requestData = requestSchema.parse(parsed);
         runtime.log(`${CYAN}📥 INPUT RECEIVED:${RESET}`);
         runtime.log(`   Token: ${requestData.tokenAddress}`);
-        runtime.log(`   Chain: ${requestData.chainId}`);
-        runtime.log(`   Asking: $${requestData.askingPrice || "0"} for ${requestData.amount || "0"} tokens`);
-        runtime.log(`   User:  ${requestData.userAddress || "Unknown"}`);
+        runtime.log(`   VRF Salt: ${requestData.vrfSalt || "Fallback-Mode"}`);
     } catch (e) {
         runtime.log(`${RED}❌ Invalid Payload${RESET}`);
         return JSON.stringify({ error: "Invalid Request" });
@@ -65,20 +75,12 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     const httpClient = new cre.capabilities.HTTPClient();
 
-    // 2. Parallel Data Acquisition
-    runtime.log(`\n${YELLOW}━━━ 📊  DATA ACQUISITION (Parallel Execution) ━━━${RESET}`);
+    // 2. Deterministic Data Acquisition
+    runtime.log(`\n${YELLOW}━━━ 🌐  PARALLEL SIGNAL ACQUISITION ━━━${RESET}`);
 
-    runtime.log(`   📡 [CG] Fetching Market Price for: ${requestData.coingeckoId || 'ethereum'}...`);
-    runtime.log(`   📡 [GP] Scanning Token Security: ${requestData.tokenAddress.substring(0, 10)}...`);
-    runtime.log(`   📡 [QR] Generating Quantum Entropy (ANU QRNG)...`);
-
-    const [priceResult, entropyResult, securityResult] = await Promise.all([
+    const [cgResult, gpResult] = await Promise.all([
         httpClient.sendRequest(runtime as any, {
             url: `https://api.coingecko.com/api/v3/simple/price?ids=${requestData.coingeckoId || 'ethereum'}&vs_currencies=usd`,
-            method: "GET"
-        }).result(),
-        httpClient.sendRequest(runtime as any, {
-            url: "https://qrng.anu.edu.au/API/jsonI.php?length=1&type=hex16&size=32",
             method: "GET"
         }).result(),
         httpClient.sendRequest(runtime as any, {
@@ -87,48 +89,65 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         }).result()
     ]);
 
-    // Parse & Log Responses
-    const marketPrice = ok(priceResult) ? (json(priceResult) as any)[requestData.coingeckoId || 'ethereum']?.usd : 2500;
-    const entropy = ok(entropyResult) ? (json(entropyResult) as any).data[0] : "0x" + "0".repeat(64);
-    const securityData = ok(securityResult) ? (json(securityResult) as any).result[requestData.tokenAddress.toLowerCase()] : {};
-
-    runtime.log(`   ✅ [CG] Price Resolved: ${YELLOW}$${marketPrice}${RESET} ${ok(priceResult) ? "(LIVE)" : "(FALLBACK)"}`);
-    runtime.log(`   ✅ [GP] Security Scan: ${securityData ? "DATA CAPTURED" : "NO DATA"} ${ok(securityResult) ? "(LIVE)" : "(FALLBACK)"}`);
-
-    // Log detailed security flags if data exists
-    if (securityData) {
-        const isHoneypot = securityData.is_honeypot === "1";
-        const isMintable = securityData.is_mintable === "1";
-        const buyTax = securityData.buy_tax || "0";
-        const sellTax = securityData.sell_tax || "0";
-
-        if (isHoneypot) runtime.log(`      ⚠️ [GP] ALERT: HONEYPOT DETECTED`);
-        if (isMintable) runtime.log(`      ⚠️ [GP] Warning: Token is Mintable`);
-        if (Number(buyTax) > 0 || Number(sellTax) > 0) runtime.log(`      ℹ️ [GP] Tax: Buy ${buyTax}% | Sell ${sellTax}%`);
-        if (!isHoneypot && !isMintable && Number(buyTax) == 0 && Number(sellTax) == 0) {
-            runtime.log(`      ✅ [GP] Status: Clean Token Contract`);
-        }
+    // Operational Guardrail: Fail-Closed on API Error
+    if (!ok(cgResult) || !ok(gpResult)) {
+        runtime.log(`   ❌ API FAILURE. Returning Code ${ERROR_CODES.API_FAIL}`);
+        return JSON.stringify({
+            verdict: false,
+            riskCode: ERROR_CODES.API_FAIL.toString(),
+            salt: requestData.vrfSalt || "0x0"
+        });
     }
 
-    runtime.log(`   ✅ [QR] Entropy Seed: ${entropy.substring(0, 10)}... ${ok(entropyResult) ? "(LIVE)" : "(FALLBACK)"}`);
+    const coingecko = json(cgResult);
+    const goplus = json(gpResult);
+    runtime.log(`   ✅ Signals Captured. Processing context...`);
 
-    // 3. AI Synthesis (Reasoning Engine)
-    runtime.log(`\n${CYAN}━━━ 🤖  AI SYNTHESIS (Verifiable Reasoning) ━━━${RESET}`);
+    // 3. AI Synthesis (Context-Aware Prompt)
+    runtime.log(`\n${CYAN}━━━ 🧠  CONTEXT-AWARE AI SYNTHESIS ━━━${RESET}`);
     const openaiKey = runtime.config.openaiApiKey || await runtime.getSecret({ id: "OPENAI_API_KEY" });
 
-    const askingPrice = Number(requestData.askingPrice || "0");
-    const deviation = marketPrice > 0 ? Math.abs((askingPrice - marketPrice) / marketPrice) * 100 : 0;
+    // Calculate Deviation for Context
+    let marketPrice = (coingecko as any)[requestData.coingeckoId || 'ethereum']?.usd || 0;
 
-    const context = {
-        market_price: marketPrice,
-        asking_price: askingPrice,
-        price_deviation_percent: deviation.toFixed(2) + "%",
-        security: securityData,
-        trade: requestData
+    // DEMO FALLBACK: If API fails to return price (rate limit), use safe default to unblock demo
+    if (marketPrice === 0 && (requestData.coingeckoId === 'ethereum' || !requestData.coingeckoId)) {
+        runtime.log(`   ⚠️ [DEMO MODE] CoinGecko Rate Limit? Using Fallback Price: $2500`);
+        marketPrice = 2500;
+    }
+
+    const askingPrice = Number(requestData.askingPrice || "0");
+    const deviation = marketPrice > 0 ? ((askingPrice - marketPrice) / marketPrice) * 100 : 0;
+
+    const riskContext = {
+        coingecko,
+        goplus,
+        trade: {
+            asking_price: askingPrice,
+            market_price: marketPrice,
+            deviation_percent: deviation.toFixed(2) + "%"
+        }
     };
 
-    const secSummary = securityData ? `[Honeypot: ${securityData.is_honeypot === '1' ? 'YES' : 'NO'}, Mintable: ${securityData.is_mintable === '1' ? 'YES' : 'NO'}]` : 'No Data';
-    runtime.log(`   📤 [OAI] Analysis Context: { Price: $${marketPrice} | Ask: $${askingPrice} | Dev: ${deviation.toFixed(2)}% | Security: ${secSummary} }`);
+    const prompt = `
+    Analyze this DeFi Token Trade. Return a JSON object with 'flags' (array of integers) and 'reasoning'.
+    
+    DATA:
+    ${JSON.stringify(riskContext)}
+    
+    RISK MAP (Bitmask):
+    1 = Low Liquidity (Context: Only flag if <$50k AND Token is >24h old. New tokens start low.)
+    2 = High Volatility (Context: Flag if price drop >30% in 1h OR Price Deviation > 10% from Market.)
+    4 = Suspicious Code (Context: Look for 'blacklist', 'pause', or hidden fees in metadata.)
+    8 = Centralized Owner (Context: Flag if ownership not renounced after 7 days.)
+    16 = Honeypot (CRITICAL: If GoPlus says is_honeypot=true).
+
+    INSTRUCTIONS:
+    - Be a "Smart Judge".
+    - CHECK PRICE: If 'asking_price' is >10% different from 'market_price', YOU MUST FLAG '2' (High Volatility/Manipulation).
+    - If GoPlus indicates honeypot, you MUST include flag 16.
+    - Return JSON ONLY: {"flags": [number], "reasoning": "string"}
+    `;
 
     const aiCall = await httpClient.sendRequest(runtime as any, {
         url: "https://api.openai.com/v1/chat/completions",
@@ -136,120 +155,60 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
         body: Buffer.from(JSON.stringify({
             model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are Aegis, a 'Blue Team' Defense Agent protecting an autonomous trader. Your job is to find NON-OBVIOUS correlations that static code misses. Output JSON: {risk_score: number, decision: 'EXECUTE'|'REJECT', reasoning: 'string'}. " +
-                        "1. CONTEXTUAL SYNTHESIS: Look for 'Safe but Suspicious' combos. Example: A stablecoin (USDC) with a 5% markup is statistically 'safe' (<10%) but contextually WRONG (pegged assets shouldn't float). REJECT these. " +
-                        "2. ECONOMIC GUARDRAIL: Strict >10% deviation = REJECT. " +
-                        "3. TRUSTED ASSETS: WETH, USDC, and LINK are highly trusted. EXECUTE if deviation is < 10% unless there is an extreme security threat. " +
-                        "4. UNKNOWN TOKENS: Assume GUILTY until proven innocent. Rejection is safer than loss. " +
-                        "5. COMBO FAILS: REJECT if multiple minor flags (e.g., untrusted address + moderate deviation) appear together."
-                },
-                { role: "user", content: `Context: ${JSON.stringify(context)}` }
-            ],
+            temperature: 0,
+            seed: 42,
+            messages: [{ role: "system", content: prompt }],
             response_format: { type: "json_object" }
         })).toString('base64')
     }).result();
 
-    const aiParsed = JSON.parse((json(aiCall) as any).choices[0].message.content);
-    const reasoningText = aiParsed.reasoning || "REASONING_NOT_FOUND";
-    const finalDecision = aiParsed.decision || "REJECT";
-    const finalScore = Math.floor(Math.min(Math.max(Number(aiParsed.risk_score || 100), 0), 100));
-
-    runtime.log(`   📥 [OAI] Reasoning Captured. Verdict: ${finalDecision === 'EXECUTE' ? GREEN : RED}${finalDecision}${RESET}`);
-
-    runtime.log(`\n${YELLOW}━━━ 📝  AI RISK ANALYSIS (Logic & Reasoning) ━━━${RESET}`);
-    runtime.log("   [ENTITY]: Aegis Verifiable Oracle (CRE)");
-    runtime.log("   [SECURITY]: Multi-Factor Risk Assessment");
-    runtime.log(`   [ANALYSIS]: ${reasoningText}`);
-
-    // 4. 🚀 PINATA COMPLIANCE STORAGE (The "Big Story")
-    runtime.log(`\n${YELLOW}━━━ 💾  COMPLIANCE ARCHIVE (Pinata / IPFS) ━━━${RESET}`);
-    const pinataJwt = runtime.config.pinataJwt || await runtime.getSecret({ id: "PINATA_JWT" });
-
-    const reasoningHash = keccak256(encodePacked(['string'], [reasoningText]));
-    runtime.log(`   🔗 Content Hash (keccak256): ${reasoningHash}`);
-
-    const pinataCall = await httpClient.sendRequest(runtime as any, {
-        url: "https://api.pinata.cloud/pinning/pinJSONToIPFS",
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${pinataJwt}`,
-            "Content-Type": "application/json"
-        },
-        body: Buffer.from(JSON.stringify({
-            pinataContent: {
-                token: requestData.tokenAddress,
-                verdict: finalDecision,
-                reasoning: reasoningText,
-                audit_hash: reasoningHash,
-                timestamp: new Date().toISOString()
-            },
-            pinataMetadata: { name: `AEGIS_AUDIT_${requestData.tokenAddress}` }
-        })).toString('base64')
-    }).result();
-
-    const ipfsHash = ok(pinataCall) ? (json(pinataCall) as any).IpfsHash : "PENDING_IPFS_UPLOAD";
-    if (ok(pinataCall)) {
-        runtime.log(`   ✅ IPFS Pin Success: ipfs://${ipfsHash.substring(0, 16)}...`);
-    } else {
-        runtime.log(`   ⚠️ IPFS Pin Fallback: PENDING (Run in production for CID)`);
+    if (!ok(aiCall)) {
+        return JSON.stringify({ verdict: false, riskCode: ERROR_CODES.LLM_FAIL.toString(), salt: requestData.vrfSalt });
     }
 
-    // 5. Cryptographic Triple-Lock Signing
-    runtime.log(`\n${YELLOW}━━━ 🔐  CRYPTOGRAPHIC QUAD-LOCK (Signed & Verified) ━━━${RESET}`);
-    const timestamp = BigInt(Math.floor(Date.now() / 1000));
-    const salt = (entropy.startsWith('0x') ? entropy : `0x${entropy.padStart(64, '0')}`) as Hex;
-    const askingPriceWei = BigInt(Math.round(Number(requestData.askingPrice || "0") * 1e8));
+    const aiParsed = JSON.parse((json(aiCall) as any).choices[0].message.content) as AIAnalysisResult;
+    const flags = aiParsed.flags || [];
+    const reasoningText = aiParsed.reasoning || "REASONING_NOT_FOUND";
 
-    runtime.log(`   🔑 Signing Payload:`);
-    runtime.log(`      User:      ${requestData.userAddress}`);
-    runtime.log(`      Token:     ${requestData.tokenAddress}`);
-    runtime.log(`      Price:     ${askingPriceWei} (wei)`);
-    runtime.log(`      Timestamp: ${timestamp}`);
-    runtime.log(`      Salt:      ${salt.substring(0, 18)}...`);
-    runtime.log(`      Decision:  ${finalDecision} (${finalScore}/100)`);
-    runtime.log(`      Lock 4:    ${reasoningHash.substring(0, 18)}... (AI Reasoning)`);
+    // Calculate Bitmask
+    const riskCode = flags.reduce((a, b) => a + b, 0);
+    const finalVerdict = riskCode === 0;
+
+    runtime.log(`   🛡️  AEGIS VERDICT: ${finalVerdict ? "APPROVED" : "RISK_DETECTED"}`);
+    runtime.log(`   RISK CODE: ${riskCode}`);
+    runtime.log(`   REASONING: ${reasoningText}`);
+
+    // 4. Cryptographic Signing (Deterministic)
+    runtime.log(`\n${YELLOW}━━━ 🔐  DETERMINISTIC SIGNING ━━━${RESET}`);
+    const timestamp = BigInt(Math.floor(Date.now() / 1000));
+    const salt = (requestData.vrfSalt || "0x" + "0".repeat(64)) as Hex;
+    const askingPriceWei = BigInt(Math.round(Number(requestData.askingPrice || "0") * 1e8));
 
     const messageHash = keccak256(
         encodePacked(
-            ['address', 'address', 'uint256', 'uint256', 'uint256', 'string', 'uint8', 'bytes32', 'bytes32'],
+            ['address', 'address', 'uint256', 'uint256', 'uint256', 'bool', 'uint256', 'bytes32'],
             [
                 getAddress(requestData.userAddress || "0x0000000000000000000000000000000000000000"),
                 getAddress(requestData.tokenAddress),
                 BigInt(requestData.chainId),
                 askingPriceWei,
                 timestamp,
-                finalDecision,
-                finalScore,
-                salt,
-                reasoningHash
+                finalVerdict,
+                BigInt(riskCode),
+                salt
             ]
         )
     );
 
     const signature = await donAccount.signMessage({ message: { raw: messageHash } });
-    runtime.log(`   🔏 DON SIGNATURE: ${signature.substring(0, 24)}...`);
-
-    runtime.log(`\n${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}`);
-    runtime.log(`${GREEN}${BOLD}🛡️  AEGIS SHIELD: PROTECTION ACTIVE${RESET}`);
-    runtime.log(`   Signature verified for ${requestData.tokenAddress.substring(0, 10)}...`);
-    runtime.log(`${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n`);
 
     return JSON.stringify({
-        userAddress: requestData.userAddress,
-        tokenAddress: requestData.tokenAddress,
-        chainId: requestData.chainId,
-        askingPrice: requestData.askingPrice,
-        timestamp: timestamp.toString(),
-        decision: finalDecision,
-        riskScore: finalScore,
+        verdict: finalVerdict,
+        riskCode: riskCode.toString(),
         salt: salt,
         signature: signature,
-        reasoningHash: reasoningHash,
-        reasoningCID: ipfsHash,
-        reasoningText: reasoningText
+        reasoning: reasoningText,
+        timestamp: timestamp.toString()
     });
 };
 

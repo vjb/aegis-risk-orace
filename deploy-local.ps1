@@ -9,7 +9,7 @@ Write-Host "══════════════════════�
 $anvilProcess = Get-Process -Name "anvil" -ErrorAction SilentlyContinue
 if (-not $anvilProcess) {
     Write-Host "`n⚠️  Anvil is not running. Starting Anvil..." -ForegroundColor Yellow
-    Start-Process powershell -ArgumentList "-NoProfile", "-NoExit", "-Command", "& '$env:USERPROFILE\.foundry\bin\anvil.exe'"
+    Start-Process "$env:USERPROFILE\.foundry\bin\anvil.exe"
     Write-Host "   Waiting for Anvil to start..." -ForegroundColor DarkGray
     Start-Sleep -Seconds 3
 }
@@ -24,12 +24,17 @@ Write-Host "`n📋 Deployment Parameters:" -ForegroundColor Cyan
 Write-Host "   DON Public Key: $DON_PUBLIC_KEY" -ForegroundColor DarkGray
 Write-Host "   RPC URL: http://localhost:8545" -ForegroundColor DarkGray
 
+# Mock VRF Parameters for Local Demo
+$VRF_COORDINATOR = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" # Using DON key as mock coordinator
+$KEY_HASH = "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15"
+$SUB_ID = "1"
+
 # Deploy AegisVault using forge
-Write-Host "`n🚀 Deploying AegisVault.sol..." -ForegroundColor Yellow
+Write-Host "`n🚀 Deploying AegisVault.sol (with VRF config)..." -ForegroundColor Yellow
 
 $forgePath = "$env:USERPROFILE\.foundry\bin\forge.exe"
 $env:FOUNDRY_DISABLE_NIGHTLY_WARNING = "1"
-& $forgePath create "contracts/AegisVault.sol:AegisVault" --broadcast --rpc-url http://localhost:8545 --private-key $DON_PRIVATE_KEY --constructor-args $DON_PUBLIC_KEY
+& $forgePath create "contracts/AegisVault.sol:AegisVault" --broadcast --rpc-url http://localhost:8545 --private-key $DON_PRIVATE_KEY --constructor-args $DON_PUBLIC_KEY $VRF_COORDINATOR $KEY_HASH $SUB_ID
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`n✅ AegisVault deployed successfully!" -ForegroundColor Green

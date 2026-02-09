@@ -6,5 +6,6 @@
     "chainId": "8453",
     "askingPrice": "6000.00",
     "amount": "1",
-    "userAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+    "userAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "vrfSalt": "0x3234567890abcdef3234567890abcdef3234567890abcdef3234567890abcdef"
 }

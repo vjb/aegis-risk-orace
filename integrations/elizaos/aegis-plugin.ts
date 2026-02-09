@@ -50,10 +50,10 @@ const aegisAction: Action = {
             const result = await response.json();
 
             // 3. Handle the Oracle's Verdict
-            if (result.decision === "REJECT") {
+            if (result.verdict === "REJECT") {
                 if (callback) {
                     callback({
-                        text: `❌ TRADE BLOCKED: Aegis detected high risk (${result.riskScore}/10).\nReasoning: ${result.reasoning}`,
+                        text: `❌ TRADE BLOCKED: Aegis detected risk (Code: ${result.riskCode}).\nReasoning: ${result.reasoning}`,
                         content: { error: "RISK_REJECTED", result }
                     });
                 }
@@ -62,8 +62,8 @@ const aegisAction: Action = {
 
             if (callback) {
                 callback({
-                    text: `✅ AEGIS PASSED: Risk Score ${result.riskScore}/10. Proceeding with trade intent.`,
-                    content: { status: "APPROVED", signature: result.signature }
+                    text: `✅ AEGIS PASSED: Risk Code ${result.riskCode}. Proceeding with trade intent.`,
+                    content: { status: "APPROVED", result }
                 });
             }
 

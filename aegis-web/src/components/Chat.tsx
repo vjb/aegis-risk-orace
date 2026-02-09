@@ -126,6 +126,27 @@ export default function Chat({ onIntent }: ChatProps) {
 
             const data = await response.json();
 
+            // 🔍 Frontend "Backend-for-Frontend" Logic
+            // If we receive a verdict, we securely archive it to IPFS via our server-side API
+            const resultData = data.content?.result || (data.text.includes("VERDICT") ? { verdict: data.text } : null);
+
+            if (resultData && (resultData.riskCode !== undefined || resultData.verdict)) {
+                // Fire-and-forget upload (don't block UI)
+                fetch('/api/pinata', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pinataContent: {
+                            ...resultData,
+                            timestamp: new Date().toISOString()
+                        },
+                        pinataMetadata: {
+                            name: `AEGIS_AUDIT_${resultData.riskCode}_${Date.now()}`
+                        }
+                    })
+                }).catch(err => console.error("Pinata Upload Failed:", err));
+            }
+
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 role: 'agent',
@@ -134,7 +155,8 @@ export default function Chat({ onIntent }: ChatProps) {
                     data.text.includes('VERDICT') ||
                     data.text.includes('AEGIS_APPROVE') ||
                     data.text.includes('AEGIS_REJECT') ||
-                    data.text.includes('REJECT')
+                    data.text.includes('REJECT') ||
+                    (resultData?.riskCode !== undefined)
                 )
             }]);
 

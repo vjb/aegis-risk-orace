@@ -41,7 +41,7 @@ try {
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONTRACT ADDRESS (deployed by deploy-local.ps1)
 # ═══════════════════════════════════════════════════════════════════════════════
-$CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+$CONTRACT_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
 $DON_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 $USER_PRIVATE_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
@@ -60,20 +60,22 @@ Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━
 Write-Host "🧪 TEST 1: APPROVE Verdict → Trade Should Execute" -ForegroundColor Green
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
 
-# Prepare RiskAssessment struct (tokenAddress, chainId, riskScore, decision, timestamp)
+# Prepare RiskAssessment struct (user, token, chainId, price, timestamp, verdict, riskCode, salt)
 $timestamp = [Math]::Floor((Get-Date).ToUniversalTime().Subtract([datetime]'1970-01-01').TotalSeconds)
-$assessment = "(WETH,8453,3,EXECUTE,$timestamp)"
-$signature = "0x1234567890abcdef"  # Mock signature (contract accepts any non-empty)
+$userAddr = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+$tokenAddr = "0x4200000000000000000000000000000000000006" # WETH
+$salt = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+$assessment = "($userAddr,$tokenAddr,8453,210000000000,$timestamp,true,0,$salt)"
+$signature = "0x1234567890abcdef"  # Mock signature
 
-Write-Host "   Token: WETH (0xC02a...6Cc2)" -ForegroundColor DarkGray
-Write-Host "   Risk Score: 3 (Low Risk)" -ForegroundColor DarkGray
-Write-Host "   Decision: EXECUTE" -ForegroundColor DarkGray
+Write-Host "   Token: WETH (Base)" -ForegroundColor DarkGray
+Write-Host "   Risk Code: 0 (SAFE_TO_TRADE)" -ForegroundColor DarkGray
+Write-Host "   Verdict: true (EXECUTE)" -ForegroundColor DarkGray
 
-$result = & $castPath send $CONTRACT_ADDRESS "swapWithOracle(string,uint256,(string,string,uint256,string,uint256),bytes)" "WETH" 1000000000000000000 $assessment $signature --private-key $USER_PRIVATE_KEY --rpc-url http://localhost:8545 2>&1
+$result = & $castPath send $CONTRACT_ADDRESS 'executeTradeWithOracle(uint256,(address,address,uint256,uint256,uint256,bool,uint256,bytes32),bytes)' 1000000000000000000 $assessment $signature --private-key $USER_PRIVATE_KEY --rpc-url http://localhost:8545 2>&1
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`n   ✅ PASS: Trade executed successfully!" -ForegroundColor Green
-    Write-Host "   📝 TradeExecuted event emitted" -ForegroundColor DarkGray
 } else {
     Write-Host "`n   ❌ FAIL: Trade should have succeeded" -ForegroundColor Red
     Write-Host "   $result" -ForegroundColor DarkGray
@@ -86,18 +88,20 @@ Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━
 Write-Host "🧪 TEST 2: REJECT Verdict → Trade Should Be Blocked" -ForegroundColor Red
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
 
-# High risk score + REJECT decision
-$assessmentReject = "(SCAM,8453,9,REJECT,$timestamp)"
+# High risk code + false verdict
+$scamToken = "0x0000000000000000000000000000000000000000"
+$salt2 = "0x2234567890abcdef2234567890abcdef2234567890abcdef2234567890abcdef"
+$assessmentReject = "($userAddr,$scamToken,8453,0,$timestamp,false,16,$salt2)"
 
-Write-Host "   Token: SCAM (0xDEAD...0000)" -ForegroundColor DarkGray
-Write-Host "   Risk Score: 9 (High Risk)" -ForegroundColor DarkGray
-Write-Host "   Decision: REJECT" -ForegroundColor DarkGray
+Write-Host "   Token: SCAM (0x0...0)" -ForegroundColor DarkGray
+Write-Host "   Risk Code: 16 (HONEYPOT_FAIL)" -ForegroundColor DarkGray
+Write-Host "   Verdict: false (REJECT)" -ForegroundColor DarkGray
 
-$result2 = & $castPath send $CONTRACT_ADDRESS "swapWithOracle(string,uint256,(string,string,uint256,string,uint256),bytes)" "SCAM" 1000000000000000000 $assessmentReject $signature --private-key $USER_PRIVATE_KEY --rpc-url http://localhost:8545 2>&1
+$result2 = & $castPath send $CONTRACT_ADDRESS 'executeTradeWithOracle(uint256,(address,address,uint256,uint256,uint256,bool,uint256,bytes32),bytes)' 1000000000000000000 $assessmentReject $signature --private-key $USER_PRIVATE_KEY --rpc-url http://localhost:8545 2>&1
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n   ✅ PASS: Trade correctly blocked!" -ForegroundColor Green
-    Write-Host "   📝 Contract reverted: 'Aegis: Trade blocked by risk oracle'" -ForegroundColor DarkGray
+    Write-Host "   📝 Contract reverted (Aegis logic)" -ForegroundColor DarkGray
 } else {
     Write-Host "`n   ❌ FAIL: Trade should have been blocked" -ForegroundColor Red
 }
@@ -109,15 +113,36 @@ Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━
 Write-Host "🧪 TEST 3: Replay Attack → Should Be Prevented" -ForegroundColor Yellow
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Yellow
 
-Write-Host "   Attempting to replay Test 1's transaction..." -ForegroundColor DarkGray
+Write-Host "   Attempting to replay Test 1's transaction (Same Salt)..." -ForegroundColor DarkGray
 
-$result3 = & $castPath send $CONTRACT_ADDRESS "swapWithOracle(string,uint256,(string,string,uint256,string,uint256),bytes)" "WETH" 1000000000000000000 $assessment $signature --private-key $USER_PRIVATE_KEY --rpc-url http://localhost:8545 2>&1
+$result3 = & $castPath send $CONTRACT_ADDRESS 'executeTradeWithOracle(uint256,(address,address,uint256,uint256,uint256,bool,uint256,bytes32),bytes)' 1000000000000000000 $assessment $signature --private-key $USER_PRIVATE_KEY --rpc-url http://localhost:8545 2>&1
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n   ✅ PASS: Replay attack prevented!" -ForegroundColor Green
-    Write-Host "   📝 Contract reverted: 'Request already processed'" -ForegroundColor DarkGray
+    Write-Host "   📝 Contract reverted: 'Salt already used'" -ForegroundColor DarkGray
 } else {
     Write-Host "`n   ❌ FAIL: Replay should have been blocked" -ForegroundColor Red
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST 4: SYSTEM ERROR CODE → Correct Revert
+# ═══════════════════════════════════════════════════════════════════════════════
+Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "🧪 TEST 4: SYSTEM ERROR → Fail-Closed Revert" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+
+$salt3 = "0x3234567890abcdef3234567890abcdef3234567890abcdef3234567890abcdef"
+$assessmentError = "($userAddr,$tokenAddr,8453,0,$timestamp,false,200,$salt3)"
+
+Write-Host "   Risk Code: 200 (API_FAIL)" -ForegroundColor DarkGray
+
+$result4 = & $castPath send $CONTRACT_ADDRESS 'executeTradeWithOracle(uint256,(address,address,uint256,uint256,uint256,bool,uint256,bytes32),bytes)' 1000000000000000000 $assessmentError $signature --private-key $USER_PRIVATE_KEY --rpc-url http://localhost:8545 2>&1
+
+if ($result4 -match "Aegis: Oracle Error") {
+    Write-Host "`n   ✅ PASS: Error code triggered failsafe revert!" -ForegroundColor Green
+} else {
+    Write-Host "`n   ❌ FAIL: Should have reverted with 'Oracle Error'" -ForegroundColor Red
+    Write-Host "   $result4" -ForegroundColor DarkGray
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -128,9 +153,10 @@ Write-Host "   CONTRACT TESTS COMPLETE" -ForegroundColor Cyan
 Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "   These tests demonstrate:" -ForegroundColor White
-Write-Host "   • CRE verdicts control on-chain execution" -ForegroundColor DarkGray
-Write-Host "   • Risk scores are enforced by smart contract" -ForegroundColor DarkGray
-Write-Host "   • Replay attacks are prevented" -ForegroundColor DarkGray
+Write-Host "   • Boolean verdicts control execution" -ForegroundColor DarkGray
+Write-Host "   • Bitmask risk codes are enforced" -ForegroundColor DarkGray
+Write-Host "   • System Error Codes (200+) trigger Failsafe REVERT" -ForegroundColor DarkGray
+Write-Host "   • Replay attacks are prevented via salt mapping" -ForegroundColor DarkGray
 Write-Host ""
 
 if ($FailedTests -gt 0) {

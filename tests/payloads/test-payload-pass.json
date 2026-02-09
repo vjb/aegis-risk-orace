@@ -7,5 +7,7 @@
     "chainId": "8453",
     "askingPrice": "2100.00",
     "amount": "1.5",
-    "userAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+    "userAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "coingeckoId": "ethereum",
+    "vrfSalt": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 }
