@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 /**
  * @title AegisVault
  * @dev "Sovereign Executor" Architecture for the Chainlink Convergence Hackathon.
  * The Vault initiates the forensic scan, locks funds, and enforces the verdict.
  */
-contract AegisVault {
-    address public owner;
+contract AegisVault is Pausable, Ownable {
     address public functionsRouter; // Simulated Chainlink Functions Router
     
     struct PendingRequest {
@@ -27,16 +29,26 @@ contract AegisVault {
     event RiskCacheUpdated(address indexed token, uint256 riskCode);
     event OracleError(bytes32 indexed requestId, string reason);
 
-    constructor(address _router) {
-        owner = msg.sender;
+    constructor(address _router) Ownable() {
         functionsRouter = _router;
+    }
+
+    /**
+     * @notice Circuit Breaker: Emergency Pause
+     */
+    function emergencyPause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /**
      * @notice Phase 1: The Trigger
      * Agent calls this to initiate a trade. Funds are locked in escrow.
      */
-    function swap(address token, uint256 amount) external payable {
+    function swap(address token, uint256 amount) external payable whenNotPaused {
         require(msg.value == amount, "Aegis: Incorrect escrow amount");
         
         // PREEMPTIVE CHECK: Chainlink Automation Blacklist
@@ -65,7 +77,7 @@ contract AegisVault {
      * @notice Phase 3: The Enforcement
      * Callback from the Chainlink DON (simulated via bypass for demo).
      */
-    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) external {
+    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) external whenNotPaused {
         // require(msg.sender == functionsRouter, "Only Router");
         PendingRequest storage req = requests[requestId];
         require(req.active, "Request not active");

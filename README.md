@@ -3,6 +3,8 @@
 > **"Stopping Scams at the Smart Contract Level."**  
 > *Track: Risk & Compliance / Artificial Intelligence*
 
+👉 **[Read the Full Technical Architecture Deep Dive here](docs/SYSTEM_BLUEPRINT.md)**
+
 ## 🎬 The "Hollywood" Demo (Run in 2 mins)
 We've packaged the entire protocol (Blockchain + Chainlink CRE + AI) into a single Docker container for easy verification.
 
@@ -61,6 +63,9 @@ Aegis uses the **Chainlink Runtime Environment (CRE)** to create a "Triple Lock"
 | **1. Sovereign Smart Escrow** | The `AegisVault.sol` contract locks funds and triggers the audit. | [AegisVault.sol](contracts/AegisVault.sol) |
 | **2. Deterministic AI (Functions)** | The CRE Workflow that runs GPT-4o but enforces deterministic bitmasks. | [workflow.ts](aegis-workflow/src/workflow.ts) |
 | **3. Preemptive Automation** | The `riskCache` mapping and `updateRiskCache` function for zero-latency blocking. | [AegisVault.sol:L35](contracts/AegisVault.sol#L35) |
+
+### 📉 Economic Security (Gas Saver)
+By reverting bad trades on L2 (~$0.05 cost), Aegis saves users from executing honeypot swaps or rug-pulls that would cost **$50+ in lost capital and mainnet gas fees**. We protect the principal, not just the transaction.
 
 ---
 
@@ -128,6 +133,21 @@ We force the AI to output specific bit flags. This ensures **determinism** acros
 - **Oracle Network**: Chainlink CRE, Functions, Automation
 - **AI Core**: OpenAI GPT-4o (via DON)
 - **Frontend**: Next.js 15, Tailwind, ShadcnUI (SecOps Terminal)
+
+---
+
+## 🗺️ Roadmap: The Path to Decentralization
+
+### Phase 1: Mainnet Hardening (Q1 2026)
+*   Deployment to **Base Mainnet**.
+*   **Chainlink Automation** integration for 24/7 portfolio monitoring.
+
+### Phase 2: Historical Forensics (Q2 2026)
+*   **The Graph Integration**: Indexing `TradeRejected` events to build a public "Blacklist" of scam tokens detected by Aegis.
+*   **OriginTrail Integration**: Publishing the full "Chain of Thought" forensic logs to the Decentralized Knowledge Graph (DKG). This creates an immutable, verifiable trail of *why* the AI rejected a trade, ensuring auditability beyond the immediate transaction.
+
+### Phase 3: Cross-Chain Aegis (Q3 2026)
+*   Using **CCIP** to protect assets on Arbitrum and Optimism from a single Base-deployed brain.
 
 ---
 

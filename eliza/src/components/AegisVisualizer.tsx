@@ -1,16 +1,15 @@
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Lock, Unlock, Fingerprint, Activity } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Shield } from 'lucide-react';
 import VerdictCard from './VerdictCard';
 
 interface Props {
     status: string;
     scanData: any;
     verdict: 'SAFE' | 'UNSAFE';
-    currentStep: number;
 }
 
-export default function AegisVisualizer({ status, scanData, verdict, currentStep }: Props) {
+export default function AegisVisualizer({ status, scanData, verdict }: Props) {
     if (status === 'COMPLETE') {
         return (
             <motion.div
@@ -19,7 +18,7 @@ export default function AegisVisualizer({ status, scanData, verdict, currentStep
                 transition={{ type: "spring", bounce: 0.5 }}
                 className="w-full max-w-md"
             >
-                <VerdictCard status={verdict} />
+                <VerdictCard status={verdict} reason={scanData?.details?.reason} />
             </motion.div>
         );
     }

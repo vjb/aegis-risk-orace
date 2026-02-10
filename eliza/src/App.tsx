@@ -37,6 +37,7 @@ export default function App() {
             setScanData({
                 riskScore: isUnsafe ? 10 : 3,
                 details: {
+                    reason: isUnsafe ? (intent.toUpperCase().includes("HONEY") ? "HONEYPOT DETECTED" : "HIGH RISK DETECTED") : "SAFE",
                     honeypot: !!isUnsafe,
                     simulation: true,
                     holderAnalysis: true
@@ -178,7 +179,6 @@ export default function App() {
                                     status={workflowStatus}
                                     scanData={scanData}
                                     verdict={verdict}
-                                    currentStep={currentStep}
                                 />
                             )}
                         </AnimatePresence>

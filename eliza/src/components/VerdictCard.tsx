@@ -1,11 +1,21 @@
-import { ShieldCheck, Fingerprint, AlertTriangle, Twitter } from 'lucide-react';
+import { ShieldCheck, Fingerprint, AlertTriangle, Twitter, Droplets, Fish, Ban } from 'lucide-react';
 
 interface Props {
     status: 'SAFE' | 'UNSAFE';
+    reason?: string;
 }
 
-export default function VerdictCard({ status }: Props) {
+export default function VerdictCard({ status, reason = '' }: Props) {
     const isSafe = status === 'SAFE';
+
+    // Determine Icon based on reason
+    const getRiskIcon = () => {
+        const r = reason.toUpperCase();
+        if (r.includes('HONEYPOT')) return <span className="text-6xl">🍯</span>; // Honey Pot
+        if (r.includes('PHISHING')) return <Fish className="w-32 h-32 text-red-500" />;
+        if (r.includes('LIQUIDITY')) return <Droplets className="w-32 h-32 text-red-500" />;
+        return <Ban className="w-32 h-32 text-red-500" />; // Default Block
+    };
 
     return (
         <div className={`
@@ -18,7 +28,7 @@ export default function VerdictCard({ status }: Props) {
             <div className="absolute top-0 right-0 p-2 opacity-10">
                 {isSafe ?
                     <ShieldCheck className="w-32 h-32 text-emerald-500" /> :
-                    <AlertTriangle className="w-32 h-32 text-red-500" />
+                    getRiskIcon()
                 }
             </div>
 
