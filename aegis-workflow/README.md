@@ -1,35 +1,59 @@
-# 🧠 Aegis Workflow (The Brain)
+# 🧠 Aegis Workflow (The Technical Core)
 
-This directory contains the **Chainlink Runtime Environment (CRE)** workflow that powers the Aegis Oracle. It is designed to be **Deterministic**, **Fail-Closed**, and **Consensus-Ready**.
+This directory contains the **Chainlink Runtime Environment (CRE)** orchestration logic. It acts as the "Orchestrator" that bridges real-world security data, AI forensics, and on-chain execution.
 
-## 🔑 Core Logic (`main.ts`)
+## 🛠️ Architecture: The "Split-Brain" Logic
 
-### 1. The "Fail-Closed" Principle
-If *any* critical data source (CoinGecko, GoPlus, OpenAI) fails or times out, the system defaults to a **Risk Code 200 (API FAIL)**. It generally returns `false` (Reject) unless it can provably certify safety.
+To ensure non-deterministic LLMs can reach consensus, Aegis uses a multi-stage pipeline:
 
-### 2. AI Determinism
-How do we make LLMs deterministic?
-1.  **Temperature 0**: Forces the model to select the most probable token always.
-2.  **Seed 42**: Uses OpenAI's reproducibility seed features.
-3.  **Strict JSON Schema**: The prompt enforces a rigid JSON structure.
-4.  **Bitmask Normalization**: The "Reasoning" text is ignored for consensus. Only the calculated `flags` (integers) are signed.
+```mermaid
+graph TD
+    A[Trigger: HTTP POST] --> B{Parallel Data Fetch}
+    B --> C[CoinGecko: Market Health]
+    B --> D[GoPlus: Security Audit]
+    C & D --> E[AI Analysis: GPT-4o]
+    E --> F[Decision: Deterministic Bitmask]
+    F --> G[Signature: secp256k1]
+    G --> H[Response: Signed Payload]
+    
+    subgraph "The Consensus Zone"
+    E
+    F
+    G
+    end
+```
 
-### 3. The Risk Bitmask
-We use a binary flag system to represent complex risks as a single `uint256`:
-- `1` (000001): **Low Liquidity** (<$50k)
-- `2` (000010): **High Volatility** (>10% Deviation)
-- `4` (000100): **Suspicious Code** (Blacklist/Pause functions)
-- `16` (010000): **Honeypot** (GoPlus confirmed)
-- `32` (100000): **Impersonation** (Brand spoofing)
-- `64` (1000000): **Wash Trading** (Vol > 5x Liq)
-- `128` (10000000): **Suspicious Deployer** (Vanity/Owner check)
-- `256` (100000000): **Phishing Scam** (Metadata scan)
-- `512` (1000000000): **AI Anomaly** (Ambiguity/Gray Zone)
+## 🔑 Core Logic Implementation
 
-## 🧪 Testing
-We use the `simulate-consensus.ts` script to spawn 3 local Docker containers representing Chainlink Nodes. They all execute this workflow in parallel. We compare their outputs bit-by-bit to ensure 100% agreement.
+### 1. Deterministic "Lock-In"
+We achieve consensus on AI outputs using three primary levers:
+- **Temperature 0**: Eliminates randomness in token selection.
+- **Seed 42**: Ensures consistent sampling.
+- **Bitmask Normalization**: The LLM output is parsed into a **Bitmask (uint256)**. Nodes don't compare the *essay* written by the AI, they compare the *integer flags*.
 
+### 2. The Risk Bitmask Protocol
+Risks are represented as binary flags. This allows gas-efficient evaluation on-chain:
+
+| Bit | Value | Flag | logic |
+| :--- | :--- | :--- | :--- |
+| 0 | 1 | `LOW_LIQUIDITY` | Liq < $50k |
+| 1 | 2 | `VOLATILITY` | 24h Change > 10% |
+| 4 | 16 | `HONEYPOT` | GoPlus Blacklist |
+| 6 | 64 | `WASH_TRADING` | Vol > 5x Liq |
+| 9 | 512 | `AI_ANOMALY` | LLM Confidence < 0.7 |
+
+### 3. Fail-Closed Resilience
+If any external API (CoinGecko, GoPlus) fails, the workflow injects a `SUSPICIOUS` flag and defaults to `REJECT`. We never approve a trade if we are blind to the data.
+
+## 💡 Developer Guide: WASM Constraints
+This workflow runs in a **WASM (Javy)** environment.
+> [!IMPORTANT]
+> - **No Node Natives**: Use `Uint8Array` instead of `Buffer`.
+> - **Custom Crypto**: See `utils.ts` for pure JS `sha1` and `keccak256`.
+> - **Base64 Everything**: In/Out payloads must be Base64 encoded.
+
+## 🧪 Simulation
+Verify the logic flow locally:
 ```bash
-# Run the consensus simulation
 bun run ../tests/simulate-consensus.ts
 ```

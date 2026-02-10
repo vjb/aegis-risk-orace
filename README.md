@@ -79,8 +79,8 @@ This project leverages the full Chainlink stack to ensure trust-minimized execut
 | :--- | :--- |
 | **[Chainlink Runtime Environment (CRE)](aegis-workflow/main.ts#L273)** | The core execution layer where the specific workflow logic (`aegis-workflow`) runs. |
 | **[Chainlink Functions](aegis-workflow/main.ts#L87)** | Fetches external data from CoinGecko and GoPlus APIs securely. |
-| **[Decentralized Oracle Network (DON)](tests/simulate-consensus.ts#L5)** | Validates the AI's analysis and signs the final verdict using `secp256k1` signatures. |
-| **[Chainlink VRF](aegis-workflow/utils.ts#L10)** | (Simulated) Provides randomness for salt generation to prevent replay attacks. |
+| **[Decentralized Oracle Network (DON)](aegis-workflow/main.ts#L235)** | Validates the AI's analysis and signs the final verdict using `secp256k1` signatures. |
+| **[Chainlink VRF](contracts/AegisVault.sol#L84)** | (Simulated) Provides randomness for salt generation to prevent replay attacks. |
 
 ---
 
@@ -168,17 +168,7 @@ Run the comprehensive verification suite to test all APIs, cryptography, and log
 
 ---
 
-## 💡 Developer Guide: WASM Constraints
 
-The Aegis Risk Oracle runs inside the **Chainlink Runtime Environment (CRE)**, which uses a WASM-based execution engine (**Javy**). This environment has strict limitations:
-
-> [!WARNING]
-> New developers must adhere to these rules to avoid **WASM Panic** (unreachable instruction) or decoding errors.
-
-1.  **NO Node.js Native Modules**: You cannot use `node:crypto`, `node:fs`, `node:path`, etc.
-2.  **NO Global `Buffer`**: The `Buffer` object is not supported. Use `Uint8Array` or the provided helpers in `utils.ts`.
-3.  **Use `utils.ts` for Cryptography**: We provide pure JavaScript implementations of `sha1` and `toBase64` in `aegis-workflow/utils.ts`.
-4.  **HTTP Body Encoding**: All payloads must be **Base64 encoded**. Use `toBase64(new TextEncoder().encode(JSON.stringify(obj)))`.
 
 ---
 
