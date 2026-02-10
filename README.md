@@ -8,6 +8,8 @@
 ## 🎬 The "Hollywood" Demo (Run in 2 mins)
 We've packaged the entire protocol (Blockchain + Chainlink CRE + AI) into a single Docker container for easy verification.
 
+> ⚠️ **Note on Scope**: The Frontend is a cinematic visualization for the hackathon video. The **REAL** technical innovation is in the `Chainlink CRE` logs and the `AegisVault.sol` state changes, which you will see in the terminal.
+
 **Prerequisites:** Docker Desktop must be running.
 
 ```bash
@@ -56,16 +58,13 @@ Aegis solves this by inverting the flow. We don't just advise; we enforce.
 
 ## 👩‍⚖️ Judge's Guide: Where is the Chainlink?
 
-Aegis uses the **Chainlink Runtime Environment (CRE)** to create a "Triple Lock" security architecture.
+Aegis uses the **Chainlink Runtime Environment (CRE)** and **Chainlink Functions** to create a "Triple Lock" security architecture.
 
 | Feature | Implementation | File Link |
 | :--- | :--- | :--- |
 | **1. Sovereign Smart Escrow** | The `AegisVault.sol` contract locks funds and triggers the audit. | [AegisVault.sol](contracts/AegisVault.sol) |
-| **2. Deterministic AI (Functions)** | The CRE Workflow that runs GPT-4o but enforces deterministic bitmasks. | [workflow.ts](aegis-workflow/src/workflow.ts) |
+| **2. Deterministic AI (Functions)** | The CRE Workflow that runs GPT-4o but enforces deterministic bitmasks. | [main.ts](aegis-workflow/main.ts) |
 | **3. Preemptive Automation** | The `riskCache` mapping and `updateRiskCache` function for zero-latency blocking. | [AegisVault.sol:L35](contracts/AegisVault.sol#L35) |
-
-### 📉 Economic Security (Gas Saver)
-By reverting bad trades on L2 (~$0.05 cost), Aegis saves users from executing honeypot swaps or rug-pulls that would cost **$50+ in lost capital and mainnet gas fees**. We protect the principal, not just the transaction.
 
 ---
 
@@ -105,8 +104,6 @@ Nodes must reach consensus on the **Risk Bitmask**.
 
 We force the AI to output specific bit flags. This ensures **determinism** across oracle nodes.
 
-<div style="display: flex; gap: 20px;">
-
 | **Bit** | **Value** | **Category** | **Description** |
 | :--- | :--- | :--- | :--- |
 | 0 | `1` | Liquidity | Low Liquidity (<$50k) |
@@ -114,16 +111,11 @@ We force the AI to output specific bit flags. This ensures **determinism** acros
 | 2 | `4` | Security | Malicious Code Patterns |
 | 3 | `8` | Governance | Renounced Ownership |
 | 4 | `16` | Scam | Honeypot Trap Detected |
-
-| **Bit** | **Value** | **Category** | **Description** |
-| :--- | :--- | :--- | :--- |
 | 5 | `32` | Identity | Impersonation Attempt |
 | 6 | `64` | Pattern | Wash Trading Detected |
 | 7 | `128` | History | Suspicious Deployer |
 | 8 | `256` | Metadata | Phishing Signature |
 | 9 | `512` | Anomaly | AI Anomaly Detection |
-
-</div>
 
 ---
 
