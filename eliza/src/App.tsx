@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
-import Chat from './components/Chat';
+import { useState } from 'react';
+import Chat, { Message } from './components/Chat';
 import AegisVisualizer from './components/AegisVisualizer';
 import WorkflowVisualizer from './components/WorkflowVisualizer';
 import ScanPipeline from './components/ScanPipeline';
+import AegisInput from './components/AegisInput';
+import SecurityFeed from './components/SecurityFeed';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function App() {
@@ -10,6 +12,13 @@ export default function App() {
     const [scanData, setScanData] = useState<any>(null);
     const [currentStep, setCurrentStep] = useState(0);
     const [verdict, setVerdict] = useState<'SAFE' | 'UNSAFE'>('SAFE');
+
+    // Lifted State for Chat
+    const [input, setInput] = useState('');
+    const [messages, setMessages] = useState<Message[]>([
+        { id: '1', role: 'agent', content: "Systems Online. Aegis Protocol Active. Awaiting Command." },
+    ]);
+    const [isThinking, setIsThinking] = useState(false);
 
     const handleIntent = async (intent: string) => {
         console.log("Intent triggered:", intent);
@@ -45,79 +54,150 @@ export default function App() {
             setCurrentStep(4);
         }, 9000);
 
-        // Reset after delay
-        setTimeout(() => {
-            setWorkflowStatus("IDLE");
-            setCurrentStep(0);
-            setScanData(null);
-            setVerdict('SAFE');
-        }, 15000);
+        // State persists until next interaction
     };
 
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim() || isThinking) return;
+
+        const userMsg = input;
+        setInput('');
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userMsg }]);
+        setIsThinking(true);
+
+        try {
+            await new Promise(resolve => setTimeout(resolve, 1500)); // AI thinking delay
+
+            const response = await fetch('http://localhost:3011/message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: userMsg,
+                    userId: 'user',
+                    roomId: 'default-room-1',
+                    userName: 'User'
+                })
+            });
+
+            const data = await response.json();
+
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'agent',
+                content: data.text
+            }]);
+
+            if (data.content || /swap|buy|trade|sell|check|scan|verify|risk|analyze|safe|token/i.test(userMsg)) {
+                handleIntent(userMsg);
+            }
+
+        } catch (error) {
+            console.error("Error connecting to Aegis:", error);
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'agent',
+                content: "⚠️ SYSTEM ALERT: Secure Uplink Failed. Check Server Connection."
+            }]);
+        } finally {
+            setIsThinking(false);
+        }
+    };
+
+    // Processing state logic
+    const isProcessing = workflowStatus !== "IDLE" && workflowStatus !== "COMPLETE";
+    const isLoading = isThinking || isProcessing;
+
     return (
-        <div className="min-h-screen bg-black text-white p-4 font-mono relative overflow-hidden">
+        <div className="h-screen bg-black text-green-500 font-mono grid grid-cols-4 overflow-hidden relative">
             {/* Background Effects */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black z-0 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/10 via-black to-black z-0 pointer-events-none" />
 
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 h-[calc(100vh-2rem)]">
+            {/* LEFT PANE (25%): THE DISPATCHER */}
+            <div className="col-span-1 border-r border-green-900/30 bg-zinc-950/80 backdrop-blur-sm flex flex-col relative z-10">
+                <div className="p-4 border-b border-green-900/30 flex items-center justify-between">
+                    <span className="text-xs text-green-600 tracking-widest uppercase">⚡ Dispatcher</span>
+                    <span className="text-[10px] text-green-800 animate-pulse">● ONLINE</span>
+                </div>
 
-                {/* Left Panel: Chat Interface */}
-                <div className="lg:col-span-4 h-full">
+                <div className="flex-1 overflow-y-auto mb-4 scrollbar-hide px-2">
                     <Chat
-                        onIntent={handleIntent}
-                        isProcessing={workflowStatus !== "IDLE" && workflowStatus !== "COMPLETE"}
-                        workflowStatus={workflowStatus}
-                        currentStep={currentStep}
+                        messages={messages}
+                        isProcessing={isLoading}
                     />
                 </div>
 
-                {/* Right Panel: Mission Control Visualizers */}
-                <div className="lg:col-span-8 flex flex-col gap-6 h-full">
+                <div className="mt-auto">
+                    <AegisInput
+                        value={input}
+                        onChange={setInput}
+                        onSubmit={handleSendMessage}
+                        isProcessing={isLoading}
+                    />
+                </div>
+            </div>
 
-                    {/* Top: Workflow Steps & Pipeline */}
-                    <div className="h-1/3 min-h-[250px] bg-black/50 border border-white/10 rounded-xl p-4 backdrop-blur-md relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
-                        <h3 className="text-sm font-bold text-purple-400 mb-4 tracking-widest uppercase">Target Acquisition & Analysis</h3>
-                        <WorkflowVisualizer status={workflowStatus} currentStep={currentStep} />
-                        <div className="mt-4">
-                            <ScanPipeline status={workflowStatus} />
-                        </div>
+            {/* CENTER PANE (50%): THE VAULT (Hero Section) */}
+            <div className="col-span-2 flex flex-col h-full relative z-10 p-6 gap-6">
+
+                {/* Upper: Pipeline */}
+                <div className="h-1/3 min-h-[250px] bg-black/40 border border-white/10 rounded-xl p-6 relative overflow-hidden flex flex-col">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
+                    <h3 className="text-sm font-bold text-purple-400 mb-6 tracking-widest uppercase">Target Acquisition & Analysis</h3>
+                    <WorkflowVisualizer status={workflowStatus} currentStep={currentStep} />
+                    <div className="mt-auto">
+                        {/* Pass scanData to ensure persistence */}
+                        <ScanPipeline status={workflowStatus} scanData={scanData} />
                     </div>
+                </div>
 
-                    {/* Bottom: Deep Risk Visualizer (The "Brain") */}
-                    <div className="flex-1 bg-black/50 border border-white/10 rounded-xl p-4 backdrop-blur-md relative overflow-hidden flex flex-col">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50" />
-                        <h3 className="text-sm font-bold text-cyan-400 mb-4 tracking-widest uppercase flex items-center gap-2">
-                            <span>Deep Neural Scan</span>
-                            {workflowStatus === "ANALYZING" && <span className="animate-pulse text-xs text-white">[PROCESSING]</span>}
-                        </h3>
+                {/* Lower: The Brain / Verdict */}
+                <div className="flex-1 bg-black/40 border border-white/10 rounded-xl p-6 relative overflow-hidden flex flex-col">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50" />
+                    <h3 className="text-sm font-bold text-cyan-400 mb-4 tracking-widest uppercase flex items-center gap-2">
+                        <span>Deep Neural Scan</span>
+                        {workflowStatus === "ANALYZING" && <span className="animate-pulse text-xs text-white">[PROCESSING]</span>}
+                    </h3>
 
-                        <div className="flex-1 relative flex items-center justify-center">
-                            <AnimatePresence mode="wait">
-                                {workflowStatus === "IDLE" ? (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className="text-center text-white/30"
-                                    >
-                                        <div className="text-4xl mb-4 opacity-20">🛡️</div>
-                                        <p>AWAITING TARGET DISIGNATION</p>
-                                        <p className="text-xs mt-2">SECURE CHANNEL ACTIVE</p>
-                                    </motion.div>
-                                ) : (
-                                    <AegisVisualizer
-                                        status={workflowStatus}
-                                        scanData={scanData}
-                                        verdict={verdict}
-                                        currentStep={currentStep}
-                                    />
-                                )}
-                            </AnimatePresence>
-                        </div>
+                    <div className="flex-1 relative flex items-center justify-center">
+                        <AnimatePresence mode="wait">
+                            {/* Logic: If IDLE and NO scanData, show standby. Otherwise show Visualizer (which handles verdict) */}
+                            {workflowStatus === "IDLE" && !scanData ? (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="text-center text-white/30"
+                                >
+                                    <div className="text-6xl mb-6 opacity-20 mx-auto w-fit">🛡️</div>
+                                    <p className="tracking-widest text-sm">AWAITING TARGET</p>
+                                    <p className="text-[10px] mt-2 text-green-900/50">SECURE CHANNEL ACTIVE</p>
+                                </motion.div>
+                            ) : (
+                                <AegisVisualizer
+                                    status={workflowStatus}
+                                    scanData={scanData}
+                                    verdict={verdict}
+                                    currentStep={currentStep}
+                                />
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
             </div>
+
+            {/* RIGHT PANE (25%): SYSTEM LOGS (The Matrix) */}
+            <div className="col-span-1 border-l border-green-900/30 bg-black flex flex-col relative z-20">
+                <div className="p-3 border-b border-green-900/30 bg-zinc-900/50">
+                    <span className="text-xs text-green-600 tracking-widest uppercase">Encryption Layer // Logs</span>
+                </div>
+                <div className="flex-1 overflow-hidden p-2">
+                    <SecurityFeed status={workflowStatus} />
+                </div>
+            </div>
+
         </div>
     );
 }
+
+

@@ -3,6 +3,7 @@ import { Search, Cpu, Scale, CheckCircle } from 'lucide-react';
 
 interface Props {
     status: string;
+    scanData?: any;
 }
 
 const steps = [
@@ -12,9 +13,9 @@ const steps = [
     { icon: CheckCircle, label: "Verdict", id: "COMPLETE" }
 ];
 
-export default function ScanPipeline({ status }: Props) {
+export default function ScanPipeline({ status, scanData }: Props) {
     const getStepIndex = (s: string) => steps.findIndex(step => step.id === s);
-    const currentIndex = getStepIndex(status) === -1 ? (status === 'COMPLETE' ? 4 : 0) : getStepIndex(status);
+    // const currentIndex = getStepIndex(status) === -1 ? (status === 'COMPLETE' ? 4 : 0) : getStepIndex(status); // Unused
 
     return (
         <div className="w-full bg-black/40 border border-white/5 rounded-lg p-6 backdrop-blur-sm">
@@ -38,12 +39,20 @@ export default function ScanPipeline({ status }: Props) {
                     );
                 })}
             </ul>
-            {status !== 'IDLE' && status !== 'COMPLETE' && (
-                <div className="mt-4 text-center">
-                    <span className="loading loading-infinity loading-lg text-cyan-500"></span>
-                    <div className="text-xs font-mono mt-2 animate-pulse text-cyan-400">ESTABLISHING SECURE UPLINK...</div>
-                </div>
+            {/* Removed the conditional hiding block - logic moved to parent or simplified to always show if mounted? 
+               User request: "Show the pipeline if status is NOT IDLE, OR if we have data". 
+               But I missed passing scanData in App.tsx. 
+               Correct approach: Add scanData to Props. 
+            */}
+            {(status !== 'IDLE' || scanData) && (
+                status !== 'COMPLETE' && status !== 'IDLE' ? (
+                    <div className="mt-4 text-center">
+                        <span className="loading loading-infinity loading-lg text-cyan-500"></span>
+                        <div className="text-xs font-mono mt-2 animate-pulse text-cyan-400">ESTABLISHING SECURE UPLINK...</div>
+                    </div>
+                ) : null
             )}
+
         </div>
     );
 }

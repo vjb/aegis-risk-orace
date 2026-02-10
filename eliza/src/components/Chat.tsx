@@ -1,32 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Hammer, ArrowRight } from 'lucide-react';
+import { Shield, Hammer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/moving-border"; // Using the Moving Border Button wrapper
 
-interface Message {
+export interface Message {
     id: string;
     role: 'user' | 'agent';
     content: string;
 }
 
 interface ChatProps {
-    onIntent: (intent: string) => void;
+    messages: Message[];
     isProcessing: boolean;
-    workflowStatus: string;
-    currentStep: number;
 }
 
-export default function Chat({ onIntent, isProcessing }: ChatProps) {
-    const [input, setInput] = useState('');
-    const [localLoading, setLocalLoading] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', role: 'agent', content: "Systems Online. Aegis Protocol Active. Awaiting Command." },
-    ]);
+export default function Chat({ messages, isProcessing }: ChatProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const isLoading = localLoading || isProcessing;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,57 +23,10 @@ export default function Chat({ onIntent, isProcessing }: ChatProps) {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, isLoading]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!input.trim() || isLoading) return;
-
-        const userMsg = input;
-        setInput('');
-        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userMsg }]);
-        setLocalLoading(true);
-
-        try {
-            await new Promise(resolve => setTimeout(resolve, 1500)); // AI thinking delay
-
-            const response = await fetch('http://localhost:3011/message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: userMsg,
-                    userId: 'user',
-                    roomId: 'default-room-1',
-                    userName: 'User'
-                })
-            });
-
-            const data = await response.json();
-
-            setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                role: 'agent',
-                content: data.text
-            }]);
-
-            if (data.content || /swap|buy|trade|sell|check|scan|verify|risk|analyze|safe|token/i.test(userMsg)) {
-                onIntent(userMsg);
-            }
-
-        } catch (error) {
-            console.error("Error connecting to Aegis:", error);
-            setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                role: 'agent',
-                content: "⚠️ SYSTEM ALERT: Secure Uplink Failed. Check Server Connection."
-            }]);
-        } finally {
-            setLocalLoading(false);
-        }
-    };
+    }, [messages, isProcessing]);
 
     return (
-        <Card className="w-full bg-black/50 border-white/10 backdrop-blur-xl h-[700px] flex flex-col overflow-hidden shadow-2xl shadow-purple-500/20">
+        <Card className="w-full bg-black/50 border-white/10 backdrop-blur-xl h-full flex flex-col overflow-hidden shadow-2xl shadow-purple-500/20">
             <CardHeader className="border-b border-white/5 bg-black/40">
                 <CardTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400 flex items-center gap-2">
                     <Shield className="w-6 h-6 text-purple-400" />
@@ -113,7 +55,7 @@ export default function Chat({ onIntent, isProcessing }: ChatProps) {
                         ))}
                     </AnimatePresence>
 
-                    {isLoading && (
+                    {isProcessing && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -129,40 +71,8 @@ export default function Chat({ onIntent, isProcessing }: ChatProps) {
                     )}
                     <div ref={messagesEndRef} />
                 </div>
-
-                <div className="p-4 bg-black/40 border-t border-white/5 relative z-20">
-                    <form onSubmit={handleSubmit} className="flex items-center gap-4">
-                        <Input
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type a command or query..."
-                            className="flex-1 bg-zinc-950/50 border-purple-500/30 focus-visible:ring-purple-500/50 text-white placeholder:text-zinc-500 h-14 rounded-xl"
-                            disabled={isLoading}
-                        />
-                        <Button
-                            borderRadius="1.75rem"
-                            className={`font-bold transition-all duration-300 ${isLoading
-                                ? 'bg-purple-900/50 text-purple-200 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]'
-                                : 'bg-white dark:bg-slate-900 text-black dark:text-white border-neutral-200 dark:border-slate-800'
-                                }`}
-                            type="submit"
-                            disabled={isLoading}
-                            containerClassName="h-14 w-32"
-                        >
-                            {isLoading ? (
-                                <motion.div
-                                    animate={{ rotate: [0, 15, -15, 0] }}
-                                    transition={{ repeat: Infinity, duration: 1.5 }}
-                                >
-                                    <Hammer className="w-6 h-6" />
-                                </motion.div>
-                            ) : (
-                                <ArrowRight className="w-6 h-6" />
-                            )}
-                        </Button>
-                    </form>
-                </div>
             </CardContent>
         </Card>
     );
 }
+

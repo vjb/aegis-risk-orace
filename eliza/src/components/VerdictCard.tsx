@@ -6,17 +6,15 @@ interface Props {
 
 export default function VerdictCard({ status }: Props) {
     const isSafe = status === 'SAFE';
-    const colorClass = isSafe ? 'text-emerald-400' : 'text-red-500';
-    const borderClass = isSafe ? 'border-emerald-500/30' : 'border-red-500/30';
-    const bgClass = isSafe ? 'bg-emerald-500/20' : 'bg-red-500/20';
-
-    const handleShare = () => {
-        const tweetText = "🚨 Aegis Risk Oracle just blocked a potential scam! 🛡️ Always verify before you swap. #AegisProtocol #Chainlink #DEFI @Chainlink";
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
-    };
 
     return (
-        <div className={`w-full bg-black/80 border ${borderClass} rounded-xl p-6 backdrop-blur-xl relative overflow-hidden shadow-2xl`}>
+        <div className={`
+            relative p-6 rounded-2xl border-2 backdrop-blur-xl overflow-hidden transition-all duration-500
+            ${isSafe
+                ? 'border-emerald-500/50 bg-emerald-950/30 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
+                : 'border-red-600 bg-red-950/50 shadow-[0_0_40px_rgba(220,38,38,0.4)] animate-pulse'
+            }
+        `}>
             <div className="absolute top-0 right-0 p-2 opacity-10">
                 {isSafe ?
                     <ShieldCheck className="w-32 h-32 text-emerald-500" /> :
@@ -25,17 +23,19 @@ export default function VerdictCard({ status }: Props) {
             </div>
 
             <div className="flex items-center gap-4 mb-6">
-                <div className={`p-3 rounded-xl ${bgClass}`}>
+                <div className={`p-3 rounded-xl ${isSafe ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
                     {isSafe ?
-                        <ShieldCheck className={`w-8 h-8 ${colorClass}`} /> :
-                        <AlertTriangle className={`w-8 h-8 ${colorClass}`} />
+                        <ShieldCheck className="w-8 h-8 text-emerald-400" /> :
+                        <AlertTriangle className="w-8 h-8 text-red-500" />
                     }
                 </div>
                 <div>
-                    <h3 className="text-xl font-black text-white tracking-widest uppercase">
-                        {isSafe ? 'VERDICT CERTIFIED' : 'THREAT DETECTED'}
+                    <h3 className="text-xl font-black tracking-widest uppercase mb-2">
+                        <span className={isSafe ? 'text-emerald-400' : 'text-red-500'}>
+                            {isSafe ? 'SETTLEMENT AUTHORIZED' : 'TRANSACTION REJECTED'}
+                        </span>
                     </h3>
-                    <div className={`text-xs font-mono tracking-widest ${colorClass}`}>
+                    <div className={`text-xs font-mono tracking-widest ${isSafe ? 'text-emerald-400' : 'text-red-500'}`}>
                         {isSafe ? 'CRYPTOGRAPHICALLY SIGNED BY AEGIS' : 'TRANSACTION BLOCKED BY PROTOCOL'}
                     </div>
                 </div>
@@ -48,7 +48,7 @@ export default function VerdictCard({ status }: Props) {
                 </div>
                 <div className="flex justify-between items-center border-b border-white/10 pb-2">
                     <span className="text-zinc-500">VERDICT HASH</span>
-                    <span className={`font-bold ${colorClass}`}>0x8a7f...9e21</span>
+                    <span className={`font-bold ${isSafe ? 'text-emerald-400' : 'text-red-500'}`}>0x8a7f...9e21</span>
                 </div>
                 <div className="flex justify-between items-center pt-1">
                     <span className="text-zinc-500">TIMESTAMP</span>
@@ -57,7 +57,7 @@ export default function VerdictCard({ status }: Props) {
             </div>
 
             <div className={`mt-6 flex items-center justify-center gap-2 border rounded-lg p-3 ${isSafe ? 'bg-emerald-900/20 border-emerald-500/20' : 'bg-red-900/20 border-red-500/20'}`}>
-                <Fingerprint className={`w-4 h-4 ${colorClass}`} />
+                <Fingerprint className={`w-4 h-4 ${isSafe ? 'text-emerald-400' : 'text-red-500'}`} />
                 <span className={`text-xs font-bold tracking-widest ${isSafe ? 'text-emerald-300' : 'text-red-300'}`}>
                     SECURE ENCLAVE VERIFIED
                 </span>
@@ -65,11 +65,14 @@ export default function VerdictCard({ status }: Props) {
 
             {!isSafe && (
                 <button
-                    onClick={handleShare}
-                    className="mt-4 w-full bg-[#1DA1F2] hover:bg-[#1DA1F2]/90 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-[#1DA1F2]/20 group"
+                    onClick={() => {
+                        const text = "🚨 Aegis Protocol just blocked a scam transaction! My capital is safe. #DeFi #AegisProtection";
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    className="mt-6 w-full flex items-center justify-center gap-2 bg-[#1DA1F2]/20 hover:bg-[#1DA1F2]/40 border border-[#1DA1F2]/50 text-[#1DA1F2] py-3 rounded-lg font-bold transition-all uppercase tracking-wider text-xs group"
                 >
-                    <Twitter className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                    <span className="tracking-tight">WARN OTHERS INSTANTLY</span>
+                    <Twitter className="w-4 h-4 fill-current group-hover:rotate-12 transition-transform" />
+                    Broadcast Threat Intel
                 </button>
             )}
         </div>

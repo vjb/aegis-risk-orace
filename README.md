@@ -9,17 +9,46 @@ We've packaged the entire protocol (Blockchain + Chainlink CRE + AI) into a sing
 **Prerequisites:** Docker Desktop must be running.
 
 ```bash
-# 1. Start the Aegis Protocol Stack (Anvil Chain + Docker Environment)
+# 1. Start the Docker Environment (The "World")
+docker-compose up --build -d
+
+# 2. Start the Aegis Protocol Stack (Frontend + Backend)
 .\start-aegis.ps1
 
-# 2. Run the Cinematic Verification Suite
+# 3. Run the Cinematic Verification Suite
 node ./tests/hollywood-demo.js
+```
+
+### 🧪 End-to-End Verification (Advanced)
+For judges who want to see the raw "metal" of the protocol, run the full 5-Phase System Audit (requires Anvil):
+
+```bash
+# Verify Anvil + Solidity + Chainlink Oracle
+./tests/run-full-flow.ps1
 ```
 
 ### What you will see:
 1. **Trusted Swap**: A safe trade cleansly passing the forensic audit.
 2. **Protected Attack**: A malicious token being blocked and refunded autonomously.
 3. **Preemptive Block**: **(NEW)** Automation detecting a threat and updating the cache *before* a user even trades.
+
+---
+
+## 💡 The Solution
+
+### 🏛️ The Aegis Vault Architecture: "Escrow-First" Security
+
+Traditional security tools suffer from the **"Time-of-Check to Time-of-Use" (TOCTOU)** vulnerability. By the time a user signs a transaction based on a "Safe" report, the market state may have changed (e.g., liquidity pulled, price crashed).
+
+Aegis solves this by inverting the flow. We don't just advise; we enforce.
+
+1.  **🔒 Lock (Escrow)**: The user/agent deposits funds into the `AegisVault`. State is frozen.
+2.  **🕵️ Audit (Forensics)**: The Vault autonomously triggers the Chainlink CRE to perform a deterministic audit on the current block state.
+3.  **⚡ Settlement (Atomic)**:
+    *   **If Safe**: The Vault executes the swap and delivers the assets.
+    *   **If Risk**: The Vault **REVERTS** the trade and refunds the original assets.
+
+**The Result:** It is mathematically impossible to execute a trade that violates the safety policy. The code becomes the conscience.
 
 ---
 
@@ -32,6 +61,19 @@ Aegis uses the **Chainlink Runtime Environment (CRE)** to create a "Triple Lock"
 | **1. Sovereign Smart Escrow** | The `AegisVault.sol` contract locks funds and triggers the audit. | [AegisVault.sol](contracts/AegisVault.sol) |
 | **2. Deterministic AI (Functions)** | The CRE Workflow that runs GPT-4o but enforces deterministic bitmasks. | [workflow.ts](aegis-workflow/src/workflow.ts) |
 | **3. Preemptive Automation** | The `riskCache` mapping and `updateRiskCache` function for zero-latency blocking. | [AegisVault.sol:L35](contracts/AegisVault.sol#L35) |
+
+---
+
+## 💼 Real-World Use Cases & Business Value
+
+Aegis acts as a **"Physics Engine"** for the Agent Economy, enabling use cases that were previously too risky to automate.
+
+| Use Case | The Problem | The Aegis Solution | Business Value |
+| :--- | :--- | :--- | :--- |
+| **🤖 Autonomous Betting Agents** | An AI agent with wallet access could hallucinate and drain funds on bad bets or scams. | **Permission Control**: The Agent can request trades, but only the Vault holds funds. The Vault blocks any trade that fails risk checks. | **"Sleep-at-Night" Security**: Developers can run autonomous bots 24/7 without risk of total wallet drain. |
+| **🛡️ Copy-Trading Protection** | Influencers often dump tokens on followers ("Exit Liquidity"). A pre-check says "Safe," but the dump happens during the trade. | **Anti-Rug**: The Vault locks the buy-in. If the price crashes during the transaction block, the Oracle detects the anomaly and cancels the buy. | **Profit Preservation**: Users catch the upside of trends without becoming the victim of dumps. |
+| **🏢 DAO Treasury Compliance** | Multisig signers might accidentally (or maliciously) send funds to sanctioned addresses (OFAC). | **Atomic Compliance**: The Vault physically refuses transfers to high-risk addresses (Tornado Cash, Sanctions Lists) as verified by the Oracle. | **Regulatory Safety**: Automates legal compliance at the smart contract level, protecting the DAO from liability. |
+| **👶 Web3 Onboarding** | New users (or children) don't understand "Honeypots" or "Fake Collections" and ignore UI warnings. | **Safe-Fail Environment**: The Vault acts as a "Smart Wallet" that rejects interactions with unverified contracts. | **User Retention**: Prevents the "I lost everything on day 1" experience that drives users away from DeFi. |
 
 ---
 
