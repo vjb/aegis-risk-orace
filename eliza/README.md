@@ -1,36 +1,17 @@
 # 🤖 Aegis AI Agent (ElizaOS)
 
-The Aegis AI Agent, built on **ElizaOS**, acts as the primary user interface and "Intent Orchestrator." It translates natural language requests into verifiable on-chain actions by coordinating with the Chainlink DON.
+The Aegis AI Agent, built on the **ElizaOS** framework, acts as the primary user interface and conversational bridge to the Aegis Protocol.
 
-## 🧠 Agent Interaction Flow
+## 🧠 AI Integration Logic
 
-```mermaid
-graph TD
-    User([User]) -->|Natural Language| Agent[Aegis Agent]
-    Agent -->|1. Intent Parsing| Plugin[aegisPlugin.ts]
-    Plugin -->|2. Risk Audit| CRE[🛡️ Chainlink CRE]
-    CRE -->|3. Signed Verdict| Plugin
-    Plugin -->|4. Execution| Vault[⛓️ AegisVault.sol]
-    Vault -->|5. Proof| User
-    
-    style CRE fill:#375bd2,color:#fff
-    style Vault fill:#f1c40f,color:#000
-```
+Unlike the on-chain components, the agent provides a natural language interface for users to assess risks.
 
-## 🛠️ The Aegis Plugin (`src/aegisPlugin.ts`)
-
-The core of the agent's logic resides in the custom `aegisPlugin`. This plugin bridges the gap between AI conversation and cryptographic enforcement.
-
-### 1. Intent Detection
-The agent uses specialized evaluators to detect when a user wants to:
-- **Swap Tokens**: "Exchange 1 ETH for LINK"
-- **Check Risk**: "Is this token safe to buy?"
-- **Manage Vault**: "Show me my protected positions"
-
-### 2. Guardrails (Pre-Flight)
-Before any transaction is proposed, the plugin triggers the **Chainlink CRE Workflow**. 
-- If the AI Oracle returns `REJECT`, the agent refuses to proceed and provides the reasoning directly to the user.
-- If the Oracle returns `EXECUTE`, the agent prepares the transaction with the cryptographic signature attached.
+- **ElizaOS Framework**: A multi-agent framework that parses user intent and manages conversational state.
+- **OpenAI Tool Calling**: The agent uses GPT-4o to interpret queries. While it appears to perform real-time actions, it actually utilizes a "Tool/Action" interception pattern:
+    1. The model determines a user wants to check a token.
+    2. ElizaOS intercepts this "tool call."
+    3. The agent triggers the **Chainlink CRE Workflow** as the source of truth for security.
+- **Decoupled Architecture**: The frontend communicates with the agent via a dedicated API server. Note that while the UI visualizes these flows, the agent acts as an independent intent parser that can be integrated into Discord, Twitter (X), or Telegram.
 
 ## 🚀 Setup & Launch
 
@@ -46,5 +27,5 @@ Before any transaction is proposed, the plugin triggers the **Chainlink CRE Work
    npm run start --character="characters/aegis.character.json"
    ```
 
-## 💡 Developer Notes
-The `aegisPlugin` is designed to be chain-agnostic. While it currently interacts with the `AegisVault.sol` on Base/Anvil, the underlying audit logic via Chainlink CRE can be used for any EVM-compatible chain.
+## 💡 How ElizaOS Works
+ElizaOS uses a "Character" system to define personality and knowledge. In Aegis, the agent is tuned for DeFi security forensics. It doesn't just "talk"; it evaluates when to trigger the Aegis Oracle for a verifiable audit, ensuring that AI-driven advice is backed by decentralized consensus.

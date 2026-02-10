@@ -1,4 +1,4 @@
-# 🛡️ AEGIS RISK ORACLE (Chainlink Hackathon 2026)
+# 🛡️ AEGIS RISK ORACLE (Chainlink Convergence Hackathon 2026)
 
 > **"The Deterministic Shield for DeFi."**  
 > *Track: Risk & Compliance / Artificial Intelligence*
@@ -33,8 +33,10 @@ To ensure the DON reaches consensus on LLM outputs, we enforce strict determinis
 - **Seed: 42**: Uses OpenAI's `seed` parameter to ensure consistent backend sampling.
 - **JSON Schema**: Enforces a rigid output structure to prevent formatting variance.
 
-### 3. 🕸️ The Risk Bitmask Protocol
-Aegis condenses complex risk analysis into a single `uint256` bitmask for gas-efficient on-chain verification. Each bit represents a specific risk flag:
+### 3. 🕸️ The Risk Bitmask Protocol (LLM on Rails)
+The "Risk Bitmask" is our core innovation for keeping LLMs **"on the rails."** By forcing the AI to output its analysis as a series of pre-defined risk flags rather than free-form text, we achieve:
+1. **Consensus Compatibility**: Since LLM prose varies, nodes only compare the binary bitmask. If every node agrees on the bitmask, they sign the verdict.
+2. **On-Chain Efficiency**: Aegis condenses complex risk analysis into a single `uint256` for gas-efficient verification.
 
 | Bit | Value | Flag Description |
 | :--- | :--- | :--- |
@@ -49,21 +51,13 @@ Aegis condenses complex risk analysis into a single `uint256` bitmask for gas-ef
 | 8 | `256` | **Phishing Scam** |
 | 9 | `512` | **AI Anomaly Warning** |
 
-This allows the smart contract to enforce granular risk policies (e.g., "Allow Volatility but Block Honeypots") without complex string parsing.
-
 ### 4. 👁️ "Tri-Vector" Forensic Scan
 Before any trade is approved, Aegis runs three parallel checks:
 1.  **Market Integrity**: Real-time price/liquidity analysis (via CoinGecko).
 2.  **Security Audit**: Contract vulnerability scanning (via GoPlus).
 3.  **AI Forensics**: GPT-4o powered semantic analysis of metadata and trade context.
 
-### 3. 🛡️ Synthetic Signal Injection (v3.0)
-To ensure **Mission Critical Continuity**, Aegis v3.0 features a robust fallback layer:
-- **Resilient Data**: Automatically injects `[MOCKED]` telemetry if external APIs are rate-limited.
-- **Fail-Open Demo**: Ensures judges can see the logic flow even during network congestion.
-- **Traceability**: All signals are explicitly labeled as `[LIVE]` or `[MOCKED]` in the logs.
-
-### 4. ✍️ Verifiable DON Signatures
+### 5. ✍️ Verifiable DON Signatures
 Every decision is locked with a cryptographic proof:
 - **Signer Identity**: Verified against the DON account (e.g., `0xf39...`).
 - **VRF Salt**: Prevents replay attacks and ensures auditability.
@@ -112,11 +106,11 @@ sequenceDiagram
 
 ## 📦 Repository Structure
 
-- **`aegis-workflow/`**: The Chainlink CRE code. Contains the **Deterministic AI Logic**.
-- **`contracts/`**: Solidity Smart Contracts (`AegisVault.sol`) with signature verification.
-- **`aegis-web/`**: The "Mission Control" Dashboard (Next.js) featuring the **Tri-Vector UI**.
-- **`tests/`**: Comprehensive Test Suite (`simulate-consensus.ts`, `test-aegis.ps1`).
-- **`docs/`**: Project documentation, whitepapers, and hackathon resources.
+- **[`aegis-workflow/`](aegis-workflow/)**: The Chainlink CRE code. Contains the **Deterministic AI Logic**.
+- **[`contracts/`](contracts/)**: Solidity Smart Contracts (`AegisVault.sol`) with signature verification.
+- **[`aegis-web/`](aegis-web/)**: The "Mission Control" Dashboard (Next.js) featuring the **Tri-Vector UI**.
+- **[`tests/`](tests/)**: Comprehensive Test Suite (`simulate-consensus.ts`, `test-aegis.ps1`).
+- **[`docs/`](docs/)**: Project documentation, whitepapers, and hackathon resources.
 
 ---
 
@@ -124,6 +118,7 @@ sequenceDiagram
 
 ### Prerequisites
 - **Node.js** v20+
+- **Forge/Anvil** (Foundry)
 - **Docker** (Required for Local CRE Runtime & Consensus Simulation)
 
 ### 1. Installation
@@ -140,27 +135,33 @@ cp .env.example .env
 # Edit .env and add your API keys (OpenAI, CoinGecko, GoPlus)
 ```
 
-### 2. Start the Docker Environment
+### 2. Start the Local Blockchain (Anvil)
+Open a new terminal and start Anvil to support the smart contract layer:
+```bash
+anvil
+```
+
+### 3. Start the Docker Environment
 Ensure Docker is running to support the local CRE simulation:
 ```bash
 docker-compose up -d
 ```
 
-### 3. Launch the Mission Control Center
+### 4. Launch the Mission Control Center
 Start the full stack (Frontend + Backend + AI Agent) with one command:
 ```powershell
 .\start-aegis.ps1
 ```
 - **Frontend**: http://localhost:3005
-- **Backend API**: http://localhost:3011
+- **Backend API (ElizaOS)**: http://localhost:3011
 
-### 4. Run the "Hollywood" Demo (Judges' Choice)
+### 5. Run the "Hollywood" Demo (Judges' Choice)
 Experience the full capabilities of Aegis with our scripted demo suite:
 ```powershell
 .\tests\test-aegis.ps1
 ```
 
-### 5. Verify the System
+### 6. Verify the System
 Run the comprehensive verification suite to test all APIs, cryptography, and logic:
 ```powershell
 .\tests\test-everything.ps1
@@ -168,8 +169,4 @@ Run the comprehensive verification suite to test all APIs, cryptography, and log
 
 ---
 
-
-
----
-
-*Built with ❤️ by the Aegis Team for the Chainlink Constellation Hackathon.*
+*This project was built by agents and AI models using the **Antigravity** agentic assistant for the Chainlink Convergence Hackathon 2026.*
