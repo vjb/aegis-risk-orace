@@ -47,7 +47,13 @@ Write-Host "Phase 1: Checking Environment..." -ForegroundColor White
 $dockerCheck = docker ps --filter "name=aegis_dev" --format "{{.Names}}" 2>$null
 if ($dockerCheck -ne "aegis_dev") {
     Write-Host "   X Docker container 'aegis_dev' is not running!" -ForegroundColor Red
-    Write-Host "      Run: docker-compose up -d" -ForegroundColor DarkGray
+    Write-Host "" -ForegroundColor Red
+    Write-Host "      ACTION REQUIRED:" -ForegroundColor Yellow
+    Write-Host "      1. Start Docker Desktop (if not running)" -ForegroundColor White
+    Write-Host "      2. Run: docker-compose up -d" -ForegroundColor White
+    Write-Host "      3. Wait ~10 seconds for container initialization" -ForegroundColor White
+    Write-Host "      4. Re-run this test script" -ForegroundColor White
+    Write-Host "" -ForegroundColor Red
     exit 1
 } else {
     Write-Host "   OK Docker: Running" -ForegroundColor Green

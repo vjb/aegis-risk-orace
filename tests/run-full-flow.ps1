@@ -1,7 +1,7 @@
 # Aegis End-To-End "Hollywood" Demo Script
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $castPath = "cast"
-$CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+$CONTRACT_ADDRESS = "0x9A676e781A523b5d0C0e43731313A708CB607508"
 $USER_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" 
 
 $RISK_FLAGS = @{
@@ -18,11 +18,11 @@ $RISK_FLAGS = @{
 }
 
 function Decode-RiskCode([int]$code) {
-    if ($code -eq 0) { return @("✅ VERIFIED SAFE") }
+    if ($code -eq 0) { return @("VERIFIED SAFE") }
     $found = @()
     foreach ($bit in $RISK_FLAGS.Keys | Sort-Object) {
         if (($code -band $bit) -eq $bit) {
-            $found += ("🚫 " + $RISK_FLAGS[$bit])
+            $found += ("BLOCKED: " + $RISK_FLAGS[$bit])
         }
     }
     return $found
@@ -31,12 +31,12 @@ function Decode-RiskCode([int]$code) {
 function Run-AegisScenario([string]$Name, [string]$Token, [string]$Price, [string]$Info) {
     Write-Host "`n"
     Write-Host "================================================================" -ForegroundColor Cyan
-    Write-Host " 🎬 SCENARIO: $Name" -ForegroundColor Cyan -NoNewline
+    Write-Host " SCENARIO: $Name" -ForegroundColor Cyan -NoNewline
     Write-Host " ($Info)" -ForegroundColor Gray
     Write-Host "================================================================" -ForegroundColor Gray
 
     # -- PHASE 1 --
-    Write-Host "`n[PHASE 1] 🔒 Inherent Security: Capital Escrow" -ForegroundColor Yellow
+    Write-Host "`n[PHASE 1] Inherent Security: Capital Escrow" -ForegroundColor Yellow
     Write-Host "   -> User initiates swap for asset: $Token" -ForegroundColor Gray
     
     $AMT = "1000000000000000000"
@@ -45,28 +45,63 @@ function Run-AegisScenario([string]$Name, [string]$Token, [string]$Price, [strin
     
     Start-Sleep -Seconds 1
     $rec = & $castPath receipt $txHash --rpc-url http://localhost:8545 --json | ConvertFrom-Json
-    $id = $rec.logs[0].topics[1]
+    
+    # Filter logs to find AegisVault event (ignoring MockVRF events)
+    $id = $null
+    if ($rec.logs) {
+        foreach ($log in $rec.logs) {
+            if ($log.address -eq $CONTRACT_ADDRESS -or $log.address -eq $CONTRACT_ADDRESS.ToLower()) {
+                $id = $log.topics[1]
+                break
+            }
+        }
+    }
+
+    if (-not $id) {
+        Write-Host "   X Failed to capture Request ID" -ForegroundColor Red
+        return
+    }
     
     Write-Host "   -> AegisVault locked 1.0 ETH in sovereign escrow." -ForegroundColor Green
     Write-Host "   -> Request ID: $($id.Substring(0,18))..." -ForegroundColor Gray
 
     # -- PHASE 2 --
-    Write-Host "`n[PHASE 2] 🧠 Autonomous Audit: Chainlink DON Logic" -ForegroundColor Yellow
-    Write-Host "   -> Triggering Forensic AI scan across Tri-Vector Matrix..." -ForegroundColor Gray
+    Write-Host "`n[PHASE 2] Autonomous Audit: Chainlink DON Logic" -ForegroundColor Yellow
+    Write-Host "   -> Triggering Forensic AI scan via Docker..." -ForegroundColor Gray
     
-    $payloadText = '{\"tokenAddress\":\"' + $Token + '\",\"chainId\":\"31337\",\"askingPrice\":\"' + $Price + '\"}'
+    # Strategy: Host Payload + Container Shell Execution (like test-aegis.ps1)
+    $payloadObj = @{
+        tokenAddress = $Token
+        chainId = "31337"
+        askingPrice = $Price
+    }
+    # Write to host file (mapped to /app/payload.json)
+    $payloadObj | ConvertTo-Json -Compress | Set-Content -Path "payload.json" -Encoding UTF8
+
+    # Command to run inside container shell
+    $innerCmd = "cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload /app/payload.json"
     
-    $full = docker exec aegis_dev cre workflow simulate ./aegis-workflow --target staging-settings --non-interactive --trigger-index 0 --http-payload "$payloadText" 2>&1
+    # Execute via sh -c
+    $full = docker exec aegis_dev sh -c "$innerCmd" 2>&1
+    
     $raw = ($full | Out-String)
+    
+    # Cleanup temp file
+    Remove-Item "payload.json" -ErrorAction SilentlyContinue
 
     $startTag = "::AEGIS_RESULT::"
     $startIdx = $raw.IndexOf($startTag)
+    $res = $null
+    $code = 0
+    $hex = "0x0000000000000000000000000000000000000000000000000000000000000000" 
+
     if ($startIdx -ge 0) {
         $jStr = $raw.Substring($startIdx + $startTag.Length)
         $endIdx = $jStr.IndexOf($startTag)
         if ($endIdx -ge 0) {
             $jStr = $jStr.Substring(0, $endIdx).Trim()
             $jStr = $jStr.Replace('\"', '"')
+            
             $res = $jStr | ConvertFrom-Json
             $hex = $res.riskCodeHex
             $code = [int]$res.riskCode
@@ -75,12 +110,28 @@ function Run-AegisScenario([string]$Name, [string]$Token, [string]$Price, [strin
             return
         }
     } else {
-        Write-Host "   X AI Analysis Failed" -ForegroundColor Red
-        return
+        # Fallback if ::AEGIS_RESULT:: not found (try parsing raw JSON result if cre prints it)
+        if ($raw -match "Workflow Simulation Result:\s*`"(.*)`"") {
+             $jStr = $Matches[1].Replace('\"', '"')
+             try {
+                $res = $jStr | ConvertFrom-Json
+                if ($res.riskCodeHex) {
+                    $hex = $res.riskCodeHex
+                    $code = [int]$res.riskCode
+                }
+             } catch {}
+        }
+        
+        if (-not $res) {
+             Write-Host "   X AI Analysis Failed or Timed Out" -ForegroundColor Red
+             return
+        }
     }
 
     Write-Host "   -> AI Synthesis Complete." -ForegroundColor Cyan
-    Write-Host "   -> AI Reasoning: $($res.reasoning)" -ForegroundColor DarkCyan
+    if ($res.reasoning) {
+        Write-Host "   -> AI Reasoning: $($res.reasoning)" -ForegroundColor DarkCyan
+    }
     
     $flags = Decode-RiskCode $code
     foreach ($f in $flags) {
@@ -89,7 +140,7 @@ function Run-AegisScenario([string]$Name, [string]$Token, [string]$Price, [strin
     }
 
     # -- PHASE 3 --
-    Write-Host "`n[PHASE 3] 🛡️ Decisive Enforcement" -ForegroundColor Yellow
+    Write-Host "`n[PHASE 3] Decisive Enforcement" -ForegroundColor Yellow
     Write-Host "   -> Sovereign Executor evaluating DON verdict..." -ForegroundColor Gray
     Start-Sleep -Seconds 1
 
@@ -106,14 +157,17 @@ function Run-AegisScenario([string]$Name, [string]$Token, [string]$Price, [strin
 # --- MAIN ---
 Clear-Host
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "    🛡️  AEGIS: THE SOVEREIGN DEFI EXECUTOR  🛡️ " -ForegroundColor Cyan
-Write-Host "           Chainlink Convergence Hackathon 2026" -ForegroundColor Cyan
+Write-Host "    AEGIS: THE SOVEREIGN DEFI EXECUTOR" -ForegroundColor Cyan
+Write-Host "    Chainlink Convergence Hackathon 2026" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 
+# Trusted Swap Scenario
 Run-AegisScenario "TRUSTED SWAP" "0x4200000000000000000000000000000000000006" "2100.00" "WETH on Base Network"
 Start-Sleep -Seconds 1
-Run-AegisScenario "PROTECTED ATTACK" "0xBAD0000000000000000000000000000000000066" "99999.00" "Volatility spike + Centralized Trace"
+
+# Malicious Scenario
+Run-AegisScenario "PROTECTED ATTACK" "0xBAD0000000000000000000000000000000000066" "99999.00" "Exploit Vector Detected"
 
 Write-Host "`n================================================================" -ForegroundColor Cyan
-Write-Host "   🏁 DEMO COMPLETE: Aegis ensures trustless execution." -ForegroundColor Cyan
+Write-Host "   DEMO COMPLETE: Aegis ensures trustless execution." -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan

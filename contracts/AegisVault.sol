@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IVRFCoordinatorV2.sol";
 import "./VRFConsumerBaseV2.sol";
@@ -47,7 +47,7 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subId
-    ) Ownable() VRFConsumerBaseV2(_vrfCoordinator) {
+    ) Ownable(msg.sender) VRFConsumerBaseV2(_vrfCoordinator) {
         functionsRouter = _router;
         COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
         keyHash = _keyHash;

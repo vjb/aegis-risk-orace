@@ -1,0 +1,4 @@
+$var1 = "test"
+\$var2 = "test"
+$$var3 = "test"
+`$var4 = "test"

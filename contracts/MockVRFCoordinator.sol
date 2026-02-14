@@ -48,9 +48,8 @@ contract MockVRFCoordinator is VRFCoordinatorV2Interface {
             msg.sender
         );
 
-        // Auto-fulfill for easier testing in this environment
-        // In a real environment, this happens in a separate transaction from the Oracle
-        fulfillRandomWords(requestId, msg.sender);
+        // Auto-fulfill REMOVED to prevent synchronous callback issues (AegisVault mapping not set yet)
+        // fulfillRandomWords(requestId, msg.sender);
         
         return requestId;
     }
