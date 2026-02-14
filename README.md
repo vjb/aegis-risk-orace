@@ -1,4 +1,11 @@
+# 🛡️ AEGIS: THE SOVEREIGN DEFI FIREWALL (Chainlink 2026)
 
+> **"A Split-Brain Protocol for Deterministic DeFi Security."**
+> *Main Track: **Risk & Compliance** | Sponsor Track: **Tenderly Virtual TestNets***
+
+**Aegis is an enforcement protocol, not an advisory tool.** While other projects warn users about threats, Aegis prevents malicious trades through **on-chain sovereignty**—funds are locked in a smart contract escrow and only released after cryptographic verification by a Chainlink Decentralized Oracle Network (DON).
+
+👉 **[Read the Full Technical Architecture Deep Dive here](docs/SYSTEM_BLUEPRINT.md)**
 
 ## 🎬 The "Hollywood" Demo (Run in 2 mins)
 We've packaged the entire protocol (Blockchain + Chainlink CRE + AI Cluster) into a single Docker container.
