@@ -59,53 +59,195 @@ const CYAN = "\x1b[36m";
 const MAGENTA = "\x1b[35m";
 const RESET = "\x1b[0m";
 
+// --- MAIN ORCHESTRATOR ---
+
+export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
+    riskScore: number,
+    logicFlags: number,
+    aiFlags: number,
+    signature: string,
+    reasoning: string,
+    details: any
+}> => {
+    console.log(`${CYAN}🛡️  AEGIS ORACLE AI: Initiating Forensic Audit...${RESET}`);
+    console.log(`${CYAN}   Target: ${payload.tokenAddress}${RESET}`);
+
+    // Auth Config
+    const cgKey = process.env.COINGECKO_API_KEY;
+    const gpKey = process.env.GOPLUS_APP_KEY;
+    const gpSecret = process.env.GOPLUS_APP_SECRET;
+
+    // 1. DATA ACQUISITION (CoinGecko + GoPlus)
+    console.log(`${YELLOW}SYNC:${RESET} Acquiring Market & Security Telemetry...`);
+
+    const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${payload.coingeckoId || 'ethereum'}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true`;
+    const gpUrl = `https://api.gopluslabs.io/api/v1/token_security/${payload.chainId ?? "1"}?contract_addresses=${payload.tokenAddress}`;
+
+    const [cgRes, gpRes] = await Promise.allSettled([
+        fetch(cgUrl, cgKey ? { headers: { "x-cg-demo-api-key": cgKey } } : {}).then(r => r.json()),
+        fetch(gpUrl).then(r => r.json())
+    ]);
+
+    // Process CoinGecko Result
+    let marketPrice = 2500;
+    let volume24h = 10000000;
+    let marketCap = 250000000;
+    if (cgRes.status === 'fulfilled') {
+        const data = cgRes.value[payload.coingeckoId || 'ethereum'];
+        if (data && data.usd) {
+            marketPrice = data.usd;
+            volume24h = data.usd_24h_vol || volume24h;
+            marketCap = data.usd_market_cap || marketCap;
+        }
+    }
+
+    // Process GoPlus Result
+    let isHoneypot = false;
+    let ownerAddress = "RENOUNCED";
+    let gpData: any = {};
+    if (gpRes.status === 'fulfilled' && gpRes.value.result) {
+        gpData = gpRes.value.result[payload.tokenAddress.toLowerCase()] || {};
+        isHoneypot = gpData.is_honeypot === "1";
+        ownerAddress = gpData.owner_address || ownerAddress;
+    }
+
+    const askingPrice = Number(payload.askingPrice || "0");
+    const deviation = marketPrice > 0 ? ((askingPrice - marketPrice) / marketPrice) * 100 : 0;
+    const volLiqRatio = marketCap > 0 ? volume24h / marketCap : 0;
+
+    // 2. LEFT BRAIN: DETERMINISTIC LOGIC
+    console.log(`${MAGENTA}🧠 LEFT BRAIN:${RESET} Analyzing Deterministic Vectors`);
+    let logicFlags = 0;
+
+    if (volLiqRatio < 0.05) logicFlags |= RISK_FLAGS.LIQUIDITY_WARN;
+    if (Math.abs(deviation) > 50) logicFlags |= RISK_FLAGS.VOLATILITY_WARN;
+    if (isHoneypot) logicFlags |= RISK_FLAGS.HONEYPOT_FAIL;
+    if (ownerAddress !== "RENOUNCED" && ownerAddress !== "0x0000000000000000000000000000000000000000") {
+        logicFlags |= RISK_FLAGS.OWNERSHIP_RISK;
+    }
+
+    // 3. RIGHT BRAIN: MULTI-MODEL AI CLUSTER
+    console.log(`${CYAN}⚡ RIGHT BRAIN:${RESET} Engaging Multi-Model Semantic Cluster`);
+
+    const riskContext = {
+        market: { price: marketPrice, volume: volume24h, cap: marketCap, ratio: volLiqRatio.toFixed(2) },
+        trade: { asking: askingPrice, dev: deviation.toFixed(2) + "%" },
+        security: { honeypot: isHoneypot, owner: ownerAddress, name: gpData.token_name || "Unknown" }
+    };
+
+    const prompt = `Return JSON: {"flags": [bitmask_ints], "reasoning": "brief"}. RISK MAP: 32=Impersonation, 256=Phishing, 64=WashTrade. DATA: ${JSON.stringify(riskContext)}`;
+
+    const aiResults = await Promise.allSettled([
+        callOpenAI({} as any, null, process.env.OPENAI_API_KEY!, prompt),
+        callGroq({} as any, null, process.env.GROQ_API_KEY!, prompt)
+    ]);
+
+    let aiFlags = 0;
+    let reasoning = "";
+    aiResults.forEach((r, idx) => {
+        const name = ["GPT", "Groq"][idx];
+        if (r.status === 'fulfilled') {
+            const risk = (r.value.flags || []).reduce((a, b) => a | b, 0);
+            aiFlags |= risk;
+            reasoning += `[${name}: ${risk}] `;
+        }
+    });
+
+    // 4. CONSENSUS
+    const finalRisk = logicFlags | aiFlags;
+    const signature = "0x" + Buffer.from(sha1(finalRisk.toString())).toString('hex');
+
+    return {
+        riskScore: finalRisk,
+        logicFlags,
+        aiFlags,
+        signature,
+        reasoning: reasoning.trim(),
+        details: riskContext
+    };
+};
+
+// Legacy Entry Point for CLI / CRE Runner
+export const riskAssessment: HTTPCapability<Config, RiskAssessmentRequest, any> = {
+    configSchema,
+    requestSchema,
+    handler: async (runtime, request) => {
+        const payload = await request.json();
+        return await analyzeRisk(payload);
+    }
+};
+
 // --- AI MODEL HANDLERS ---
 
 const callOpenAI = async (runtime: Runtime<Config>, httpClient: any, apiKey: string, prompt: string): Promise<AIAnalysisResult> => {
     try {
-        const response = await httpClient.sendRequest(runtime as any, {
-            url: "https://api.openai.com/v1/chat/completions",
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: toBase64(new TextEncoder().encode(JSON.stringify({
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
                 model: "gpt-4o-mini",
                 messages: [{ role: "system", content: prompt }],
                 response_format: { type: "json_object" },
                 temperature: 0,
                 seed: 42
-            })))
-        }).result();
+            })
+        });
 
-        if (ok(response)) {
-            const raw = (json(response) as any).choices[0].message.content;
+        if (response.ok) {
+            const data = await response.json();
+            const raw = data.choices[0].message.content;
+            console.log("GPT Response:", raw);
             return JSON.parse(raw);
+        } else {
+            console.error("OpenAI Error:", await response.text());
         }
-    } catch (e) { }
-    throw new Error("OpenAI Failed");
+    } catch (e) {
+        console.error("OpenAI Fetch Error:", e);
+    }
+    return { flags: [], reasoning: "OpenAI Failed" };
 };
 
 
 
 const callGroq = async (runtime: Runtime<Config>, httpClient: any, apiKey: string, prompt: string): Promise<AIAnalysisResult> => {
     try {
-        const response = await httpClient.sendRequest(runtime as any, {
-            url: "https://api.groq.com/openai/v1/chat/completions",
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: toBase64(new TextEncoder().encode(JSON.stringify({
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [{ role: "system", content: prompt }],
                 response_format: { type: "json_object" },
                 temperature: 0
-            })))
-        }).result();
+            })
+        });
 
-        if (ok(response)) {
-            const raw = (json(response) as any).choices[0].message.content;
+        if (response.ok) {
+            const data = await response.json();
+            const raw = data.choices[0].message.content;
+            console.log("Groq Response:", raw);
             return JSON.parse(raw);
+        } else {
+            console.error("Groq Error:", await response.text());
         }
+    } catch (e) {
+        console.error("Groq Fetch Error:", e);
+    }
+    return { flags: [], reasoning: "Groq Failed" };
+};
+
+if (ok(response)) {
+    const raw = (json(response) as any).choices[0].message.content;
+    return JSON.parse(raw);
+}
     } catch (e) { }
-    throw new Error("Groq Failed");
+throw new Error("Groq Failed");
 };
 
 

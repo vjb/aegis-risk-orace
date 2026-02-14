@@ -1,4 +1,5 @@
 import { type Plugin, type Action } from "@elizaos/core";
+import { executeSwapAction } from "./actions/executeSwap";
 
 export const aegisPlugin: Plugin = {
     name: "Aegis",
@@ -48,6 +49,7 @@ export const aegisPlugin: Plugin = {
                 return;
             },
             examples: []
-        }
+        },
+        executeSwapAction
     ]
 };

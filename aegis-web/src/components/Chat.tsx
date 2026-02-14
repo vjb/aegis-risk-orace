@@ -273,10 +273,13 @@ export default function Chat({ onIntent }: ChatProps) {
 
             const data = await response.json();
 
-            // 🔍 Frontend Logic
-            const resultData = data.content?.result || (data.text.includes("VERDICT") ? { verdict: data.text } : null);
+            // Handle real transaction hash from Eliza
+            if (data.content?.hash) {
+                addLog('INFO', `🚀 TRANSACTION BROADCASTED: ${data.content.hash.slice(0, 10)}...`);
+                addLog('INFO', '📡 WAITING FOR CHAINLINK CRE AUDIT...');
+            }
 
-            // Capture Split-Brain Data
+            // Capture Split-Brain Data if available
             const verdict = data.content?.aegisVerdict || data.content;
             if (verdict?.logicFlags !== undefined) {
                 setScanAnalysis({ logic: verdict.logicFlags, ai: verdict.aiFlags });
@@ -291,7 +294,7 @@ export default function Chat({ onIntent }: ChatProps) {
                     data.text.includes('AEGIS_APPROVE') ||
                     data.text.includes('AEGIS_REJECT') ||
                     data.text.includes('REJECT') ||
-                    (resultData?.riskCode !== undefined)
+                    (data.content?.riskCode !== undefined)
                 )
             }]);
 
