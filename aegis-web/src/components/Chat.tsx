@@ -339,23 +339,48 @@ export default function Chat({ onIntent }: ChatProps) {
                                     >
                                         <div
                                             className={cn(
-                                                "px-4 py-3 rounded-lg text-sm leading-relaxed",
+                                                "px-4 py-3 rounded-lg text-sm leading-relaxed border",
                                                 m.role === 'user'
-                                                    ? "bg-cyan-900/20 border border-cyan-500/20 text-cyan-100"
-                                                    : "bg-zinc-900/50 border border-white/5 text-zinc-200"
+                                                    ? "bg-blue-900/20 border-blue-500/30 text-blue-100"
+                                                    : m.isVerdict && m.content.includes('REJECT')
+                                                        ? "bg-red-900/20 border-red-500/30 text-red-100"
+                                                        : m.isVerdict
+                                                            ? "bg-green-900/20 border-green-500/30 text-green-100"
+                                                            : "bg-zinc-900/50 border-white/5 text-zinc-300"
                                             )}>
                                             {m.isScanReport ? "Forensic Audit Executed." : (
                                                 <>
                                                     {m.isVerdict && m.content.includes('REJECT') && (
-                                                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-red-500/20">
+                                                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-red-500/30">
                                                             <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                                                                <span className="text-red-500 text-xl font-black">✕</span>
+                                                                <span className="text-red-400 text-xl font-black">✕</span>
                                                             </div>
-                                                            <span className="text-red-500 font-bold tracking-wider">TRANSACTION REJECTED</span>
+                                                            <span className="text-red-400 font-bold tracking-wider text-base">TRANSACTION REJECTED</span>
                                                         </div>
                                                     )}
-                                                    <div className="whitespace-pre-wrap">
-                                                        {m.content.replace(/\[AEGIS_(APPROVE|DENIED|REJECT)\]\s*/g, '')}
+                                                    {m.isVerdict && m.content.includes('APPROVE') && (
+                                                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-green-500/30">
+                                                            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                                                                <span className="text-green-400 text-xl font-black">✓</span>
+                                                            </div>
+                                                            <span className="text-green-400 font-bold tracking-wider text-base">TRANSACTION APPROVED</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        {m.content.replace(/\[AEGIS_(APPROVE|DENIED|REJECT)\]\s*/g, '').split('\n\n').map((section, i) => (
+                                                            <div key={i} className="leading-relaxed">
+                                                                {section.split('\n').map((line, j) => (
+                                                                    <div key={j} className={cn(
+                                                                        line.startsWith('  [!]') ? 'ml-2 mt-2 text-amber-200 font-semibold' :
+                                                                            line.startsWith('      ') ? 'ml-6 text-zinc-400 text-xs italic' :
+                                                                                line.includes(':') && !line.startsWith(' ') ? 'font-bold text-zinc-100 mt-2' :
+                                                                                    'text-zinc-300'
+                                                                    )}>
+                                                                        {line}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </>
                                             )}
@@ -375,10 +400,10 @@ export default function Chat({ onIntent }: ChatProps) {
                                 disabled={isLoading}
                             />
                             <Button
-                                onClick={handleSubmit}
+                                onClick={handleSend}
                                 disabled={!input.trim() || isLoading}
                                 borderRadius="0.5rem"
-                                className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2"
+                                className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed h-10"
                             >
                                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                             </Button>
