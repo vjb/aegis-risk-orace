@@ -12,6 +12,14 @@ const AEGIS_VAULT_ADDRESS = "0x1F807a431614756A6866DAd9607ca62e2542ab01";
 const AUDIT_REQUESTED_EVENT = parseAbiItem(
     "event AuditRequested(bytes32 indexed requestId, address indexed user, address indexed token, uint256 amount)"
 );
+
+const TOKEN_MAP: Record<string, string> = {
+    "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": "USDC",
+    "0xfde4C96251273064830555d01ecB9c5E3AC1761a": "USDT",
+    "0x6982508145454Ce325dDbE47a25d4ec3d2311933": "PEPE",
+    "0x54251907338946759b07d61E30052a48bd4e81F4": "AVAX",
+    "0x4200000000000000000000000000000000000006": "WETH"
+};
 const TENDERLY_RPC = process.env.TENDERLY_RPC_URL || "https://virtual.base.eu.rpc.tenderly.co/71828c3f-65cb-42ba-bc2a-3938c16ca878";
 // DON Private Key (Mock for Hackathon)
 const DON_KEY = (process.env.DON_PRIVATE_KEY as Hex) || "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -43,10 +51,10 @@ const runListener = async () => {
         event: AUDIT_REQUESTED_EVENT,
         onLogs: async (logs) => {
             for (const log of logs) {
-                const { requestId, user, token, amount } = log.args;
+                const tokenLabel = TOKEN_MAP[token?.toLowerCase() || ""] || token;
                 console.log(`\n🚨 EVENT DETECTED: AuditRequested`);
                 console.log(`   User: ${user}`);
-                console.log(`   Token: ${token}`);
+                console.log(`   Target Token: ${tokenLabel}`);
                 console.log(`   Amount: ${amount}`);
                 console.log(`   RequestID: ${requestId}`);
 

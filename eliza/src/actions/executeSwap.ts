@@ -1,6 +1,6 @@
 
-import { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
-import { createWalletClient, http, publicActions, getContract, parseEther, Hex } from "viem";
+import { Action, IAgentRuntime, Memory, State, HandlerCallback, ActionExample } from "@elizaos/core";
+import { createWalletClient, http, publicActions, parseEther, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import dotenv from "dotenv";
@@ -8,6 +8,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Contract ABI for swap
+const TOKEN_MAP: Record<string, string> = {
+    "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": "USDC",
+    "0xfde4C96251273064830555d01ecB9c5E3AC1761a": "USDT",
+    "0x6982508145454Ce325dDbE47a25d4ec3d2311933": "PEPE",
+    "0x54251907338946759b07d61E30052a48bd4e81F4": "AVAX",
+    "0x4200000000000000000000000000000000000006": "WETH"
+};
 const VAULT_ABI = [
     {
         "inputs": [
@@ -26,23 +33,58 @@ const TENDERLY_RPC = process.env.VITE_TENDERLY_RPC_URL || "https://virtual.base.
 // Use a fixed demo key if not in env (Deployer Key)
 const PRIVATE_KEY = (process.env.PRIVATE_KEY as Hex) || "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const AEGIS_VAULT_ADDRESS = "0x1F807a431614756A6866DAd9607ca62e2542ab01";
-// Mock Token (WETH) specific to this deployed instance, or use zero address for ETH
-const MOCK_TOKEN_ADDRESS = "0x4200000000000000000000000000000000000006"; // WETH on Base
+// Token Mapping for Demo (Base Mainnet / Mock Addresses)
+// const TOKEN_MAP: Record<string, string> = {
+//     "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+//     "usdt": "0xfde4C96251273064830555d01ecB9c5E3AC1761a",
+//     "pepe": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
+//     "avax": "0x54251907338946759b07d61E30052a48bd4e81F4",
+//     "weth": "0x4200000000000000000000000000000000000006",
+// };
 
 export const executeSwapAction: Action = {
     name: "EXECUTE_SWAP",
     similes: ["SWAP_TOKEN", "TRADE_ASSET", "BUY_TOKEN"],
     description: "Executes a swap transaction on the AegisVault contract via Tenderly.",
-    validate: async (runtime: IAgentRuntime, message: Memory) => {
+    validate: async (_runtime: IAgentRuntime, message: Memory) => {
         const text = (message.content.text || "").toLowerCase();
         return text.includes("swap") || text.includes("buy");
     },
-    handler: async (runtime: IAgentRuntime, message: Memory, state: State, _options: any, callback: HandlerCallback) => {
+    handler: async (_runtime: IAgentRuntime, message: Memory, _state?: State, _options?: any, callback?: HandlerCallback) => {
         console.log("🚀 [AEGIS ACTION] Initiating Swap Sequence...");
+
+        const text = (message.content.text || "").toLowerCase();
+
+        // Smarter Parsing: "swap [amount] [from] for [to]"
+        const amountMatch = text.match(/swap\s+([\d\.]+)/i) || text.match(/([\d\.]+)/);
+        const amountVal = amountMatch ? amountMatch[1] : "0.1";
+        const amountWei = parseEther(amountVal);
+
+        // Detect Target Token
+        let targetToken = "0x4200000000000000000000000000000000000006"; // Default WETH address
+        let targetLabel = "WETH";
+
+        // Reverse lookup for token names from the new TOKEN_MAP (address -> name)
+        const tokenNameToAddressMap: Record<string, string> = {};
+        for (const [address, name] of Object.entries(TOKEN_MAP)) {
+            tokenNameToAddressMap[name.toLowerCase()] = address;
+        }
+
+        for (const [name, addr] of Object.entries(tokenNameToAddressMap)) {
+            // Check if user mentioned the token name after "for" or "to"
+            if (text.includes(`for ${name}`) || text.includes(`to ${name}`) || (text.includes(name) && !text.includes(`for ${name}`))) {
+                targetToken = addr;
+                targetLabel = name.toUpperCase();
+                // If it's a "for [token]" match, it's a strong signal, so we break
+                if (text.includes(`for ${name}`)) break;
+            }
+        }
+
+        console.log(`🎯 Intent Decoded: Swap ${amountVal} native for ${targetLabel} (${targetToken})`);
 
         if (callback) {
             callback({
-                text: "Initiating secure swap via Aegis Vault...",
+                text: `Initiating secure swap: ${amountVal} native core for ${targetLabel}...`,
                 action: "SWAP_INITIATED"
             });
         }
@@ -57,14 +99,6 @@ export const executeSwapAction: Action = {
 
             console.log(`🔌 Connected to Tenderly: ${TENDERLY_RPC}`);
             console.log(`👤 Wallet: ${account.address}`);
-
-            // Parse amount from text (naive implementation for demo)
-            // "Swap 1 ETH" -> 1.0
-            const text = (message.content.text || "").toLowerCase();
-            const amountMatch = text.match(/[\d\.]+/);
-            const amountVal = amountMatch ? amountMatch[0] : "0.1";
-            const amountWei = parseEther(amountVal);
-
             console.log(`💸 Amount: ${amountVal} ETH (${amountWei.toString()} wei)`);
 
             // Execute Transaction
@@ -72,8 +106,8 @@ export const executeSwapAction: Action = {
                 address: AEGIS_VAULT_ADDRESS,
                 abi: VAULT_ABI,
                 functionName: 'swap',
-                args: [MOCK_TOKEN_ADDRESS, amountWei],
-                value: amountWei, // Fix: Send the actual ETH to lock in escrow
+                args: [targetToken as Hex, amountWei],
+                value: amountWei,
             });
 
             console.log(`✅ Transaction Sent! Hash: ${hash}`);
@@ -85,11 +119,11 @@ export const executeSwapAction: Action = {
                         hash: hash,
                         status: "PENDING_AUDIT",
                         amount: amountVal,
-                        token: "WETH"
+                        token: targetLabel,
+                        targetAddress: targetToken
                     }
                 });
             }
-            return true;
 
         } catch (error) {
             console.error("❌ Transaction Failed:", error);
@@ -99,19 +133,18 @@ export const executeSwapAction: Action = {
                     error: true
                 });
             }
-            return false;
         }
     },
     examples: [
         [
             {
-                user: "{{user1}}",
+                name: "user",
                 content: { text: "Swap 1 ETH for PEPE" }
             },
             {
-                user: "{{agentName}}",
+                name: "Aegis",
                 content: { text: "Initiating secure swap...", action: "EXECUTE_SWAP" }
             }
         ]
-    ]
+    ] as ActionExample[][]
 };
