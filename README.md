@@ -119,18 +119,18 @@ sequenceDiagram
 
 We force the AI to output specific bit flags. This ensures **determinism** across oracle nodes.
 
-| **Bit** | **Value** | **Category** | **Description** |
-| :--- | :--- | :--- | :--- |
-| 0 | `1` | Liquidity | Low Liquidity (<$50k) |
-| 1 | `2` | Volatility | High Volatility Spill |
-| 2 | `4` | Security | Malicious Code Patterns |
-| 3 | `8` | Governance | Renounced Ownership |
-| 4 | `16` | Scam | Honeypot Trap Detected |
-| 5 | `32` | Identity | Impersonation Attempt |
-| 6 | `64` | Pattern | Wash Trading Detected |
-| 7 | `128` | History | Suspicious Deployer |
-| 8 | `256` | Metadata | Phishing Signature |
-| 9 | `512` | Anomaly | AI Anomaly Detection |
+| **Bit** | **Value** | **Category** | **Source** | **Description** |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | `1` | Liquidity | **Left Brain** | Low Liquidity (<$50k) |
+| 1 | `2` | Volatility | **Left Brain** | High Volatility Spill |
+| 2 | `4` | Malicious Code | **Right Brain** | Malicious Code Patterns |
+| 3 | `8` | Governance | **Left Brain** | Renounced Ownership |
+| 4 | `16` | Honeypot | **Left Brain** | Honeypot Trap Detected |
+| 5 | `32` | Impersonation | **Right Brain** | Impersonation Attempt |
+| 6 | `64` | Wash Trading | **Right Brain** | Wash Trading Detected |
+| 7 | `128` | Suspicious History | **Right Brain** | Suspicious Deployer |
+| 8 | `256` | Phishing | **Right Brain** | Phishing Signature |
+| 9 | `512` | Anomaly | **Right Brain** | AI Anomaly Detection |
 
 ---
 

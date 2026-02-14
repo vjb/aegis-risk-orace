@@ -181,7 +181,13 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     runtime.log(`[LOGIC] ${MAGENTA}LEFT BRAIN:${RESET} Analyzing Deterministic Vectors`);
     let logicFlags = 0;
 
-    // 1. Price Deviation > 50% -> Volatility Warn (Bit 2)
+    // 1. Liquidity Check (Bit 1)
+    if (volLiqRatio < 0.05) { // < 5% turnover
+        logicFlags |= RISK_FLAGS.LIQUIDITY_WARN;
+        runtime.log(`   ├─ ${RED}FLAG:${RESET} Low Liquidity/Volume Ratio (${volLiqRatio.toFixed(3)})`);
+    }
+
+    // 2. Price Deviation > 50% -> Volatility Warn (Bit 2)
     if (Math.abs(deviation) > 50) {
         logicFlags |= RISK_FLAGS.VOLATILITY_WARN;
         runtime.log(`   ├─ ${RED}FLAG:${RESET} Excessive Price Deviation (${deviation.toFixed(2)}%)`);
@@ -216,8 +222,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const prompt = `Return JSON: {"flags": [bitmask_ints], "reasoning": "brief"}. RISK MAP: 32=Impersonation, 256=Phishing, 64=WashTrade. DATA: ${JSON.stringify(riskContext)}`;
 
     const keys = {
-        openai: runtime.config.openaiApiKey || await runtime.getSecret({ id: "OPENAI_API_KEY" }),
-        groq: runtime.config.groqKey || await runtime.getSecret({ id: "GROQ_KEY" })
+        openai: runtime.config.openaiApiKey || (await runtime.getSecret({ id: "OPENAI_API_KEY" }) as any),
+        groq: runtime.config.groqKey || (await runtime.getSecret({ id: "GROQ_KEY" }) as any)
     };
 
     // Parallel execution

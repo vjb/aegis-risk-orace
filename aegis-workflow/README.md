@@ -39,21 +39,21 @@ This is the standard the DON enforces:
 
 <div style="display: flex; gap: 20px;">
 
-| **Bit** | **Value** | **Category** | **Description** |
-| :--- | :--- | :--- | :--- |
-| 0 | `1` | Liquidity | Low Liquidity (<$50k) |
-| 1 | `2` | Volatility | High Volatility Spill |
-| 2 | `4` | Security | Malicious Code Patterns |
-| 3 | `8` | Governance | Renounced Ownership |
-| 4 | `16` | Scam | Honeypot Trap Detected |
+| **Bit** | **Value** | **Category** | **Description** | **Source** |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | `1` | Liquidity | Low Liquidity (<$50k) | **Left Brain** |
+| 1 | `2` | Volatility | High Volatility Spill | **Left Brain** |
+| 2 | `4` | Security | Malicious Code Patterns | **Right Brain** |
+| 3 | `8` | Governance | Renounced Ownership | **Left Brain** |
+| 4 | `16` | Scam | Honeypot Trap Detected | **Left Brain** |
 
-| **Bit** | **Value** | **Category** | **Description** |
-| :--- | :--- | :--- | :--- |
-| 5 | `32` | Identity | Impersonation Attempt |
-| 6 | `64` | Pattern | Wash Trading Detected |
-| 7 | `128` | History | Suspicious Deployer |
-| 8 | `256` | Metadata | Phishing Signature |
-| 9 | `512` | Anomaly | AI Anomaly Detection |
+| **Bit** | **Value** | **Category** | **Description** | **Source** |
+| :--- | :--- | :--- | :--- | :--- |
+| 5 | `32` | Identity | Impersonation Attempt | **Right Brain** |
+| 6 | `64` | Pattern | Wash Trading Detected | **Right Brain** |
+| 7 | `128` | History | Suspicious Deployer | **Right Brain** |
+| 8 | `256` | Metadata | Phishing Signature | **Right Brain** |
+| 9 | `512` | Anomaly | AI Anomaly Detection | **Right Brain** |
 
 </div>
 
