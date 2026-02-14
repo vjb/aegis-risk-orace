@@ -30,7 +30,9 @@ export const aegisPlugin: Plugin = {
                         reasoning: isRisky
                             ? "🚫 Hybrid Consensus Reached. Deterministic logic flagged [HONEYPOT]. Semantic AI Cluster flagged [SCAM_PATTERNS]. Bitwise Union = [CRITICAL_RISK]."
                             : "✅ Hybrid Consensus Reached. Deterministic logic: [SAFE]. Semantic AI Cluster: [SAFE]. Consensus: 0 (Verified).",
-                        riskScore: union
+                        riskScore: union,
+                        logicFlags: logicFlags,
+                        aiFlags: aiFlags
                     },
                     signature: "0xHollywoodSignatureForDemoPurposeOnly"
                 };

@@ -119,6 +119,7 @@ export default function Chat({ onIntent }: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([
         { id: '1', role: 'agent', content: "Dispatcher Online. Secure Uplink Established. Awaiting Intent." },
     ]);
+    const [scanAnalysis, setScanAnalysis] = useState<{ logic: number, ai: number } | null>(null);
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
     const addLog = (level: LogEntry['level'], message: string) => {
@@ -255,6 +256,12 @@ export default function Chat({ onIntent }: ChatProps) {
 
             // 🔍 Frontend Logic
             const resultData = data.content?.result || (data.text.includes("VERDICT") ? { verdict: data.text } : null);
+
+            // Capture Split-Brain Data
+            const verdict = data.content?.aegisVerdict || data.content;
+            if (verdict?.logicFlags !== undefined) {
+                setScanAnalysis({ logic: verdict.logicFlags, ai: verdict.aiFlags });
+            }
 
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
@@ -424,19 +431,43 @@ export default function Chat({ onIntent }: ChatProps) {
                                 </div>
 
                                 {activeSteps[2] && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="flex flex-col gap-2 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl"
-                                    >
-                                        <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest text-left">Internal Reasoning Matrix:</span>
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                            <span className="px-2 py-1 rounded bg-cyan-500/10 text-[8px] text-cyan-300 font-bold border border-cyan-500/10">#HoneypotAnalysis</span>
-                                            <span className="px-2 py-1 rounded bg-cyan-500/10 text-[8px] text-cyan-300 font-bold border border-cyan-500/10">#WashTrading</span>
-                                            <span className="px-2 py-1 rounded bg-cyan-500/10 text-[8px] text-cyan-300 font-bold border border-cyan-500/10">#DevClustering</span>
-                                            <span className="px-2 py-1 rounded bg-cyan-500/10 text-[8px] text-cyan-300 font-bold border border-cyan-500/10">#SentimentVector</span>
-                                        </div>
-                                    </motion.div>
+                                    <div className="space-y-4">
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="grid grid-cols-2 gap-4"
+                                        >
+                                            <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl relative overflow-hidden group">
+                                                <div className="absolute inset-0 bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors" />
+                                                <div className="relative z-10">
+                                                    <div className="text-[10px] font-bold text-purple-400 mb-1 tracking-wider">LEFT BRAIN (LOGIC)</div>
+                                                    <div className="text-2xl font-black text-white">{scanAnalysis?.logic !== undefined ? scanAnalysis.logic : "-"}</div>
+                                                    <div className="text-[9px] text-zinc-500 mt-1">DETERMINISTIC</div>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl relative overflow-hidden group">
+                                                <div className="absolute inset-0 bg-cyan-500/5 group-hover:bg-cyan-500/10 transition-colors" />
+                                                <div className="relative z-10">
+                                                    <div className="text-[10px] font-bold text-cyan-400 mb-1 tracking-wider">RIGHT BRAIN (AI)</div>
+                                                    <div className="text-2xl font-black text-white">{scanAnalysis?.ai !== undefined ? scanAnalysis.ai : "-"}</div>
+                                                    <div className="text-[9px] text-zinc-500 mt-1">SEMANTIC CLUSTER</div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="flex flex-col gap-2 p-4 bg-zinc-900/50 border border-white/5 rounded-2xl"
+                                        >
+                                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-left">Reasoning Matrix:</span>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                <span className="px-2 py-1 rounded bg-cyan-500/10 text-[8px] text-cyan-300 font-bold border border-cyan-500/10">#SplitBrain</span>
+                                                <span className="px-2 py-1 rounded bg-purple-500/10 text-[8px] text-purple-300 font-bold border border-purple-500/10">#HoneypotAnalysis</span>
+                                                <span className="px-2 py-1 rounded bg-amber-500/10 text-[8px] text-amber-300 font-bold border border-amber-500/10">#WashTrading</span>
+                                            </div>
+                                        </motion.div>
+                                    </div>
                                 )}
                             </div>
                         )}

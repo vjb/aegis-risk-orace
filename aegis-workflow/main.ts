@@ -221,10 +221,21 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     const prompt = `Return JSON: {"flags": [bitmask_ints], "reasoning": "brief"}. RISK MAP: 32=Impersonation, 256=Phishing, 64=WashTrade. DATA: ${JSON.stringify(riskContext)}`;
 
+    // ---------------------------------------------------------
+    // 🔑 SECRETS RETRIEVAL (Vault DON / Local Fallback)
+    // ---------------------------------------------------------
+    runtime.log(`[SYS] ${CYAN}KEYCHAIN:${RESET} Accessing encrypted Vault DON secrets...`);
+
+    // Fallback to local config for testing, otherwise request from the Vault DON
     const keys = {
         openai: runtime.config.openaiApiKey || (await runtime.getSecret({ id: "OPENAI_API_KEY" }) as any),
         groq: runtime.config.groqKey || (await runtime.getSecret({ id: "GROQ_KEY" }) as any)
     };
+
+    if (!keys.openai || !keys.groq) {
+        runtime.log(`[SYS] ${RED}ERR:${RESET} Missing critical API keys in Vault DON.`);
+        // Continue, but let the individual calls fail if keys missing (Promise.reject)
+    }
 
     // Parallel execution
     const modelPromises = [
@@ -273,6 +284,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         verdict: finalVerdict,
         riskCode: finalRiskCode.toString(),
         riskCodeHex: riskCodeHex,
+        logicFlags: logicFlags,
+        aiFlags: aiFlags,
         reasoning: reasoning.trim(),
         timestamp: Math.floor(Date.now() / 1000).toString()
     });
