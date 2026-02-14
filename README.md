@@ -77,7 +77,8 @@ If `FinalRisk > 0`, the transaction is **REVERTED** on-chain.
 | **1. Sovereign Smart Escrow** | The `AegisVault.sol` contract locks funds and triggers the audit. | [AegisVault.sol](contracts/AegisVault.sol) |
 | **2. Split-Brain Workflow** | The CRE Workflow that runs Logic + Multi-Model AI in parallel. | [main.ts](aegis-workflow/main.ts) |
 | **3. BFT Aggregation** | Bitwise OR consensus to handle AI variance across nodes. | [simulate-consensus.ts](tests/simulate-consensus.ts) |
-| **4. Preemptive Automation** | The `riskCache` mapping for zero-latency blocking. | [AegisVault.sol:L35](contracts/AegisVault.sol#L35) |
+| **4. VRF Entropy** | Chainlink VRF provides tamper-proof randomness for DON signatures. | [AegisVault.sol#L94](contracts/AegisVault.sol#L94) |
+| **5. Preemptive Automation** | The `riskCache` mapping for zero-latency blocking. | [AegisVault.sol#L157](contracts/AegisVault.sol#L157) |
 
 ---
 
@@ -266,6 +267,119 @@ function fulfillRequest(bytes32 requestId, uint256 riskCode, bytes memory signat
 - **Zero TOCTOU Window**: The audit happens *while* funds are locked. Market state cannot change between verification and execution.
 - **Code-Enforced Refunds**: Not "advisory" warnings—actual smart contract logic that reverts malicious trades.
 - **Production-Ready**: This is not a demo. This is a deployable DeFi primitive that can protect any protocol.
+
+---
+
+## ⚡ Chainlink Products Integration
+
+Aegis leverages the **full Chainlink platform** to create a production-ready DeFi security infrastructure. Here's how each product enables the protocol:
+
+### 🧠 Chainlink Runtime Environment (CRE)
+
+**Purpose**: Orchestration layer for multi-model AI cluster execution
+
+**Implementation**: [`aegis-workflow/main.ts`](aegis-workflow/main.ts)
+
+The CRE powers our Split-Brain architecture by:
+- **Parallel Execution**: Left Brain (deterministic logic) and Right Brain (AI cluster) run simultaneously
+- **Data Aggregation**: Fetches from CoinGecko, GoPlus, OpenAI, and Groq in parallel
+- **Consensus Aggregation**: Performs bitwise OR across multiple oracle nodes to ensure Byzantine Fault Tolerance
+
+```typescript
+// CRE workflow orchestrates the entire risk assessment
+export async function main(runtime: Runtime) {
+    const leftBrainRisk = await analyzeDeterministicRisks(runtime);
+    const rightBrainRisk = await analyzeAIRisks(runtime);
+    const finalRisk = leftBrainRisk | rightBrainRisk; // Union of Fears
+    return { riskCode: finalRisk };
+}
+```
+
+---
+
+### 📡 Chainlink Functions (via CRE)
+
+**Purpose**: Secure external API access for forensic data
+
+**Integration**: Automatically enabled through CRE SDK
+
+The CRE implicitly uses Chainlink Functions to:
+- Query **CoinGecko API** for real-time price, liquidity, and volume data
+- Query **GoPlus Security API** for honeypot detection and contract audits
+- Query **OpenAI GPT-4o** and **Groq Llama-3** for semantic threat analysis
+
+All API calls are cryptographically signed and verifiable by the Chainlink DON.
+
+---
+
+### 🎲 Chainlink VRF (Verifiable Random Function)
+
+**Purpose**: Tamper-proof entropy for cryptographic signatures
+
+**Implementation**: [`contracts/AegisVault.sol#L94-102`](contracts/AegisVault.sol#L94-102)
+
+**Why VRF Matters for Aegis:**
+- **Prevents Replay Attacks**: Each audit session has unique, unpredictable entropy
+- **Cryptographic Binding**: The DON's signature incorporates VRF randomness, making it impossible to reuse verdicts across different trades
+- **Audit Trail**: VRF requestId creates a permanent, verifiable link between the trade and its forensic analysis
+
+```solidity
+// VRF request during swap initiation
+uint256 vrfRequestId = COORDINATOR.requestRandomWords(
+    keyHash,
+    s_subscriptionId,
+    requestConfirmations,
+    callbackGasLimit,
+    numWords
+);
+vrfToTradeRequest[vrfRequestId] = requestId;
+```
+
+When VRF delivers randomness via `fulfillRandomWords()`, it's stored in the `PendingRequest.randomness` field and used as entropy for the DON's cryptographic signature.
+
+**Test VRF**: Run `node ./tests/test-vrf-entropy.ts` to see VRF generation in action.
+
+---
+
+### 🤖 Chainlink Automation
+
+**Purpose**: Preemptive threat blocking via 24/7 risk cache updates
+
+**Implementation**: [`contracts/AegisVault.sol#L157-165`](contracts/AegisVault.sol#L157-165)
+
+**The Preemptive Firewall:**
+
+Most security tools are *reactive*—they scan tokens when users attempt trades. Aegis is *proactive*—Chainlink Automation continuously monitors the market and blacklists threats **before** users even attempt to trade them.
+
+```solidity
+// Chainlink Automation Hook
+function updateRiskCache(address token, uint256 riskCode) external {
+    require(msg.sender == owner(), "Unauthorized: Only Automation or Owner");
+    riskCache[token] = riskCode;
+    emit RiskCacheUpdated(token, riskCode);
+}
+
+// Preemptive check during swap
+function swap(address token, uint256 amount) external {
+    if (riskCache[token] > 0) {
+        revert("Aegis: Token blacklisted by preemptive Automation");
+    }
+    // ... rest of swap logic
+}
+```
+
+**How It Works:**
+1. **Chainlink Automation Upkeep** calls `updateRiskCache()` every N blocks
+2. Off-chain risk intelligence (e.g., GoPlus real-time alerts) triggers updates
+3. When a user attempts a swap, the contract checks `riskCache[token]` first
+4. **Zero-latency blocking** for known threats—no CRE call needed
+
+**Benefits:**
+- **24/7 Monitoring**: No manual intervention required
+- **Gas Efficiency**: Preemptive blocking avoids expensive CRE calls for known scams
+- **Composability**: Any oracle or AI service can trigger updates via Automation
+
+**Documentation**: See [`docs/AUTOMATION_PROOF.md`](docs/AUTOMATION_PROOF.md) for complete integration guide.
 
 ---
 
