@@ -67,6 +67,8 @@ Aegis uses the **Chainlink Runtime Environment (CRE)** and **Chainlink Functions
 | **3. Preemptive Automation** | The `riskCache` mapping and `updateRiskCache` function for zero-latency blocking. | [AegisVault.sol:L35](contracts/AegisVault.sol#L35) |
 | **4. Verifiable Randomness (VRF)** | Salts the audit request with on-chain entropy to prevent pre-computation. | [AegisVault.sol](contracts/AegisVault.sol) |
 
+📘 **Detailed Automation Integration**: See [docs/AUTOMATION_PROOF.md](docs/AUTOMATION_PROOF.md) for implementation details, testing procedures, and production roadmap.
+
 ---
 
 ## 💼 Real-World Use Cases & Business Value
@@ -98,6 +100,37 @@ The DON executes a **"Split-Brain" Workflow**:
 Nodes must reach consensus on the **Risk Bitmask**.
 - **Risk 0**: `fulfillRequest` unlocks the funds.
 - **Risk > 0**: `fulfillRequest` refunds the user autonomously.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Vault as 🛡️ AegisVault
+    participant VRF as 🎲 Chainlink VRF
+    participant CRE as 🧠 Chainlink CRE
+    participant APIs as ☁️ External Data
+
+    Note over User, Vault: Phase 1: The Lock
+    User->>Vault: swap(token, amount)
+    Vault->>Vault: 🔒 Lock Funds in Escrow
+    Vault->>VRF: requestRandomWords()
+    VRF-->>Vault: fulfillRandomWords(randomness)
+    
+    Note over Vault, CRE: Phase 2: The Audit
+    Vault->>CRE: Request Risk Analysis (args: token, VRF salt)
+    CRE->>APIs: Fetch Market & Security Data (GoPlus, CoinGecko)
+    CRE->>APIs: GPT-4o Fraud Analysis
+    APIs-->>CRE: Risk Verdict (Bitmask)
+    
+    Note over Vault, CRE: Phase 3: The Verdict
+    CRE-->>Vault: fulfillRequest(riskCode)
+    
+    alt is Safe (Risk == 0)
+        Vault->>User: 💸 Execute Trade (Assets Transferred)
+    else is Risk (> 0)
+        Vault->>User: 🚫 REVERT & REFUND (Assets Returned)
+        Vault->>Vault: Update Risk Cache
+    end
+```
 
 ---
 

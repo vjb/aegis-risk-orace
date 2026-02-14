@@ -157,7 +157,7 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
      * Allows Chainlink Automation to update risk levels without a user trade trigger.
      */
     function updateRiskCache(address token, uint256 riskCode) external {
-        // require(msg.sender == owner || msg.sender == automationForwarder, "Unauthorized");
+        require(msg.sender == owner(), "Unauthorized: Only Automation or Owner");
         riskCache[token] = riskCode;
         emit RiskCacheUpdated(token, riskCode);
     }
