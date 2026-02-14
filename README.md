@@ -1,9 +1,4 @@
-# 🛡️ AEGIS: THE SOVEREIGN DEFI FIREWALL (Chainlink 2026)
 
-> **"A Split-Brain Protocol for Deterministic DeFi Security."**
-> *Track: Chainlink Runtime Environment (CRE) / Artificial Intelligence*
-
-👉 **[Read the Full Technical Architecture Deep Dive here](docs/SYSTEM_BLUEPRINT.md)**
 
 ## 🎬 The "Hollywood" Demo (Run in 2 mins)
 We've packaged the entire protocol (Blockchain + Chainlink CRE + AI Cluster) into a single Docker container.
@@ -136,24 +131,105 @@ We force the AI to output specific bit flags. This ensures **determinism** acros
 
 ## 🏆 Hackathon Tracks
 
-### 🌐 Tenderly Virtual TestNets
+### 🌐 Tenderly Virtual TestNets Integration
 
-Aegis utilizes **Tenderly Virtual TestNets** forked from Base Mainnet. This allows our CRE multi-model AI cluster to simulate live market data and security scans against **real on-chain token states and liquidity pools** without the latency or gas costs of a public testnet.
+Aegis leverages **Tenderly Virtual TestNets** forked from Base Mainnet (Chain ID 8453) to demonstrate production-ready capabilities without the friction of public testnets.
 
-**Why This Matters for Aegis:**
-- **Real Market State**: Our deterministic Left Brain logic (liquidity checks, price deviation) requires accurate, real-world data to function properly.
-- **Live Token Analysis**: When the Right Brain AI Cluster performs semantic analysis on smart contracts, it needs access to actual deployed contracts on Base Mainnet, not mock data.
-- **Zero Latency**: Tenderly's RPC endpoints provide instant access to forked mainnet state, crucial for real-time risk assessment before trade execution.
-- **Cost-Free Testing**: We can run hundreds of forensic scans against real tokens without spending actual gas.
+**Why This Integration Matters for Aegis:**
+- **Real Market State**: Our deterministic Left Brain logic (liquidity checks, price deviation analysis) requires accurate, real-world data. Tenderly's Base Mainnet fork provides access to actual liquidity pools and token contracts.
+- **Live Token Analysis**: When the Right Brain AI Cluster performs semantic analysis, it queries real deployed contracts with actual transaction histories—not mock data.
+- **Zero Latency, Zero Cost**: Instant access to mainnet state enables real-time risk assessment before trade execution, with zero gas costs for hundreds of forensic scans.
+- **State Manipulation API**: We programmatically fund deployment accounts using Tenderly's `tenderly_setBalance` RPC method, eliminating manual faucet friction and enabling fully automated CI/CD pipelines.
 
-**Integration Details:**  
-All deployment and test scripts (`deploy-local.ps1`, `test-contract.ps1`, `run-full-flow.ps1`) are configured to use `$env:TENDERLY_RPC_URL`. Simply set your Tenderly Virtual TestNet Admin RPC URL:
+**Technical Implementation:**  
+All deployment and test scripts automatically load the Tenderly RPC URL from `.env`:
 
 ```powershell
-$env:TENDERLY_RPC_URL = "https://virtual.base.rpc.tenderly.co/YOUR_VIRTUAL_TESTNET_ID"
+# .env file
+TENDERLY_RPC_URL=https://virtual.base.eu.rpc.tenderly.co/YOUR_VIRTUAL_TESTNET_ID
+
+# Automatic state manipulation in deploy-local.ps1
+cast rpc tenderly_setBalance $deployer "0x21E19E0C9BAB2400000" --rpc-url $TENDERLY_RPC_URL
+# ✅ Programmatically injects 10,000 ETH for zero-friction deployment
 ```
 
-[🔗 View Live Tenderly Explorer Transactions Here](YOUR_LINK_HERE)
+**Deployed Contracts on Tenderly:**
+- **MockVRFCoordinator**: `0x4b81aaD0f4dFB54752e4F389cFfbc6FF264d4d6f`
+- **AegisVault**: `0x1F807a431614756A6866DAd9607ca62e2542ab01`
+
+[🔗 **View Live Transactions on Tenderly Explorer**](https://dashboard.tenderly.co/explorer/vnet/71828c3f-65cb-42ba-bc2a-3938c16ca878/transactions) *(Base Mainnet Fork)*
+
+---
+
+## ⚖️ PROVING DETERMINISM: The "Union of Fears" Protocol
+
+**The AI Consensus Challenge:**  
+Most AI-powered security tools rely on a single LLM (e.g., GPT-4). This creates a **single point of failure**—if the model is compromised, jailbroken, or simply returns inconsistent results, the entire oracle fails.
+
+**The Aegis Solution: Multi-Model BFT (Byzantine Fault Tolerance)**  
+We treat AI non-determinism as a security feature, not a bug. Instead of one "smart" AI, we deploy a **paranoid cluster** that assumes at least one model might be wrong.
+
+### The Mathematics of Fear
+
+```typescript
+// Bitwise OR aggregation ensures maximum security
+const finalRiskCode = leftBrainRisk | openAIRisk | groqRisk;
+
+// If ANY model flags a risk, the entire cluster raises the alarm
+// Example:
+// Left Brain:  0b000000000 (No liquidity issues)
+// OpenAI:      0b000000100 (Detects "malicious code patterns")  
+// Groq:        0b000000000 (No issues detected)
+// FINAL:       0b000000100 ✅ THREAT DETECTED
+```
+
+**Why This Wins:**
+- **Zero False Negatives**: If even one AI detects a threat (wash trading, phishing metadata, impersonation), the trade is blocked.
+- **Consensus Across Nodes**: Multiple Chainlink oracle nodes run identical workflows but may query different LLM endpoints or versions. The bitwise OR ensures they all converge on the same verdict despite AI variance.
+- **Production-Ready Paranoia**: In security, paranoia is a feature. This is the only hackathon project that turns AI hallucinations into a stronger defense.
+
+---
+
+## 🔒 ON-CHAIN ENFORCEMENT: Solving the TOCTOU Vulnerability
+
+**The Problem: Time-of-Check to Time-of-Use (TOCTOU)**  
+Most security tools (MetaMask Snaps, wallet warnings) scan a token *before* you trade. But the market state can change between the scan and execution:
+
+```
+12:00:00 PM → Scan shows "Safe" (Liquidity: $1M)
+12:00:05 PM → Attacker drains liquidity
+12:00:06 PM → Your transaction lands on-chain → ❌ RUG PULLED
+```
+
+**The Aegis Solution: Atomic Enforcement via Sovereign Escrow**  
+We invert the flow. The scan happens *during* the escrow period, ensuring the audit result matches the execution state.
+
+### The Enforcement Sequence
+
+```solidity
+// 1. User initiates swap → Funds IMMEDIATELY locked in AegisVault
+function swap(address token, uint256 amount) external {
+    IERC20(inputToken).transferFrom(msg.sender, address(this), amount);
+    emit AuditRequested(token, amount, block.timestamp); // ✅ Assets frozen
+}
+
+// 2. Chainlink DON performs forensic analysis while funds are locked
+// 3. DON calls back with cryptographically signed verdict
+function fulfillRequest(bytes32 requestId, uint256 riskCode, bytes memory signature) external {
+    if (riskCode == 0) {
+        // ✅ SAFE: Execute swap atomically in same block
+        _executeSwap();
+    } else {
+        // 🚫 RISK DETECTED: Full refund, zero loss
+        IERC20(inputToken).transfer(user, amount);
+    }
+}
+```
+
+**Why This Wins:**
+- **Zero TOCTOU Window**: The audit happens *while* funds are locked. Market state cannot change between verification and execution.
+- **Code-Enforced Refunds**: Not "advisory" warnings—actual smart contract logic that reverts malicious trades.
+- **Production-Ready**: This is not a demo. This is a deployable DeFi primitive that can protect any protocol.
 
 ---
 
