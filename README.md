@@ -30,6 +30,19 @@ For judges who want to see the raw "metal" of the protocol, run the full 5-Phase
 ./tests/run-full-flow.ps1
 ```
 
+### 🤖 AI Threat Detection Demo
+See the AI cluster in action—detecting both **safe tokens** (risk code 0) and **risky tokens** (honeypots, phishing):
+
+```bash
+# Run multi-scenario test: SAFE (WETH) vs RISKY (Honeypot + Suspicious)  
+node ./tests/test-ai-detection.ts
+```
+
+**What You'll See:**
+- ✅ **Scenario 1**: WETH (Wrapped ETH) → Risk Code `0` → ✅ EXECUTE
+- 🚫 **Scenario 2**: Honeypot Token → Risk Code `16` (Honeypot flag) → 🚫 BLOCK & REFUND
+- 🚫 **Scenario 3**: Suspicious Metadata → Risk Code `256` (AI Phishing detection) → 🚫 BLOCK & REFUND
+
 ---
 
 ## 💡 The Innovation: Split-Brain Consensus
