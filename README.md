@@ -26,7 +26,7 @@ node ./tests/hollywood-demo.js
 For judges who want to see the raw "metal" of the protocol, run the full 5-Phase System Audit:
 
 ```bash
-# Verify Anvil + Solidity + Chainlink Oracle + Multi-Model Consensus
+# Verify Tenderly Virtual TestNet + Solidity + Chainlink Oracle + Multi-Model Consensus
 ./tests/run-full-flow.ps1
 ```
 
@@ -88,30 +88,44 @@ Nodes must reach consensus on the **Risk Bitmask**.
 ```mermaid
 sequenceDiagram
     participant User
-    participant Vault as 🛡️ AegisVault
-    participant CRE as 🧠 Chainlink CRE
-    participant Models as 🤖 AI Cluster
+    participant Vault as 🛡️ AegisVault<br/>(Tenderly Virtual TestNet)
+    participant CRE as 🧠 Chainlink CRE<br/>(DON Cluster)
+    participant CoinGecko as 📊 CoinGecko API
+    participant GoPlus as 🔍 GoPlus Security
+    participant OpenAI as 🤖 OpenAI GPT-4o
+    participant Groq as ⚡ Groq Llama-3
 
+    Note over User,Vault: 🔐 PHASE 1: THE LOCK (Atomic Escrow)
     User->>Vault: swap(token, amount)
-    Vault->>Vault: 🔒 Lock Funds in Escrow
+    Vault->>Vault: 🔒 Lock Funds in Sovereign Escrow
     
-    Vault->>CRE: Request Audit
+    Note over Vault,CRE: 📡 PHASE 2: THE AUDIT (Multi-Vector Forensics)
+    Vault->>CRE: emit AuditRequested(token, amount)
     
-    par Left Brain
-        CRE->>CRE: Check Honeypot / Liquidity
-    and Right Brain
-        CRE->>Models: Query OpenAI + Groq
+    par Left Brain: Deterministic Logic
+        CRE->>CoinGecko: GET /coins/{id}
+        CoinGecko-->>CRE: Liquidity, Volume, 24h Change
+        CRE->>GoPlus: GET /token_security/{address}
+        GoPlus-->>CRE: Honeypot, Ownership, Mint Authority
+    and Right Brain: AI Cluster (Union of Fears)
+        CRE->>OpenAI: Analyze contract metadata
+        OpenAI-->>CRE: Risk Flags (Phishing, Impersonation)
+        CRE->>Groq: Analyze transaction patterns
+        Groq-->>CRE: Risk Flags (Wash Trading, Anomalies)
     end
     
-    Models-->>CRE: Semantic Flags
-    CRE->>CRE: Bitwise Union (Logic | AI)
+    Note over CRE: ⚖️ PHASE 3: CONSENSUS (BFT Aggregation)
+    CRE->>CRE: finalRisk = leftBrain | openAI | groq
     
-    CRE-->>Vault: fulfillRequest(riskCode)
+    Note over CRE,Vault: ✅ PHASE 4: THE VERDICT (Cryptographic Enforcement)
+    CRE-->>Vault: fulfillRequest(riskCode, signature)
     
-    alt is Safe (Risk == 0)
-        Vault->>User: 💸 Execute Trade
-    else is Risk (> 0)
-        Vault->>User: 🚫 REVERT & REFUND
+    alt Risk == 0 (SAFE)
+        Note over Vault: ✅ AI Consensus: EXECUTE
+        Vault->>User: 💸 Execute Trade & Transfer Tokens
+    else Risk > 0 (THREAT DETECTED)
+        Note over Vault: 🚫 Threat Flagged by Cluster
+        Vault->>User: 💰 FULL REFUND (Zero Loss)
     end
 ```
 
