@@ -6,6 +6,21 @@
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Load .env file if it exists
+# ═══════════════════════════════════════════════════════════════════════════════
+$envPath = Join-Path (Split-Path -Parent $PSScriptRoot) ".env"
+if (Test-Path $envPath) {
+    Get-Content $envPath | ForEach-Object {
+        if ($_ -match '^([^=]+)=(.*)$') {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            [Environment]::SetEnvironmentVariable($key, $value, "Process")
+        }
+    }
+    Write-Host "Loaded environment variables from .env file" -ForegroundColor DarkGray
+}
+
 Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "   🌐 TENDERLY VIRTUAL TESTNETS INTEGRATION TEST" -ForegroundColor Cyan
 Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
