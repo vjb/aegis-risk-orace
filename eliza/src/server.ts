@@ -74,10 +74,14 @@ const server = serve({
                 if (text.toLowerCase().match(/swap|buy|sell|transfer|send|check|scan|audit/)) {
                     logSecOps("AUDIT", `Identifying Intent... Threat Analysis Started.`);
 
-                    // Execute Aegis Plugin Logic
-                    const action = aegisPlugin.actions[0];
+                    // Dynamically find the matching action
+                    const action = aegisPlugin.actions.find(a => a.name === "EXECUTE_SWAP") || aegisPlugin.actions[0];
+
+                    logSecOps("SYSTEM", `Routing to Action: ${action.name}`);
+
                     await action.handler(mockRuntime as any, { content: { text } } as any, {}, {}, (response) => {
                         oracleVerdict = (response as any).content;
+                        agentResponseText = (response as any).text;
                     }, []);
 
                     if (oracleVerdict) {
