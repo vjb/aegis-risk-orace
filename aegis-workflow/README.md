@@ -1,8 +1,8 @@
-# 🧠 Aegis Dispatcher: The Digital Judge
+# 🧠 Aegis Dispatcher: The Digital Judge (elizaOS x Chainlink)
 
 > **"Consensus-Driven Forensics. Deterministic Execution."**
 
-This directory contains the **Chainlink Runtime Environment (CRE)** logic. It acts as the "Impartial Judge" that bridges real-world security metadata and AI forensics into a single, verifiable bitmask.
+This directory contains the **Chainlink Runtime Environment (CRE)** logic. It acts as the "Impartial Judge" that bridges real-world security metadata and parallel AI forensics (GPT-4o + Llama-3) into a single, verifiable bitmask.
 
 ---
 
@@ -10,11 +10,11 @@ This directory contains the **Chainlink Runtime Environment (CRE)** logic. It ac
 
 The CRE logic is designed to be **Deterministic**. This means multiple nodes running slightly different AI prompts or external APIs must converge on the exact same integer result.
 
-| Feature | Description | Line of Code |
+| Feature | Description | File Link |
 | :--- | :--- | :--- |
-| **Bitmask Logic** | The core function that calculates the risk integer. | [`calculateRisk()`](src/workflow.ts#L45) |
-| **Split-Brain** | The AI vs. Logic separation. | [`analyzeToken()`](src/workflow.ts#L80) |
-| **Consensus** | The logic that aggregates node results. | [`aggregate()`](src/workflow.ts#L12) |
+| **Logic Brain** | Deterministic risk checks (Liquidity, Taxes, Honeypots). | [`main.ts:226`](main.ts#L226) |
+| **Forensic Cluster** | Parallel AI analysis dispatch. | [`main.ts:258`](main.ts#L258) |
+| **Source Fetcher** | Recursive Etherscan V2 implementation. | [`main.ts:89`](main.ts#L89) |
 
 ---
 
@@ -29,7 +29,7 @@ To run non-deterministic AI on a consensus network, Aegis uses a **Split-Brain A
 We enforce absolute determinism at the API and logic level:
 - **Temperature 0**: Flattens the probability distribution.
 - **Seed 42**: Ensures consistent sampling across different oracle nodes.
-- **Zero-Dependency Core**: No IPFS, No Pinata. The source code is passed **inline** for atomic, verifiable execution.
+- **Source Code Forensic**: The oracle fetches real-time source code from BaseScan V2 to detect "hidden" risks.
 
 ---
 

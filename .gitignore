@@ -81,3 +81,13 @@ broadcast/
 eliza/public/reports/
 eliza/src/db.sqlite
 
+# Misc Artifacts
+debug_trace.log
+*.bak
+*.bk
+aegis-workflow/main.ts.bak
+aegis-workflow/test-forensics.ts.bak
+docs/*.txt
+!docs/DEMO_GUIDE.md
+!docs/AUTOMATION_PROOF.md
+

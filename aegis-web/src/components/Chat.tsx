@@ -98,12 +98,12 @@ const VerdictHeader = ({ type }: { type: 'APPROVE' | 'DENIED' | 'REJECT' }) => {
     );
 };
 
-const RiskCheckItem = ({ label, passed }: { label: string, passed: boolean }) => (
+const RiskCheckItem = ({ label, status }: { label: string, status: 'passed' | 'failed' | 'idle' }) => (
     <div className="flex justify-between items-center text-[9px]">
-        <span className={cn("font-medium", passed ? "text-zinc-500" : "text-white")}>{label}</span>
+        <span className={cn("font-medium", status === 'idle' ? "text-zinc-600" : (status === 'passed' ? "text-zinc-500" : "text-white"))}>{label}</span>
         <div className={cn(
-            "w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]",
-            passed ? "bg-emerald-500 text-emerald-500" : "bg-red-500 text-red-500"
+            "w-2 h-2 rounded-full",
+            status === 'idle' ? "bg-zinc-800 shadow-none border border-white/5" : (status === 'passed' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]")
         )} />
     </div>
 );
@@ -226,7 +226,7 @@ export default function Chat({ onIntent }: ChatProps) {
                         id: Date.now().toString(),
                         role: 'agent',
                         content: isRejected
-                            ? `❌ [AEGIS_REJECT] Security scan complete. Risk Score: ${data.report?.riskScore || data.riskCode}. Assets refunded.`
+                            ? `❌ [AEGIS_REJECT] Security scan complete. Verdict: THREAT_DETECTED. Assets refunded.`
                             : "✅ [AEGIS_APPROVE] Compliance verified. Settlement authorized.",
                         isVerdict: true
                     }]);
@@ -387,7 +387,10 @@ export default function Chat({ onIntent }: ChatProps) {
                                                             <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
                                                                 <Clock className="w-4 h-4 text-amber-400" />
                                                             </div>
-                                                            <span className="text-amber-400 font-bold tracking-wider text-base">AUDIT INITIATED</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-amber-400 font-bold tracking-wider text-base">AUDIT INITIATED</span>
+                                                                <span className="text-[10px] text-amber-500/60 font-mono">Consensus in progress...</span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                     {m.isVerdict && m.content.includes('APPROVE') && (
@@ -597,10 +600,10 @@ export default function Chat({ onIntent }: ChatProps) {
                                                                 {scanAnalysis?.logic === 0 ? <Check className="w-3 h-3 text-emerald-400" /> : <AlertTriangle className="w-3 h-3 text-red-500" />}
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <RiskCheckItem label="HONEYPOT CHECK" passed={!((scanAnalysis?.logic || 0) & 16)} />
-                                                                <RiskCheckItem label="OWNERSHIP" passed={!((scanAnalysis?.logic || 0) & 8)} />
-                                                                <RiskCheckItem label="LIQUIDITY DEPTH" passed={!((scanAnalysis?.logic || 0) & 1)} />
-                                                                <RiskCheckItem label="VOLATILITY" passed={!((scanAnalysis?.logic || 0) & 2)} />
+                                                                <RiskCheckItem label="HONEYPOT CHECK" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 16) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="OWNERSHIP" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 8) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="LIQUIDITY DEPTH" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 1) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="VOLATILITY" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 2) ? 'failed' : 'passed')} />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -614,10 +617,10 @@ export default function Chat({ onIntent }: ChatProps) {
                                                                 {scanAnalysis?.ai === 0 ? <Brain className="w-3 h-3 text-cyan-400" /> : <ShieldAlert className="w-3 h-3 text-amber-500" />}
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <RiskCheckItem label="IMPERSONATION" passed={!((scanAnalysis?.ai || 0) & 32)} />
-                                                                <RiskCheckItem label="PHISHING PATTERN" passed={!((scanAnalysis?.ai || 0) & 256)} />
-                                                                <RiskCheckItem label="WASH TRADING" passed={!((scanAnalysis?.ai || 0) & 64)} />
-                                                                <RiskCheckItem label="DEV ACTIVITY" passed={!((scanAnalysis?.ai || 0) & 128)} />
+                                                                <RiskCheckItem label="IMPERSONATION" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 32) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="PHISHING PATTERN" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 256) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="WASH TRADING" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 64) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="DEV ACTIVITY" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 128) ? 'failed' : 'passed')} />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -757,7 +760,7 @@ export default function Chat({ onIntent }: ChatProps) {
                     >
                         <div className="flex items-center gap-3">
                             <Zap className="w-4 h-4 text-cyan-500/70" />
-                            <span className="text-sm font-black uppercase tracking-[0.2em] text-zinc-400">System Logs</span>
+                            <span className="text-sm font-black uppercase tracking-[0.2em] text-zinc-400">AEGIS x elizaOS: System Logs</span>
                             <div className="flex gap-1.5">
                                 <div className="w-2 h-2 rounded-full bg-red-500/30" />
                                 <div className="w-2 h-2 rounded-full bg-amber-500/30" />

@@ -40,11 +40,11 @@ sequenceDiagram
     
     rect rgb(20, 20, 30)
         Note right of DON: ⚡ THE TRIPLE-VECTOR SCAN
-        DON->>APIs: Fetch CoinGecko (Market Data)
-        DON->>APIs: Fetch GoPlus (Security Data)
-        DON->>APIs: Fetch OpenAI (Semantic Data)
-        APIs-->>DON: JSON Responses
-        DON->>DON: Aggregate & Calculate Bitmask
+        DON->>APIs: 6a. Logic: Fetch CoinGecko + GoPlus
+        DON->>APIs: 6b. Forensic: Fetch BaseScan Source
+        DON->>APIs: 6c. Semantic: Dispatch GPT-4o + Llama-3
+        APIs-->>DON: JSON & Forensic Responses
+        DON->>DON: Aggregate via Split-Brain Consensus
     end
     
     DON->>Router: 3. fulfillRequest(riskBitmask, signature)

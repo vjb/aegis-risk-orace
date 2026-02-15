@@ -1,8 +1,8 @@
-# 🖥️ Aegis Mission Control: SecOps Terminal
+# 🖥️ Aegis Mission Control: SecOps Terminal (elizaOS x Aegis)
 
 > **"Visualize the Firewall. Monitor the Vault."**
 
-This is the **SecOps Command Center** for the Aegis Protocol. It visualizes the "Triple Lock" in real-time, moving beyond a simple chat interface to a professional forensic dashboard.
+This is the **SecOps Command Center** for the Aegis Protocol. It visualizes the parallel forensic cluster in real-time, bringing elizaOS agent logs and Chainlink oracle telemetry into a single professional dashboard.
 
 ---
 
@@ -27,11 +27,11 @@ The Mission Control follows a three-pane "SecOps" view:
 3. **Right Pane (The Matrix Logs)**: **Live Forensic Reasoning**. Displays the raw "thought process" of the AI Cluster as it analyzes enriched telemetry (Taxes, Ownership) in real-time.
 
 ### 🔒 Visualizing the "Triple Lock"
-The loading states mirror the protocol's security phases:
-1. `🔒 LOCKING ASSETS IN ESCROW...` (Smart Contract Phase)
-2. `📡 DISPATCHING ORACLE REQUEST...` (Chainlink Phase)
-3. `🧠 AWAITING CONSENSUS VERDICT...` (Forensics Phase)
-4. `✅ VAULT: RELEASING ASSETS. SETTLED.` (Enforcement Phase)
+The SecOps Terminal mirrors the protocol's security phases:
+1. `🔒 AUDIT INITIATED: 0x...` (Asset Frozen in Escrow)
+2. `📡 DISPATCHING ORACLE REQUEST...` (Chainlink DON Signaling)
+3. `🧠 AI FORENSIC CONSENSUS...` (Parallel Cluster Reasoning)
+4. `✅ TRANSACTION AUTHORIZED / REJECTED` (Final Enforcement)
 
 ---
 

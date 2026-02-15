@@ -11,9 +11,9 @@ Aegis operates on a strict **"Check-Lock-Execute"** cycle. It is composed of thr
 
 ### The Three Pillars
 
-1.  **The Dispatcher (ElizaOS)**: The "Face" of the system. It interprets natural language user intent (e.g., "Swap 1 ETH for PEPE") and manages the conversational state. It does *not* hold funds.
-2.  **The Oracle (Chainlink CRE)**: The "Brain" of the system. It orchestrates multi-vector forensics (CoinGecko, GoPlus, OpenAI) to generate a deterministic **Risk Bitmask**.
-3.  **The Enforcer (AegisVault.sol)**: The "Hand" of the system. An on-chain smart contract that locks funds in escrow and only releases them upon receiving a cryptographically valid verdict from the Oracle.
+1.  **The Dispatcher (elizaOS)**: The "Face" of the system. It interprets natural language user intent and manages conversational state via a Forensic SecOps Terminal.
+2.  **The Oracle (Chainlink CRE)**: The "Brain" of the system. It orchestrates a **Parallel Forensic Cluster** (CoinGecko, GoPlus, BaseScan, OpenAI, Groq) to generate a deterministic **Risk Bitmask**.
+3.  **The Enforcer (AegisVault.sol)**: The "Hand" of the system. An on-chain smart contract that locks funds and only releases them after **Split-Brain Consensus** verification.
 
 ### System Diagram
 
@@ -29,11 +29,11 @@ graph TD
 
     subgraph "Off-Chain (Chainlink CRE)"
         Vault -.->|5. Emit Request| Oracle[🧠 The Oracle\n(Chainlink DON)]
-        Oracle -->|6. Forensic Scan| API_1[CoinGecko]
-        Oracle -->|6. Forensic Scan| API_2[GoPlus]
-        Oracle -->|6. Forensic Scan| API_3[OpenAI]
+        Oracle -->|6a. Logic Scan| API_1[CoinGecko + GoPlus]
+        Oracle -->|6b. Parallel AI Cluster| API_2[GPT-4o + Llama-3]
+        Oracle -->|6c. Code Scan| API_3[BaseScan V2]
         
-        API_1 & API_2 & API_3 -->|7. Risk Bitmask| Consensus{consensus}
+        API_1 & API_2 & API_3 -->|7. Split-Brain Consensus| Consensus{BFT Union}
     end
 
     Consensus -->|8. Signed Verdict| Vault
@@ -127,6 +127,7 @@ flowchart LR
         Aggregator[⚖️ Risk Aggregator]
         DA & DB & DC --> Aggregator
         Aggregator --> Bitmask[Generate Risk Bitmask\n(uint256)]
+        Note over Aggregator: Split-Brain Consensus\n(GPT-4o | Llama-3)
     end
 
     Bitmask --> Final{Verdict?}

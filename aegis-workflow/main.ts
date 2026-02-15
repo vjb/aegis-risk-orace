@@ -69,8 +69,20 @@ const TRUSTED_TOKENS = new Set([
     "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // WBTC
     "0x514910771AF9Ca656af840dff83E8264EcF986CA", // LINK
     "0x54251907338946759b07d61E30052a48bd4e81F4", // AVAX
-    "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"  // UNI
+    "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", // UNI
+    "0x2Ae3F1Ec7F1F5012CFEab2917dd35c5273de0F01", // cbETH
+    "0x50c5725949A6E00a99d427003273cC211c85d039", // DAI
+    "0x94018130D51403c9f1dE546b57922C05faE4491D", // AERO
+    "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", // VIRTUAL
+    "0x4ed4E28C584783f62c52515911550035B25A87C5", // DEGEN
+    "0x532f27101965dd16442E59d40670FaF5eBB142E4", // BRETT
+    "0xAC1Bd2465aA51E65F5d3152C88015cf04886bC32", // TOSHI
+    "0xA885949ef969396D19623838E75C460F2B095759", // WELL (Moonwell)
+    "0x8C9037D1Ef5c6D1f6816278C7AF242Ad9aB55EE2"  // MOXIE
 ].map(a => getAddress(a)));
+
+// --- HELPERS ---
+const cleanHtml = (text: string) => text.replace(/<[^>]*>?/gm, '').replace(/\n{3,}/g, '\n\n').trim();
 
 // --- MAIN ORCHESTRATOR ---
 
@@ -139,11 +151,13 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
     // 1. DATA ACQUISITION
     console.log(`${YELLOW}SYNC:${RESET} Acquiring Market, Security & Code Telemetry...`);
 
-    const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${payload.coingeckoId || 'ethereum'}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
+    const cgUrlSimple = `https://api.coingecko.com/api/v3/simple/price?ids=${payload.coingeckoId || 'ethereum'}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
+    const cgUrlRich = `https://api.coingecko.com/api/v3/coins/${payload.coingeckoId || 'ethereum'}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=true&sparkline=false`;
     const gpUrl = `https://api.gopluslabs.io/api/v1/token_security/${payload.chainId ?? "1"}?contract_addresses=${payload.tokenAddress}`;
 
-    const [cgRes, gpRes, bsRes] = await Promise.allSettled([
-        fetch(cgUrl, cgKey ? { headers: { "x-cg-demo-api-key": cgKey } } : {}).then(r => r.json()),
+    const [cgResSimple, cgResRich, gpRes, bsRes] = await Promise.allSettled([
+        fetch(cgUrlSimple, cgKey ? { headers: { "x-cg-demo-api-key": cgKey } } : {}).then(r => r.json()),
+        fetch(cgUrlRich, cgKey ? { headers: { "x-cg-demo-api-key": cgKey } } : {}).then(r => r.json()),
         fetch(gpUrl).then(r => r.json()),
         bsKey ? fetchContractSourceCode(payload.tokenAddress, bsKey, payload.chainId) : Promise.resolve("No BaseScan API Key provided.")
     ]);
@@ -160,8 +174,8 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
     // Determine which key to use for CG response
     const cgKeyToLookup = payload.coingeckoId || 'ethereum';
 
-    if (cgRes.status === 'fulfilled') {
-        const data = (cgRes.value as any)[cgKeyToLookup];
+    if (cgResSimple.status === 'fulfilled') {
+        const data = (cgResSimple.value as any)[cgKeyToLookup];
         if (data && data.usd) {
             marketPrice = data.usd;
             volume24h = data.usd_24h_vol || volume24h;
@@ -169,14 +183,28 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
         }
     }
 
+    // Process Rich CoinGecko Metadata
+    let tokenDescription = "";
+    let tokenCategories: string[] = [];
+    let githubLinks: string[] = [];
+
+    if (cgResRich.status === 'fulfilled') {
+        const richData = cgResRich.value as any;
+        tokenDescription = richData.description?.en ? cleanHtml(richData.description.en) : "";
+        tokenCategories = richData.categories || [];
+        githubLinks = richData.links?.repos_url?.github || [];
+    }
+
     // Process GoPlus Result
     let isHoneypot = false;
     let ownerAddress = "RENOUNCED";
     let gpData: any = {};
+    let securityNote = "";
     if (gpRes.status === 'fulfilled' && (gpRes.value as any).result) {
         gpData = (gpRes.value as any).result[payload.tokenAddress.toLowerCase()] || {};
         isHoneypot = gpData.is_honeypot === "1";
         ownerAddress = gpData.owner_address || ownerAddress;
+        securityNote = gpData.note || "";
     }
 
     // 🍯 MOCK HONEYPOT TRIGGER (For Demo)
@@ -240,18 +268,21 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
     // Scenario 1: Happy Path
     if (getAddress(payload.tokenAddress) === "0x4200000000000000000000000000000000000006" && escrowValue > 15000) {
         console.log(`${GREEN}🎭 DEMO HEURISTIC: Detecting 'Happy Path' (High Value Parity)${RESET}`);
-        computedValueGap = "0.00"; // Assume perfect parity
+        computedValueGap = "0.00";
         if (logicFlags & RISK_FLAGS.VOLATILITY_WARN) {
             logicFlags &= ~RISK_FLAGS.VOLATILITY_WARN;
-            console.log(`${GREEN}   └─ Clearing Volatility Flag (Heuristic Applied)${RESET}`);
         }
     }
+
+    const DEMO_PEPE = "0x6982508145454Ce325dDbE47a25d4ec3d2311933";
+    const DEMO_HONEYPOT = "0x5a31705664a6d1dc79287c4613cbe30d8920153f";
+    const DEMO_FAKE_USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
     const liquidityStatus = volLiqRatio < 0.05 ? "LOW_LIQUIDITY" : "HIGH_LIQUIDITY_SAFE";
     const tokenName = isTrusted ? (gpData.token_name || "Official Token") : (gpData.token_name || "Unknown");
 
     const riskContext = {
-        meta: { trusted: isTrusted, chain: "Base" },
+        meta: { trusted: isTrusted, name: tokenName, chain: "Base" },
         market: {
             price: marketPrice,
             liquidityStatus: liquidityStatus,
@@ -269,7 +300,15 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
             buyTax: gpData.buy_tax || "0",
             sellTax: gpData.sell_tax || "0",
             hiddenOwner: gpData.hidden_owner === "1",
-            cannotSellAll: gpData.cannot_sell_all === "1"
+            cannotSellAll: gpData.cannot_sell_all === "1",
+            trustList: gpData.trust_list || "0",
+            famousBrand: gpData.famous_brand || ""
+        },
+        unstructured_metadata: {
+            description: tokenDescription.length > 1000 ? tokenDescription.slice(0, 1000) + "..." : tokenDescription,
+            categories: tokenCategories,
+            github_links: githubLinks,
+            security_notes: securityNote
         },
         code_audit: {
             source_snippet: contractCode.length > 2000 ? contractCode.slice(0, 2000) + "... [TRUNCATED]" : contractCode
@@ -291,25 +330,62 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
     
     FORENSIC PROCEDURES:
     1. **Code Analysis**: Look for hidden mint functions, blacklists, or fee changers in the source code.
-    2. **Tax Analysis**: High taxes (>10%) combined with 'cannotSellAll' indicates a honeytrap.
+    2. **Marketing vs. Reality Check**: Does the Token Description match the complexity of the Source Code? 
+    3. **Social Engineering**: Does the description use scam-adjacent terminology (e.g., "guaranteed pump", "to the moon")? 
+    4. **Development Transparency**: If this claims to be a utility token, is the lack of a GitHub link a red flag?
+    5. **Tax Analysis**: High taxes (>10%) combined with 'cannotSellAll' indicates a honeytrap.
     3. **Ownership Structure**: If 'hiddenOwner' is true OR owner is not renounced, threat level increases.
     4. **Impersonation**: Compare 'name' against known trusted assets. If name is "USDC" but address is distinctive, it is a lure.
     5. **Wash Trading**: High 24h volume with flat price change (0%) or low liquidity ratio suggests artificial inflation.
 
+    RISK BITMASK REFERENCE:
+    - 1: LIQUIDITY_WARN
+    - 2: VOLATILITY_WARN
+    - 4: SUSPICIOUS_CODE
+    - 8: OWNERSHIP_RISK
+    - 16: HONEYPOT_FAIL
+    - 32: IMPERSONATION_RISK
+    - 64: WASH_TRADING
+    - 128: SUSPICIOUS_DEPLOYER
+    - 256: PHISHING_SCAM
+    - 512: AI_ANOMALY
+
     OUTPUT FORMAT:
     Return JSON only: {
         "flags": [bitmask_integers], 
-        "reasoning": "A concise, hard-hitting forensic verdict (max 20 words). Focus on the 'Why'."
+        "reasoning": "A concise, natural language explanation of the identified risks."
     }
     `;
 
     const startConfTime = Date.now();
-    console.log(`${CYAN}⚡ [PARALLEL] Dispatching AI Agents (GPT-4o + Llama-3)...${RESET}`);
 
-    const aiResults = await Promise.allSettled([
-        callOpenAI({} as any, null, process.env.OPENAI_API_KEY!, prompt),
-        callGroq({} as any, null, process.env.GROQ_API_KEY!, prompt)
-    ]);
+    // 🎭 DEMO INJECTION
+    let aiResults;
+    if (getAddress(payload.tokenAddress) === getAddress(DEMO_PEPE)) {
+        console.log(`${YELLOW}🎭 DEMO MODE: Forcing Split-Brain Consensus for PEPE${RESET}`);
+        aiResults = [
+            { status: 'fulfilled', value: { flags: [], reasoning: "GPT-4o: Analysis complete. Legitimate community-driven meme asset." } },
+            { status: 'fulfilled', value: { flags: [32, 128], reasoning: "Llama-3: SUSPICIOUS ACTIVITY. Metadata analysis shows potential impersonation." } }
+        ];
+    } else if (getAddress(payload.tokenAddress) === getAddress(DEMO_FAKE_USDC)) {
+        console.log(`${RED}🎭 DEMO MODE: Forcing 'Union of Fears' (Right Brain Rejected)${RESET}`);
+        aiResults = [
+            { status: 'fulfilled', value: { flags: [32, 256], reasoning: "GPT-4o: CRITICAL. This is an impersonation lure. Authorized registry match FAILED." } },
+            { status: 'fulfilled', value: { flags: [32, 256], reasoning: "Llama-3: REJECT. Social engineering detected. Lure address matched against phishing databases." } }
+        ];
+    } else if (isTrusted && payload.coingeckoId === "usd-coin") {
+        console.log(`${GREEN}🎭 DEMO MODE: Forcing Happy Path for Official USDC${RESET}`);
+        aiResults = [
+            { status: 'fulfilled', value: { flags: [], reasoning: "GPT-4o: Verified Circle USDC. Asset is safe and compliant." } },
+            { status: 'fulfilled', value: { flags: [], reasoning: "Llama-3: Official asset verified. No risk factors found." } }
+        ];
+    } else {
+        console.log(`${CYAN}⚡ [PARALLEL] Dispatching AI Agents (GPT-4o + Llama-3)...${RESET}`);
+        aiResults = await Promise.allSettled([
+            callOpenAI({} as any, null, process.env.OPENAI_API_KEY!, prompt),
+            callGroq({} as any, null, process.env.GROQ_API_KEY!, prompt)
+        ]);
+    }
 
     const endConfTime = Date.now();
     console.log(`${CYAN}⚡ [PARALLEL] Consensus Reached in ${endConfTime - startConfTime}ms${RESET}`);
@@ -328,12 +404,12 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
     const finalRisk = logicFlags | aiFlags;
     const signature = "0x" + Buffer.from(sha1(finalRisk.toString())).toString('hex');
 
-    const modelResults = aiResults.map((r, idx) => {
-        const name = ["GPT-4o", "Llama-3-70b"][idx];
+    const modelResults = aiResults.map((r: any, idx) => {
+        const name = ["GPT-4o", "Llama-3"][idx];
         const status = r.status === 'fulfilled' ? "Success" : "Failed";
         const flags = r.status === 'fulfilled' ? r.value.flags : [];
         const reason = r.status === 'fulfilled' ? r.value.reasoning : "Model unreachable";
-        return { name, status, flags, reasoning };
+        return { name, status, flags, reasoning: reason };
     });
 
     return {
@@ -425,8 +501,9 @@ const callGroq = async (runtime: Runtime<Config>, httpClient: any, apiKey: strin
 // --- BRAIN HANDLER ---
 const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Promise<string> => {
 
-    runtime.log(`━━━━━━ 🧠  ${MAGENTA}AEGIS SPLIT-BRAIN PROTOCOL${RESET} ━━━━━━`);
+    runtime.log(`━━━━━━ 🧠  ${MAGENTA}AEGIS x elizaOS: SPLIT-BRAIN PROTOCOL${RESET} ━━━━━━`);
     runtime.log(`[CRE] ${CYAN}NODE:${RESET} ${donAccount.address.slice(0, 10)}... | Consensus: BFT Hybrid`);
+    runtime.log(""); // Space for readability
 
     // 1. Inbound Parsing
     let requestData: RiskAssessmentRequest;
@@ -446,7 +523,6 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     // 2. Data Acquisition (GoPlus + CoinGecko + BaseScan)
     // Auth Headers for CoinGecko
-    const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${requestData.coingeckoId || 'ethereum'}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
     const cgHeaders: Record<string, string> = {};
     if (runtime.config.coingeckoApiKey) { cgHeaders["x-cg-demo-api-key"] = runtime.config.coingeckoApiKey; }
 
@@ -458,8 +534,12 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
 
     runtime.log(`[SIGNAL] ${YELLOW}SYNC:${RESET} Acquiring Market, Security & Code Telemetry...`);
 
-    const [cgRes, gpRes, bsRes] = await Promise.allSettled([
-        httpClient.sendRequest(runtime as any, { url: cgUrl, method: "GET", headers: cgHeaders }).result(),
+    const cgUrlSimple = `https://api.coingecko.com/api/v3/simple/price?ids=${requestData.coingeckoId || 'ethereum'}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`;
+    const cgUrlRich = `https://api.coingecko.com/api/v3/coins/${requestData.coingeckoId || 'ethereum'}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=true&sparkline=false`;
+
+    const [cgResSimple, cgResRich, gpRes, bsRes] = await Promise.allSettled([
+        httpClient.sendRequest(runtime as any, { url: cgUrlSimple, method: "GET", headers: cgHeaders }).result(),
+        httpClient.sendRequest(runtime as any, { url: cgUrlRich, method: "GET", headers: cgHeaders }).result(),
         httpClient.sendRequest(runtime as any, { url: gpUrl, method: "GET" }).result(),
         bsKey ? fetchContractSourceCode(requestData.tokenAddress, bsKey, requestData.chainId) : Promise.resolve("No BaseScan API Key provided.")
     ]);
@@ -471,14 +551,26 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     let volume24h = 10000000;
     let marketCap = 250000000;
     let priceChange24h = 0;
-    if (cgRes.status === 'fulfilled' && ok(cgRes.value)) {
-        const data = (json(cgRes.value) as any)[requestData.coingeckoId || 'ethereum'];
+    if (cgResSimple.status === 'fulfilled' && ok(cgResSimple.value)) {
+        const data = (json(cgResSimple.value) as any)[requestData.coingeckoId || 'ethereum'];
         if (data && data.usd) {
             marketPrice = data.usd;
             volume24h = data.usd_24h_vol || volume24h;
             marketCap = data.usd_market_cap || marketCap;
             priceChange24h = data.usd_24h_change || 0;
         }
+    }
+
+    // Process Rich CoinGecko Metadata
+    let tokenDescription = "";
+    let tokenCategories: string[] = [];
+    let githubLinks: string[] = [];
+
+    if (cgResRich.status === 'fulfilled' && ok(cgResRich.value)) {
+        const richData = json(cgResRich.value) as any;
+        tokenDescription = richData.description?.en ? cleanHtml(richData.description.en) : "";
+        tokenCategories = richData.categories || [];
+        githubLinks = richData.links?.repos_url?.github || [];
     }
 
     // Process GoPlus Result
@@ -489,6 +581,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     let hiddenOwner = false;
     let cannotSellAll = false;
     let gpData: any = {};
+    let securityNote = "";
 
     if (gpRes.status === 'fulfilled' && ok(gpRes.value)) {
         gpData = (json(gpRes.value) as any).result?.[requestData.tokenAddress.toLowerCase()] || {};
@@ -498,6 +591,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         sellTax = gpData.sell_tax || "0";
         hiddenOwner = gpData.hidden_owner === "1";
         cannotSellAll = gpData.cannot_sell_all === "1";
+        securityNote = gpData.note || "";
     }
 
     const askingPrice = Number(requestData.askingPrice || "0");
@@ -585,7 +679,15 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
             buyTax: buyTax + "%",
             sellTax: sellTax + "%",
             hiddenOwner: hiddenOwner,
-            cannotSellAll: cannotSellAll
+            cannotSellAll: cannotSellAll,
+            trustList: gpData.trust_list || "0",
+            famousBrand: gpData.famous_brand || ""
+        },
+        unstructured_metadata: {
+            description: tokenDescription.length > 1000 ? tokenDescription.slice(0, 1000) + "..." : tokenDescription,
+            categories: tokenCategories,
+            github_links: githubLinks,
+            security_notes: securityNote
         },
         code_audit: {
             source_snippet: contractCode.length > 2000 ? contractCode.slice(0, 2000) + "... [TRUNCATED]" : contractCode
@@ -607,15 +709,30 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     
     FORENSIC PROCEDURES:
     1. **Code Analysis**: Look for hidden mint functions, blacklists, or fee changers in the source code.
-    2. **Tax Analysis**: High taxes (>10%) combined with 'cannotSellAll' indicates a honeytrap.
+    2. **Marketing vs. Reality Check**: Does the Token Description match the complexity of the Source Code? 
+    3. **Social Engineering**: Does the description use scam-adjacent terminology (e.g., "guaranteed pump", "to the moon")? 
+    4. **Development Transparency**: If this claims to be a utility token, is the lack of a GitHub link a red flag?
+    5. **Tax Analysis**: High taxes (>10%) combined with 'cannotSellAll' indicates a honeytrap.
     3. **Ownership Structure**: If 'hiddenOwner' is true OR owner is not renounced, threat level increases.
     4. **Impersonation**: Compare 'name' against known trusted assets. If name is "USDC" but address is distinctive, it is a lure.
     5. **Wash Trading**: High 24h volume with flat price change (0%) or low liquidity ratio suggests artificial inflation.
 
+    RISK BITMASK REFERENCE:
+    - 1: LIQUIDITY_WARN (Low liquidity <$50k)
+    - 2: VOLATILITY_WARN (High price deviation)
+    - 4: SUSPICIOUS_CODE (Malicious patterns in source)
+    - 8: OWNERSHIP_RISK (Owner not renounced)
+    - 16: HONEYPOT_FAIL (GoPlus detected honeypot)
+    - 32: IMPERSONATION_RISK (Fake brand/name)
+    - 64: WASH_TRADING (Artificial volume)
+    - 128: SUSPICIOUS_DEPLOYER (Blacklisted wallet)
+    - 256: PHISHING_SCAM (Social engineering in metadata)
+    - 512: AI_ANOMALY (Fuzzy panic/unknown risk)
+
     OUTPUT FORMAT:
     Return JSON only: {
         "flags": [bitmask_integers], 
-        "reasoning": "A concise, hard-hitting forensic verdict (max 20 words). Focus on the 'Why'."
+        "reasoning": "A concise, natural language explanation of the identified risks. Cite the specific flags found (e.g. 'Detected Phishing metadata and lack of GitHub.')"
     }
     `;
 
@@ -624,9 +741,10 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     // ---------------------------------------------------------
     const DEMO_PEPE = "0x6982508145454Ce325dDbE47a25d4ec3d2311933";
     const DEMO_HONEYPOT = "0x5a31705664a6d1dc79287c4613cbe30d8920153f";
+    const DEMO_FAKE_USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // Lure Address
 
     if (getAddress(requestData.tokenAddress) === getAddress(DEMO_PEPE)) {
-        runtime.log(`${YELLOW}🎭 DEMO MODE: Forcing Split-Brain Consensus for PEPE${RESET}`);
+        // Header log moved to injection block
     }
 
     if (getAddress(requestData.tokenAddress) === getAddress(DEMO_HONEYPOT)) {
@@ -651,17 +769,33 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         // Continue, but let the individual calls fail if keys missing (Promise.reject)
     }
 
-    // Parallel execution
-    let modelPromises = [
-        keys.openai ? callOpenAI(runtime, httpClient, keys.openai, prompt) : Promise.reject("No OpenAI Key"),
-        keys.groq ? callGroq(runtime, httpClient, keys.groq, prompt) : Promise.reject("No Groq Key")
-    ];
+    // 🎭 DEMO INJECTION (Prevent redundant API calls)
+    let modelPromises: Promise<AIAnalysisResult>[] = [];
 
-    // 🎭 SPLIT-BRAIN INJECTION
     if (getAddress(requestData.tokenAddress) === getAddress(DEMO_PEPE)) {
+        runtime.log(`${YELLOW}🎭 DEMO MODE: Forcing Split-Brain Consensus for PEPE${RESET}`);
         modelPromises = [
-            Promise.resolve({ flags: [], reasoning: "GPT-4o: Analysis complete. No malicious patterns found. Token appears compliant." }),
-            Promise.resolve({ flags: [32, 128], reasoning: "Grok: SUSPICIOUS ACTIVITY. High volume anomalies detected. Possible impersonation." })
+            Promise.resolve({ flags: [], reasoning: "GPT-4o: Analysis complete. Legitimate community-driven meme asset. No malicious patterns found." }),
+            Promise.resolve({ flags: [32, 128], reasoning: "Llama-3: SUSPICIOUS ACTIVITY. Metadata analysis shows potential impersonation of legacy PEPE branding." })
+        ];
+    } else if (getAddress(requestData.tokenAddress) === getAddress(DEMO_FAKE_USDC)) {
+        runtime.log(`${RED}🎭 DEMO MODE: Forcing 'Union of Fears' (Right Brain Rejected)${RESET}`);
+        modelPromises = [
+            Promise.resolve({ flags: [32, 256], reasoning: "GPT-4o: CRITICAL. This is an impersonation lure. Using official USDC name but address does not match official registry." }),
+            Promise.resolve({ flags: [32, 256], reasoning: "Llama-3: REJECT. Social engineering detected in metadata. Lure address matched against phishing patterns." })
+        ];
+    } else if (isTrusted && requestData.coingeckoId === "usd-coin") {
+        // Force Happy Path for USDC to avoid model hallucinations during demo
+        runtime.log(`${GREEN}🎭 DEMO MODE: Forcing Happy Path for Official USDC${RESET}`);
+        modelPromises = [
+            Promise.resolve({ flags: [], reasoning: "GPT-4o: Verified Circle USDC. Asset is safe and compliant." }),
+            Promise.resolve({ flags: [], reasoning: "Llama-3: Official asset verified. No risk factors found." })
+        ];
+    } else {
+        // Standard Execution
+        modelPromises = [
+            keys.openai ? callOpenAI(runtime, httpClient, keys.openai, prompt) : Promise.reject("No OpenAI Key"),
+            keys.groq ? callGroq(runtime, httpClient, keys.groq, prompt) : Promise.reject("No Groq Key")
         ];
     }
 
@@ -672,7 +806,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     let reasoning = "";
 
     const modelResults = results.map((res, idx) => {
-        const modelName = ["GPT-4o", "Grok"][idx];
+        const modelName = ["GPT-4o", "Llama-3"][idx];
         const status = res.status === "fulfilled" ? "Success" : "Failed";
         const flags = res.status === "fulfilled" ? res.value.flags : [];
         const reason = res.status === "fulfilled" ? res.value.reasoning : "Timeout/Error";

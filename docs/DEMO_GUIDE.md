@@ -1,62 +1,64 @@
-# 🎭 Aegis Protocol Judge's Demo Guide
+# 🎭 Aegis Protocol: Judge's Demo Guide (elizaOS x Chainlink)
 
-This guide outlines the perfect end-to-end demonstration sequence for the Aegis Protocol, highlighting the synergy between **Eliza Agent Intelligence** and **Chainlink Infrastructure**.
+This guide outlines the perfect demonstration sequence for the Aegis Protocol, highlighting the synergy between **Forensic Agent Intelligence** and **Chainlink Infrastructure**.
 
 ---
 
 ## 🛠️ **Demo Preparation**
 
-Before starting, ensure all components are active:
-1. Open the project in VS Code.
-2. Press `Ctrl+Shift+B` and select **🚀 Launch Aegis Stack**.
-3. Open the UI: [http://localhost:3005](http://localhost:3005).
+1. **Environment**: Ensure your `.env` has active `OPENAI_API_KEY`, `GROQ_KEY`, and `BASESCAN_API_KEY`.
+2. **Terminal 1 (Web UI)**: 
+   ```bash
+   cd aegis-web && npm run dev
+   ```
+3. **Terminal 2 (Workflow)**: 
+   ```bash
+   # Use this to run scenarios
+   bun run aegis-workflow/demo-suite.ts
+   ```
 
 ---
 
-## 🟢 **Scenario 1: The "Happy Path" (Audit Success)**
-*Demonstrates: NLP Intent Parsing -> Escrow -> Chainlink CRE Oracle -> AI Assessment -> Authorized Settlement.*
+## 🛡️ **The 5-Scenario Forensic Audit**
 
-1. **Clear WBTC**: `bun scripts/risk-manager.ts clear 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599`
-2. **Interact**: Ask the agent: *"Swap 5 BTC for me."*
-3. **Observe**:
-   - Agent decodes intent and broadcasts the transaction.
-   - UI shows **LOCKING ASSETS** and **AWAITING CONSENSUS**.
-   - Check the **Oracle Terminal**: Watch the parallel Logic and AI flags execute.
-   - UI **automatically updates** to **APPROVED** once the audit completes.
+We recommend running the automated suite to see the "Split-Brain" oracle in full glory.
 
----
+### 🟢 **Scenario 1: The Happy Path (USDC)**
+*   **Target**: Official Circle USDC on Base.
+*   **Outcome**: **APPROVED**.
+*   **Why**: High liquidity, reputable issuer, code verified. Shows how Aegis authorizes blue-chip assets with zero friction.
 
-## 🔴 **Scenario 2: The "Circuit Breaker" (Preemptive Block)**
-*Demonstrates: Real-time on-chain enforcement using the Risk Cache.*
+### 🔴 **Scenario 2: The Deterministic Catch (Honeypot)**
+*   **Target**: Active Honeypot contract.
+*   **Outcome**: **REJECTED**.
+*   **Why**: The **Logic Brain** (Left Brain) catches the threat using GoPlus heuristics before the AI even needs to guess.
 
-1. **Flag WBTC**: `bun scripts/risk-manager.ts set 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599 1`
-2. **Interact**: Ask the agent: *"Swap 10 btc"*
-3. **Observe**:
-   - The UI immediately shows **⛔ [AEGIS_REJECT]**.
-   - The transaction **REVERTS** on-chain, saving gas.
-   - **Important**: Note that the Oracle Terminal shows **NO EVENTS**, because the threat was stopped at the door.
+### 🟡 **Scenario 3: The Split-Brain (PEPE)**
+*   **Target**: PEPE Meme coin.
+*   **Outcome**: **REJECTED**.
+*   **Why**: **Consensus Divergence**. GPT-4o sees a "Clean Community Coin", while Llama-3 flags "Legacy Branding Impersonation". Aegis follows the **Union of Fears**—if one model flags a risk, the trade is blocked.
 
----
+### 🔴 **Scenario 4: The 'Union of Fears' (Fake USDC Lure)**
+*   **Target**: Fake USDC Address.
+*   **Outcome**: **REJECTED**.
+*   **Why**: **Pure AI Brain Save!** The contract logic passes, but the AI recognizes the "USDC" label on an unauthorized address.
 
-## 🔍 **Scenario 3: Forensic Audit Transparency**
-*Demonstrates: Proof of Work and "Split-Brain" diagnostic detail.*
-
-1. Run a fresh audit for a new token (e.g., AVAX).
-2. Point out the **Log Terminal** in the UI:
-   - Highlight the **Logic Flags** (Deterministic risks like Honeypots).
-   - Highlight the **Forensic Reasoning**: Show how the AI analyzes **Taxes**, **Ownership**, and **Liquidity Depth** to reach a verdict.
-3. Explain that this audit trail is cryptographically signed and archived on-chain.
+### 🔍 **Scenario 5: Holistic Investigator (DEGEN L3)**
+*   **Target**: DEGEN (L3 Bridge).
+*   **Outcome**: **REJECTED**.
+*   **Why**: AI flags the **lack of GitHub transparency** and unverified source code for a high-value utility token.
 
 ---
 
-## 🔧 **Risk Management Utility**
-Use the `risk-manager.ts` tool to control the demo state:
+## 📊 **Observing the Forensic Logs**
 
-- **List Status**: `bun scripts/risk-manager.ts list`
-- **Flag a Token**: `bun scripts/risk-manager.ts set <ADDRESS> 1`
-- **Clear a Token**: `bun scripts/risk-manager.ts clear <ADDRESS>`
+While the scenarios run, look at the **elizaOS System Logs** in the Web UI:
+1. **[SYS] KEYCHAIN**: Accessing encrypted secrets via Vault DON.
+2. **🧠 LEFT BRAIN**: Hard-math deterministic checks.
+3. **⚡ RIGHT BRAIN**: Parallel AI Agent dispatch (GPT-4o + Llama-3).
+4. **⚖️ CONSENSUS**: Bitwise Union of all fear vectors.
 
-*Common Addresses:*
-- **WBTC**: `0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599`
-- **AVAX**: `0x54251907338946759b07d61E30052a48bd4E81F4`
-- **LINK**: `0x514910771AF9Ca656af840dff83E8264EcF986CA`
+---
+
+## 💡 **Key Takeaway for Judges**
+Aegis doesn't just "predict" risk; it **enforces** security by locking funds in a Smart Escrow that only releases on a clean cryptographic audit from the Chainlink DON.

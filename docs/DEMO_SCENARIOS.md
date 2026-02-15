@@ -1,69 +1,44 @@
-# Aegis Protocol: Testing & Demo Scenarios
+# Aegis Protocol: Curated Demo Scenarios
 
-Use this guide to demonstrate the **Hybrid Consensus** logic to judges.
-
-## 🟢 Supported Tokens
-These tokens are mapped to their real Coingecko market data.
-
-| Token | Symbol | Category |
-|-------|--------|----------|
-| USDC | `usd-coin` | Trusted Stable |
-| USDT | `tether` | Trusted Stable |
-| WETH | `ethereum` | Trusted Asset |
-| WBTC | `wrapped-bitcoin`| Trusted Asset |
-| AVAX | `avalanche-2` | Trusted Asset |
-| LINK | `chainlink` | Trusted Asset |
-| UNI | `uniswap` | Trusted Asset |
-| PEPE | `pepe` | Meme / Unverified |
+Use this guide to understand the **Forensic Heuristics** used by the Aegis Oracle Cluster. These scenarios are implemented in `demo-suite.ts` and `main.ts`.
 
 ---
 
-## 🧪 Scenarios
+## 🟢 Scenario 1: The Happy Path (USDC)
+*   **Target Asset**: Official USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`).
+*   **Forensic Trigger**: Automated "Blue Chip" verification.
+*   **Outcome**: **APPROVED** (Risk Code 0).
+*   **Analysis**:
+    - **Logic Brain**: Detects high liquidity and renounced owner.
+    - **AI Brain**: Verifies the name "USD Coin" matches the authorized address.
 
-### 1. Happy Path (Value Parity - Volatile Assets)
-*   **Prompt**: `"swap 2200 avax for 10 eth"`
-*   **Why**: Current Price: 1 ETH ~ $2,100. 1 AVAX ~ $9.55.
-*   **Math**: 2200 AVAX (~$21,010) vs 10 ETH (~$21,000). Parity is perfect. **SAFE**.
-*   **Expected Log Output**:
-    *   `[LOGIC] Deterministic Risk Score: 0`
-    *   `[PARALLEL] Dispatching AI Agents (GPT-4o + Llama-3)...`
-    *   `GPT-4o: Success (Flags: 0)`
-    *   `Llama-3-70b: Success (Flags: 0)`
-*   **UI Result**: **SETTLEMENT AUTHORIZED** (Green).
-*   **Visual Check**: "AI Consensus" section shows two green checkmarks side-by-side.
+## 🔴 Scenario 2: Deterministic Catch (Honeypot)
+*   **Target Asset**: Mock Honeypot (`0x5a31...153f`).
+*   **Forensic Trigger**: GoPlus `is_honeypot: "1"` flag.
+*   **Outcome**: **REJECTED** (Risk Code 16).
+*   **Analysis**:
+    - **Logic Brain**: Immediate trigger on the honeypot flag. AI analysis acts as secondary verification but logic is sufficient for rejection.
 
-### 2. High Value Parity (Bitcoin Whale)
-*   **Prompt**: `"swap 0.5 wbtc for 34000 usdc"`
-*   **Why**: BTC ~ $69,500. 0.5 BTC ~ $34,750.
-*   **Result**: 🟢 **SAFE**. Proves system handles high-value trades correctly if parity exists.
+## 🟡 Scenario 3: Split-Brain Consensus (PEPE)
+*   **Target Asset**: PEPE (`0x6982...1933`).
+*   **Forensic Trigger**: Model Disagreement.
+*   **Outcome**: **REJECTED** (Union of Fears).
+*   **Analysis**:
+    - **GPT-4o**: Views it as a "Legitimate community-driven meme asset."
+    - **Llama-3**: Flags "Potential impersonation of legacy branding."
+    - **Result**: The **Union of Fears** policy blocks the trade because the cluster is not in full agreement.
 
-### 3. Phishing Protection (Value Asymmetry)
-*   **Prompt**: `"swap 500 avax for 100 usdc"`
-*   **Why**: 500 AVAX (~$4,775) for 100 USDC ($100). Huge loss (>90%).
-*   **UI Result**: **TRANSACTION REJECTED** (Red).
-*   **Reason**: `Excessive Price Deviation` / `Value Asymmetry Detected`.
+## 🔴 Scenario 4: The 'Union of Fears' (Fake USDC Lure)
+*   **Target Asset**: Fake USDC (`0xA0b8...B48`).
+*   **Forensic Trigger**: Semantic Impersonation.
+*   **Outcome**: **REJECTED** (Risk Code 32 + 256).
+*   **Analysis**:
+    - **Logic Brain**: Passes (standard ERC20 code).
+    - **AI Brain**: REJECTS. Detects that the name "USDC" is used on an address that does not match the official registry. This is a pure AI "save."
 
-### 4. 🍯 The Honeypot (Logic Gate)
-*   **Prompt**: `"swap 100 usdc for 0x5a31705664a6d1dc79287c4613cbe30d8920153f"`
-*   **Target**: `MOCK_HONEYPOT` Address.
-*   **UI Result**: **TRANSACTION REJECTED** (Red).
-*   **Reason**: `Honeypot Trap Detected (Flag 16)`.
-*   **Visual Check**: The "Security (GoPlus)" section shows RED flags.
-
-### 5. 🧠 Split-Brain Consensus (The "Safety Feature")
-*   **Prompt**: `"swap 50000 pepe for 0.05 weth"`
-*   **Scenario**:
-    *   **GPT-4o**: Sees nothing wrong. (Safe)
-    *   **Grok**: Flags "Suspicious Volume" or "Meme Volatility". (Risk)
-*   **Result**: **TRANSACTION REJECTED** (Red).
-*   **Why**: "Union of Fears" policy. If *any* model doubts, we block.
-*   **Visual Check**: In "AI Consensus", verify one model is Green and one is Red.
-*   **Target Address (PEPE)**: `0x6982508145454Ce325dDbE47a25d4ec3d2311933` (Mainnet PEPE)
-
-### 6. 🎭 Impersonation Attack (Forensic AI)
-*   **Prompt**: `"swap 100 fake_usdc for 1 eth"`
-*   **Target**: `0x1234567890123456789012345678901234567890` (Mock "Fake USDC")
-*   **Result**: **TRANSACTION REJECTED** (Risk 32).
-*   **Why**: Forensic Analysis detects that while name is "USDC", the address does not match the known asset.
-*   **Reasoning**: "Impersonation Risk: Name resembles 'USDC' but address is not trusted."
-*   **Visual Check**: "Impersonation Risk" flag is active.
+## 🔍 Scenario 5: Holistic Investigator (DEGEN)
+*   **Target Asset**: DEGEN (`0x4ed4...87C5`).
+*   **Forensic Trigger**: Transparency Audit.
+*   **Outcome**: **REJECTED** (Risk Code 4 + 8).
+*   **Analysis**:
+    - **AI Brain**: Flags "High-risk black box" due to unverified source code and lack of GitHub links for a high-value utility token.

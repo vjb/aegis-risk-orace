@@ -1,35 +1,42 @@
-# 🛡️ AEGIS: THE SOVEREIGN DEFI FIREWALL (Chainlink 2026)
+# 🛡️ AEGIS: THE SOVEREIGN DEFI FIREWALL (elizaOS x Chainlink)
 
 > **"A Split-Brain Protocol for Deterministic DeFi Security."**
-> *Main Track: **Risk & Compliance** | Sponsor Track: **Tenderly Virtual TestNets***
+> *Main Track: **Risk & Compliance** | Partner Track: **elizaOS Integration***
 
 **Aegis is an enforcement protocol, not an advisory tool.** While other projects warn users about threats, Aegis prevents malicious trades through **on-chain sovereignty**—funds are locked in a smart contract escrow and only released after cryptographic verification by a Chainlink Decentralized Oracle Network (DON).
 
-## 🎭 Judge's Live Demo Guide
-**Start here for the best demonstration experience!**
-👉 **[The Ultimate Judge's Demo Flow](docs/DEMO_GUIDE.md)**
+## 🎭 Live Forensic Demo (Run in 10s)
+We've curated a **5-Scenario Demo Suite** that showcases the protocol's depth, from Happy Paths to the "Union of Fears".
 
-High-fidelity scenarios covered:
-- ✅ **The Happy Path**: Audit Success & Settlement.
-- 🔴 **The Circuit Breaker**: Real-time On-Chain Reversion.
-- 🔍 **The Forensic Trail**: Parallel Logic + AI Logs.
+```bash
+# 1. Install dependencies
+bun install
+
+# 2. Run the Full Forensic Suite
+bun run aegis-workflow/demo-suite.ts
+```
+
+### 📺 Scenarios Covered:
+1. ✅ **Happy Path**: Official USDC on Base (Approved).
+2. 🔴 **Logic Catch**: Deterministic Honeypot detection.
+3. 🟡 **Split-Brain**: AI disagreeing on meme-token impersonation.
+4. 🔴 **Union of Fears**: Right-Brain save on a semantic lure.
+5. 🔍 **Holistic Investigator**: DEGEN L3 transparency audit.
+
+👉 **[Full Demo Guide & Scenario Breakdown](docs/DEMO_GUIDE.md)**
 
 ---
 
-## 🎬 The "Hollywood" Demo (Run in 2 mins)
-We've packaged the entire protocol (Blockchain + Chainlink CRE + AI Cluster) into a single Docker container.
-
-> ⚠️ **Note**: The Terminal you see is **REAL**. The `Chainlink CRE` is executing live forensic analysis using a **Split-Brain Architecture** (Logic + AI) before every trade.
-
-**Prerequisites:** Docker Desktop must be running.
+## 🎬 The "Hollywood" Web UX
+To see the **SecOps Terminal** (Visualizing elizaOS x Aegis logs), start the local dashboard:
 
 ```bash
-# 1. Start the Docker Environment (The "World")
-docker-compose up --build -d
-
-# 2. Run the Cinematic Verification Suite
-node ./tests/hollywood-demo.js
+# Start the Aegis Web UI
+cd aegis-web
+npm install
+npm run dev
 ```
+*(Open http://localhost:5173 to interact with the Forensic Agent)*
 
 ### 🧪 End-to-End Verification (Advanced)
 For judges who want to see the raw "metal" of the protocol, run the full 5-Phase System Audit:
@@ -66,9 +73,10 @@ Aegis introduces a **Split-Brain Risk Oracle** to solve the "Black Box" problem 
 ### ⚡ Right Brain: Multi-Model AI Cluster
 *   **Role**: **Forensic Analyst** (Unit 731). Scans for semantic, fuzzy risks and deep correlations (e.g., "High Volume + Low Liquidity = Wash Trading").
 *   **The Cluster**:
+*   **The Cluster (elizaOS x Aegis)**:
     *   **OpenAI** (GPT-4o): Reasoning over "Why" a token is unsafe.
-    *   **Groq** (Llama 3): Fast, adversarial review.
-*   **Telemetry**: Analyzes **Buy/Sell Taxes**, **Hidden Ownership**, **24h Price Change**, and **Liquidity Depth** from GoPlus & CoinGecko.
+    *   **Groq** (Llama-3): Fast, adversarial review for impersonation lures.
+*   **Telemetry**: Analyzes **Full Source Code**, **Security Descriptions**, **GitHub History**, and **Liquidity Depth** from BaseScan, CoinGecko, & GoPlus.
 *   **Verdict**: **Union of Fears**. If *any* model flags a risk, the network flags a risk.
 
 ### ⚖️ The Consensus: Bitwise Union
