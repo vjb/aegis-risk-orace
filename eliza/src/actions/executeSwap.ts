@@ -22,7 +22,7 @@ const VAULT_ABI = [
     {
         "inputs": [
             { "internalType": "address", "name": "token", "type": "address" },
-            { "internalType": "uint256", "name": "amount", "type": "uint256" }
+            { "internalType": "uint256", "name": "targetAmount", "type": "uint256" }
         ],
         "name": "swap",
         "outputs": [],
@@ -79,7 +79,7 @@ export const executeSwapAction: Action = {
          * Goal: Replace fragile regex with LLM-powered extraction.
          */
         const swapTemplate = `
-        Extact the trade details from the user's message. 
+        Extract the trade details from the user's message. 
         Supported tokens: USDC, USDT, PEPE, AVAX, WETH, WBTC, LINK, UNI, FAKE_USDC, MOCK_HONEYPOT.
         If the user says "native" or "eth", use WETH.
         If the user says "dollars", use USDC.
@@ -88,14 +88,16 @@ export const executeSwapAction: Action = {
 
         Return JSON only:
         {
-            "amount": "string number",
+            "sourceAmount": "string number of native/eth to escrow",
+            "targetAmount": "string number of target token being bought",
             "sourceToken": "string symbol",
             "targetToken": "string symbol",
             "reasoning": "brief explanation"
         }
         `;
 
-        let amountVal = "0.1";
+        let sourceAmountVal = "0.1";
+        let targetAmountVal = "1"; // Default
         let sourceTokenLabel = "native";
         let targetTokenLabel = "WETH";
         let targetAddress = "0x4200000000000000000000000000000000000006";
@@ -123,16 +125,18 @@ export const executeSwapAction: Action = {
                     const extraction = JSON.parse(data.choices[0].message.content);
                     console.log("🧩 [AEGIS AI] Semantic Extraction Successful:", extraction);
 
-                    amountVal = extraction.amount || amountVal;
+                    sourceAmountVal = extraction.sourceAmount || sourceAmountVal;
+                    targetAmountVal = extraction.targetAmount || targetAmountVal;
                     sourceTokenLabel = extraction.sourceToken || sourceTokenLabel;
                     targetTokenLabel = extraction.targetToken || targetTokenLabel;
                 } else {
                     console.warn("⚠️ AI Parser Failed, falling back to legacy regex.");
                     // Legacy Fallback for offline/error cases
-                    const regexMatch = text.match(/swap\s+([\d\.]+)\s+(\w+)/i);
+                    const regexMatch = text.match(/swap\s+([\d\.]+)\s+.+for\s+([\d\.]+)\s+(\w+)/i);
                     if (regexMatch) {
-                        amountVal = regexMatch[1];
-                        targetTokenLabel = regexMatch[2];
+                        sourceAmountVal = regexMatch[1];
+                        targetAmountVal = regexMatch[2];
+                        targetTokenLabel = regexMatch[3];
                     }
                 }
             } catch (e) {
@@ -140,7 +144,8 @@ export const executeSwapAction: Action = {
             }
         }
 
-        const amountWei = parseEther(amountVal);
+        const sourceAmountWei = parseEther(sourceAmountVal);
+        const targetAmountWei = parseEther(targetAmountVal);
 
         // 🗺️ TOKEN LOOKUP & ALIASING
         const ALIASES: Record<string, string> = {
@@ -174,11 +179,11 @@ export const executeSwapAction: Action = {
             targetTokenLabel = targetTokenLabel.toUpperCase();
         }
 
-        console.log(`🎯 Intent Decoded: Escrowing ${amountVal} core to audit ${targetTokenLabel} (${targetAddress})`);
+        console.log(`🎯 Intent Decoded: Escrowing ${sourceAmountVal} core to buy ${targetAmountVal} ${targetTokenLabel} (${targetAddress})`);
 
         if (callback) {
             callback({
-                text: `Aegis Vault intercepted request: Swapping ${amountVal} ${sourceTokenLabel} for ${targetTokenLabel}.\nInitiating pre-flight audit for ${targetTokenLabel}...`,
+                text: `Aegis Vault intercepted request: Swapping ${sourceAmountVal} ${sourceTokenLabel} for ${targetAmountVal} ${targetTokenLabel}.\nInitiating pre-flight audit for ${targetTokenLabel}...`,
                 action: "SWAP_INITIATED"
             });
         }
@@ -193,7 +198,8 @@ export const executeSwapAction: Action = {
 
             console.log(`🔌 Connected to Tenderly: ${TENDERLY_RPC}`);
             console.log(`👤 Wallet: ${account.address}`);
-            console.log(`💸 Escrow Value: ${amountVal} native (${amountWei.toString()} wei)`);
+            console.log(`💸 Escrow Value: ${sourceAmountVal} native (${sourceAmountWei.toString()} wei)`);
+            console.log(`🎯 Target Amount: ${targetAmountVal} ${targetTokenLabel} (${targetAmountWei.toString()} units)`);
             console.log(`🎯 Target Vault: ${AEGIS_VAULT_ADDRESS}`);
 
             // Execute Transaction
@@ -250,28 +256,28 @@ export const executeSwapAction: Action = {
                             hash: mockHash,
                             requestId: mockReqId,
                             status: "PENDING_AUDIT",
-                            amount: amountVal,
+                            amount: targetAmountVal,
                             token: targetTokenLabel,
                             targetAddress: targetAddress
                         }
                     });
                 }
-                return true;
+                return;
             }
 
             const hash = await client.writeContract({
                 address: AEGIS_VAULT_ADDRESS,
                 abi: VAULT_ABI,
                 functionName: 'swap',
-                args: [targetAddress as Hex, amountWei],
-                value: amountWei,
+                args: [targetAddress as Hex, targetAmountWei],
+                value: sourceAmountWei,
             });
 
             // Wait for receipt to get requestId from logs
             const receipt = await client.waitForTransactionReceipt({ hash });
 
             // Search all logs for the TradeInitiated event
-            const tradeInitiatedTopic = "0xacec84cc11595bfa67fc1d00627111632e8e88bde4054a8c4be8fbfc3979424d";
+            const tradeInitiatedTopic = "0x8fcc8d70d68837b5e7f989363483211666f9103f5999ebfac30dfaa43ca61c80";
             let requestId = "";
             traceLog(`🔍 DEBUG: Found ${receipt.logs.length} logs in receipt.`);
 
@@ -297,7 +303,7 @@ export const executeSwapAction: Action = {
                         hash: hash,
                         requestId: requestId,
                         status: "PENDING_AUDIT",
-                        amount: amountVal,
+                        amount: targetAmountVal,
                         token: targetTokenLabel,
                         targetAddress: targetAddress
                     }

@@ -113,7 +113,6 @@ export default function VerdictCard({ status, reason = '', data }: Props) {
                                     const isSafe = risk === 0 && model.status === 'Success';
 
                                     return (
-                                    return (
                                         <div key={idx} className="mb-2">
                                             <div className="flex items-center justify-between p-2 rounded bg-white/5 border border-white/5 mb-1">
                                                 <div className="flex items-center gap-2">

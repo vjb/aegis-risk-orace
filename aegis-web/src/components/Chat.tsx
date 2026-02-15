@@ -137,7 +137,7 @@ export default function Chat({ onIntent }: ChatProps) {
     // Fix hydration error: Initialize logs only on client
     useEffect(() => {
         setMounted(true);
-        setLogs([
+        setLogs(prev => prev.length > 0 ? prev : [
             { id: '1', timestamp: new Date().toLocaleTimeString(), level: 'INFO', message: 'AEGIS DISPATCHER INITIALIZED' },
             { id: '2', timestamp: new Date().toLocaleTimeString(), level: 'INFO', message: 'VAULT ENFORCEMENT CORE: ACTIVE' },
         ]);
@@ -159,7 +159,7 @@ export default function Chat({ onIntent }: ChatProps) {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     };
 
     useEffect(() => {
@@ -241,7 +241,7 @@ export default function Chat({ onIntent }: ChatProps) {
                             id: Date.now().toString(),
                             role: 'agent',
                             content: isRejected
-                                ? `❌ [AEGIS_REJECT] Security scan complete. Verdict: THREAT_DETECTED.\n\n**FORENSIC AUDIT SUMMARY**\n- **Risk Code**: ${riskCode}\n- **Risk Score**: ${report.riskScore || 0}/100\n- **Forensic Reasoning**: ${report.reason || 'Critical security threat identified.'}\n\nAssets have been safely refunded to your wallet.`
+                                ? `❌ [AEGIS_REJECT] Security scan complete. Verdict: THREAT_DETECTED.\n\n**FORENSIC AUDIT SUMMARY**\n- **Risk Code**: ${riskCode}\n- **Risk Score**: ${report.riskScore || riskCode}\n\n**FLAG BREAKDOWN**\n${(report.flagBreakdown || []).map((f: string) => `- ${f}`).join('\n') || '- Neural Anomaly Detected'}\n\n**FORENSIC REASONING**\n${report.reason || 'Critical security threat identified.'}\n\nAssets have been safely refunded to your wallet.`
                                 : "✅ [AEGIS_APPROVE] Compliance verified. Settlement authorized.",
                             isVerdict: true
                         }];
@@ -359,156 +359,167 @@ export default function Chat({ onIntent }: ChatProps) {
     };
 
     return (
-        <div className="w-full flex flex-col gap-3 h-[80vh] max-h-[80vh] overflow-hidden">
+        <div className="w-full flex flex-col gap-3 h-[92vh] max-h-[92vh] overflow-hidden pb-2">
             {/* MAIN AREA: 2-Column Layout */}
-            <div className="flex gap-3 flex-1">
+            <div className="flex gap-3 flex-1 overflow-hidden min-h-0">
                 {/* LEFT PANE: USER/AGENT CHAT (Dispatcher) - Wider for readability */}
-                <Card className="w-1/3 h-full max-h-full bg-zinc-950/90 border-white/10 flex flex-col shadow-2xl relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/10 via-transparent to-transparent pointer-events-none" />
-                    <CardHeader className="py-3 border-b border-white/5 bg-purple-500/5">
-                        <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-purple-400 flex items-center gap-2">
-                            <Activity className="w-3 h-3" /> Dispatcher
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col p-4 overflow-hidden min-h-0">
-                        <div className="flex-1 overflow-y-auto mb-4 space-y-3 scrollbar-none min-h-0">
-                            <AnimatePresence mode="popLayout">
-                                {messages.map((m) => (
-                                    <motion.div
-                                        key={m.id}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className="flex flex-col gap-1"
-                                    >
-                                        <div
-                                            className={cn(
-                                                "px-4 py-3 rounded-lg text-sm leading-relaxed border",
-                                                m.role === 'user'
-                                                    ? "bg-blue-900/20 border-blue-500/30 text-blue-100"
-                                                    : m.isVerdict && m.content.includes('REJECT')
-                                                        ? "bg-red-900/20 border-red-500/30 text-red-100"
-                                                        : m.isVerdict && m.content.includes('PENDING')
-                                                            ? "bg-amber-900/20 border-amber-500/30 text-amber-100"
-                                                            : m.isVerdict
-                                                                ? "bg-green-900/20 border-green-500/30 text-green-100"
-                                                                : "bg-zinc-900/50 border-white/5 text-zinc-300"
-                                            )}>
-                                            {m.isScanReport ? "Forensic Audit Executed." : (
-                                                <>
-                                                    {m.isVerdict && m.content.includes('REJECT') && (
-                                                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-red-500/30">
-                                                            <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                                                                <span className="text-red-400 text-xl font-black">✕</span>
-                                                            </div>
-                                                            <span className="text-red-400 font-bold tracking-wider text-base">TRANSACTION REJECTED</span>
-                                                        </div>
-                                                    )}
-                                                    {m.isVerdict && m.content.includes('PENDING') && (
-                                                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-amber-500/30">
-                                                            <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                                                                <Clock className="w-4 h-4 text-amber-400" />
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-amber-400 font-bold tracking-wider text-base">AUDIT INITIATED</span>
-                                                                {!m.content.includes('Consensus Achieved') && (
-                                                                    <span className="text-[10px] text-amber-500/60 font-mono">Consensus in progress...</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {m.isVerdict && m.content.includes('APPROVE') && (
-                                                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-green-500/30">
-                                                            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                                                                <span className="text-green-400 text-xl font-black">✓</span>
-                                                            </div>
-                                                            <span className="text-green-400 font-bold tracking-wider text-base">TRANSACTION APPROVED</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="space-y-2">
-                                                        {m.content.replace(/\[AEGIS_(APPROVE|DENIED|REJECT|PENDING)\]\s*/g, '').split('\n\n').map((section, i) => (
-                                                            <div key={i} className="leading-relaxed text-zinc-300">
-                                                                {section.split('\n').map((line, j) => {
-                                                                    // List Items
-                                                                    if (line.trim().startsWith('- ')) {
-                                                                        return (
-                                                                            <div key={j} className="flex gap-2 ml-2 mt-1">
-                                                                                <span className="text-zinc-500">•</span>
-                                                                                <span dangerouslySetInnerHTML={{
-                                                                                    __html: line.replace(/^- /, '').replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-zinc-100">$1</span>')
-                                                                                }} />
-                                                                            </div>
-                                                                        );
-                                                                    }
-                                                                    // Headers / Bold Lines
-                                                                    if (line.includes(':') && !line.startsWith(' ')) {
-                                                                        return (
-                                                                            <div key={j} className="font-bold text-zinc-100 mt-2" dangerouslySetInnerHTML={{
-                                                                                __html: line.replace(/\*\*(.*?)\*\*/g, '<span class="text-white">$1</span>')
-                                                                            }} />
-                                                                        );
-                                                                    }
-                                                                    // Standard Text
-                                                                    return (
-                                                                        <div key={j} className={cn(
-                                                                            line.startsWith('  [!]') ? 'ml-2 mt-2 text-amber-200 font-semibold' :
-                                                                                line.startsWith('      ') ? 'ml-6 text-zinc-400 text-xs italic' :
-                                                                                    'text-zinc-300'
-                                                                        )} dangerouslySetInnerHTML={{
-                                                                            __html: line.replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-zinc-100">$1</span>')
-                                                                        }} />
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        ))}
-
-                                                        {m.txHash && (
-                                                            <div className="mt-4 pt-4 border-t border-white/5">
-                                                                <a
-                                                                    href={`https://dashboard.tenderly.co/aegis/project/testnet/71828c3f-65cb-42ba-bc2a-3938c16ca878/tx/${m.txHash}`}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="flex items-center gap-2 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors group/link"
-                                                                >
-                                                                    <Search className="w-3 h-3" />
-                                                                    VIEW ON VIRTUAL TESTNET
-                                                                    <ArrowRight className="w-2.5 h-2.5 opacity-0 -translate-x-2 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all" />
-                                                                </a>
+                <div className="flex-[1.4] flex flex-col min-h-0">
+                    <Card className="flex-1 bg-black/40 border-white/5 shadow-2xl flex flex-col overflow-hidden">
+                        <CardHeader className="border-b border-white/5 bg-black/20 py-3 shrink-0">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                                    <CardTitle className="text-xs font-black tracking-widest text-cyan-400 uppercase">Aegis Dispatcher</CardTitle>
+                                </div>
+                                <div className="text-[10px] font-mono text-zinc-500 bg-zinc-900/50 px-2 py-0.5 rounded border border-white/5">
+                                    AES-256 E2EE ACTIVE
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col p-4 overflow-hidden min-h-0">
+                            <div className="flex-1 overflow-y-auto mb-4 space-y-3 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent min-h-0 pr-2">
+                                <AnimatePresence mode="popLayout">
+                                    {messages.map((m) => (
+                                        <motion.div
+                                            key={m.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            className="flex flex-col gap-1"
+                                        >
+                                            <div
+                                                className={cn(
+                                                    "px-4 py-3 rounded-lg text-sm leading-relaxed border",
+                                                    m.role === 'user'
+                                                        ? "bg-blue-900/20 border-blue-500/30 text-blue-100 shadow-[0_0_10px_rgba(59,130,246,0.05)]"
+                                                        : m.isVerdict && m.content.includes('REJECT')
+                                                            ? "bg-red-900/20 border-red-500/30 text-red-100 shadow-[0_0_10px_rgba(239,68,68,0.05)]"
+                                                            : m.isVerdict && m.content.includes('PENDING')
+                                                                ? "bg-amber-900/20 border-amber-500/30 text-amber-100 shadow-[0_0_10px_rgba(245,158,11,0.05)]"
+                                                                : m.isVerdict
+                                                                    ? "bg-green-900/20 border-green-500/30 text-green-100 shadow-[0_0_10px_rgba(34,197,94,0.05)]"
+                                                                    : "bg-zinc-900/50 border-white/5 text-zinc-300 shadow-[0_0_10px_rgba(255,255,255,0.01)]"
+                                                )}>
+                                                {m.isScanReport ? "Forensic Audit Executed." : (
+                                                    <>
+                                                        {m.isVerdict && m.content.includes('REJECT') && (
+                                                            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-red-500/30">
+                                                                <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                                                                    <span className="text-red-400 text-xl font-black">✕</span>
+                                                                </div>
+                                                                <span className="text-red-400 font-bold tracking-wider text-base">TRANSACTION REJECTED</span>
                                                             </div>
                                                         )}
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                            <div ref={messagesEndRef} />
-                        </div>
-                        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-                            <Input
-                                ref={inputRef}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="State your intent... (e.g. 'Swap 1 ETH for PEPE')"
-                                className="flex-1 bg-zinc-900/50 border-white/10 text-zinc-200 placeholder:text-zinc-500 text-sm focus:border-cyan-500/50 transition"
-                                disabled={isLoading}
-                            />
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={!input.trim() || isLoading}
-                                borderRadius="0.5rem"
-                                className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed h-10"
-                            >
-                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+                                                        {m.isVerdict && m.content.includes('PENDING') && (
+                                                            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-amber-500/30">
+                                                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                                                    <Clock className="w-4 h-4 text-amber-400" />
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-amber-400 font-bold tracking-wider text-base">AUDIT INITIATED</span>
+                                                                    {!m.content.includes('Consensus Achieved') && (
+                                                                        <span className="text-[10px] text-amber-500/60 font-mono">Consensus in progress...</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {m.isVerdict && m.content.includes('APPROVE') && (
+                                                            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-green-500/30">
+                                                                <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                                                                    <span className="text-green-400 text-xl font-black">✓</span>
+                                                                </div>
+                                                                <span className="text-green-400 font-bold tracking-wider text-base">TRANSACTION APPROVED</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="space-y-2">
+                                                            {m.content.replace(/\[AEGIS_(APPROVE|DENIED|REJECT|PENDING)\]\s*/g, '').split('\n\n').map((section, i) => (
+                                                                <div key={i} className="leading-relaxed text-zinc-300">
+                                                                    {section.split('\n').map((line, j) => {
+                                                                        // List Items
+                                                                        if (line.trim().startsWith('- ')) {
+                                                                            return (
+                                                                                <div key={j} className="flex gap-2 ml-2 mt-1">
+                                                                                    <span className="text-zinc-500">•</span>
+                                                                                    <span dangerouslySetInnerHTML={{
+                                                                                        __html: line.replace(/^- /, '').replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-zinc-100">$1</span>')
+                                                                                    }} />
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                        // Headers / Bold Lines
+                                                                        if (line.includes(':') && !line.startsWith(' ')) {
+                                                                            return (
+                                                                                <div key={j} className="font-bold text-zinc-100 mt-2" dangerouslySetInnerHTML={{
+                                                                                    __html: line.replace(/\*\*(.*?)\*\*/g, '<span class="text-white">$1</span>')
+                                                                                }} />
+                                                                            );
+                                                                        }
+                                                                        // Standard Text
+                                                                        const displayedLine = (line.includes('Consensus in progress...') && scanningStatus === 'settled')
+                                                                            ? line.replace('Consensus in progress...', 'Consensus Achieved.')
+                                                                            : line;
+
+                                                                        return (
+                                                                            <div key={j} className={cn(
+                                                                                displayedLine.startsWith('  [!]') ? 'ml-2 mt-2 text-amber-200 font-semibold' :
+                                                                                    displayedLine.startsWith('      ') ? 'ml-6 text-zinc-400 text-xs italic' :
+                                                                                        'mt-1'
+                                                                            )}>
+                                                                                {displayedLine}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ))}
+
+                                                            {m.txHash && (
+                                                                <div className="mt-4 pt-4 border-t border-white/5">
+                                                                    <a
+                                                                        href={`https://dashboard.tenderly.co/aegis/project/testnet/71828c3f-65cb-42ba-bc2a-3938c16ca878/tx/${m.txHash}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex items-center gap-2 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors group/link"
+                                                                    >
+                                                                        <Search className="w-3 h-3" />
+                                                                        VIEW ON VIRTUAL TESTNET
+                                                                        <ArrowRight className="w-2.5 h-2.5 opacity-0 -translate-x-2 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all" />
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                                <div ref={messagesEndRef} />
+                            </div>
+                            <form onSubmit={handleSubmit} className="flex items-center gap-2 shrink-0 bg-black/40 p-2 rounded-lg border border-white/5">
+                                <Input
+                                    ref={inputRef}
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    placeholder="State your intent... (e.g. 'Swap 1 ETH for PEPE')"
+                                    className="flex-1 bg-zinc-900/50 border-white/10 text-zinc-200 placeholder:text-zinc-500 text-sm focus:border-cyan-500/50 transition h-11"
+                                    disabled={isLoading}
+                                />
+                                <Button
+                                    onClick={handleSubmit}
+                                    disabled={!input.trim() || isLoading}
+                                    borderRadius="0.5rem"
+                                    className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed h-11 w-14"
+                                >
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <ArrowRight className="w-4 h-4 ml-1" />}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* CENTER PANE: VAULT VISUALIZATION - Centered and larger */}
-                <div className="rounded-xl flex-1 flex flex-col gap-3">
+                <div className="rounded-xl flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
                     {/* VAULT CORE CARD */}
-                    <Card className="h-full bg-black/40 border-white/10 shadow-2xl relative overflow-hidden">
+                    <Card className="h-full bg-black/40 border-white/10 shadow-2xl relative overflow-hidden flex flex-col">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/5 via-transparent to-transparent pointer-events-none" />
                         {/* VAULT GLOW EFFECT */}
                         <div className={cn(
@@ -518,12 +529,12 @@ export default function Chat({ onIntent }: ChatProps) {
                                     scanningStatus === 'analyzing' ? "bg-cyan-500/10" : "bg-red-500/5"
                         )} />
 
-                        <CardHeader className="border-b border-white/5 bg-black/40 py-6 relative z-10">
-                            <div className="flex flex-col items-center gap-4">
+                        <CardHeader className="border-b border-white/5 bg-black/40 py-4 relative z-10 shrink-0">
+                            <div className="flex flex-col items-center gap-3">
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
                                         <Shield className={cn(
-                                            "w-10 h-10 transition-all duration-700",
+                                            "w-8 h-8 transition-all duration-700",
                                             scanningStatus !== 'idle' ? "text-cyan-400 drop-shadow-[0_0_20px_rgba(34,211,238,0.8)]" : "text-purple-500"
                                         )} />
                                         {scanningStatus !== 'idle' && (
@@ -535,33 +546,15 @@ export default function Chat({ onIntent }: ChatProps) {
                                         )}
                                     </div>
                                     <div className="flex flex-col">
-                                        <CardTitle className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-zinc-500 tracking-tighter">
+                                        <CardTitle className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-zinc-500 tracking-tighter">
                                             AEGIS VAULT
                                         </CardTitle>
-                                        <span className="text-[10px] font-mono text-zinc-500 tracking-[0.4em] uppercase">Sovereign Enforcer</span>
-                                    </div>
-                                </div>
-
-                                {/* ANALOG VAULT STATE */}
-                                <div className="flex items-center gap-6 w-full justify-center py-2">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <div className={cn("w-2 h-2 rounded-full", (scanningStatus === 'settled' && !((scanAnalysis?.logic || 0) + (scanAnalysis?.ai || 0) > 0)) ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,1)]" : "bg-zinc-800")} />
-                                        <span className="text-[8px] font-bold opacity-40">READY</span>
-                                    </div>
-                                    <div className="w-12 h-[1px] bg-white/5" />
-                                    <div className="flex flex-col items-center gap-1">
-                                        <div className={cn("w-2 h-2 rounded-full", (scanningStatus === 'scanning' || scanningStatus === 'analyzing') ? "bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,1)]" : "bg-zinc-800")} />
-                                        <span className="text-[8px] font-bold opacity-40">AUDIT</span>
-                                    </div>
-                                    <div className="w-12 h-[1px] bg-white/5" />
-                                    <div className="flex flex-col items-center gap-1">
-                                        <div className={cn("w-2 h-2 rounded-full", (scanningStatus === 'complete' || scanningStatus === 'settled') ? "bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" : "bg-zinc-800")} />
-                                        <span className="text-[8px] font-bold opacity-40">SECURE</span>
+                                        <span className="text-[9px] font-mono text-zinc-500 tracking-[0.4em] uppercase">Sovereign Enforcer</span>
                                     </div>
                                 </div>
 
                                 <div className={cn(
-                                    "px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.3em] border flex items-center gap-3 transition-all duration-700",
+                                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border flex items-center gap-2 transition-all duration-700",
                                     scanningStatus === 'idle' && "bg-zinc-500/5 border-zinc-500/20 text-zinc-500",
                                     scanningStatus === 'detecting' && "bg-zinc-500/5 border-zinc-500/20 text-zinc-500",
                                     scanningStatus === 'scanning' && "bg-amber-500/10 border-amber-500/40 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.1)]",
@@ -571,7 +564,7 @@ export default function Chat({ onIntent }: ChatProps) {
                                         : "bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]")
                                 )}>
                                     <div className={cn(
-                                        "w-2 h-2 rounded-full",
+                                        "w-1.5 h-1.5 rounded-full",
                                         scanningStatus === 'idle' ? "bg-zinc-600" :
                                             (scanningStatus === 'scanning' || scanningStatus === 'analyzing') ? "bg-amber-500" :
                                                 ((scanAnalysis?.logic || 0) + (scanAnalysis?.ai || 0) > 0 ? "bg-red-500" : "bg-emerald-400")
@@ -587,24 +580,24 @@ export default function Chat({ onIntent }: ChatProps) {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="flex-1 flex flex-col p-6 overflow-hidden relative z-10">
-                            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8">
+                        <CardContent className="flex-1 flex flex-col p-4 overflow-y-auto relative z-10 min-h-0 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
                                 {scanningStatus === 'idle' ? (
                                     <motion.div
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        className="flex flex-col items-center gap-6"
+                                        className="flex flex-col items-center gap-4"
                                     >
-                                        <div className="p-8 rounded-full bg-white/5 border border-white/5 relative group-hover:border-purple-500/20 transition-colors">
-                                            <Lock className="w-16 h-16 text-zinc-700 group-hover:text-zinc-500 transition-colors" />
+                                        <div className="p-6 rounded-full bg-white/5 border border-white/5 relative group-hover:border-purple-500/20 transition-colors">
+                                            <Lock className="w-12 h-12 text-zinc-700 group-hover:text-zinc-500 transition-colors" />
                                         </div>
-                                        <div className="space-y-2">
-                                            <h3 className="text-xl font-bold text-zinc-400">VAULT ENGAGED</h3>
-                                            <p className="text-zinc-600 text-sm max-w-xs">Waiting for Dispatcher intent. Capital protection is active.</p>
+                                        <div className="space-y-1">
+                                            <h3 className="text-lg font-bold text-zinc-400">VAULT ENGAGED</h3>
+                                            <p className="text-zinc-600 text-xs max-w-xs px-4">Waiting for Dispatcher intent. Capital protection is active.</p>
                                         </div>
                                     </motion.div>
                                 ) : (
-                                    <div className="w-full max-w-md space-y-8">
+                                    <div className="w-full max-w-md space-y-6">
                                         {/* UNIFIED DETAILED GRID VIEW */}
                                         {(scanningStatus === 'scanning' || scanningStatus === 'analyzing' || scanningStatus === 'detecting' || scanningStatus === 'settled') && (
                                             <div className="space-y-4">
@@ -623,10 +616,10 @@ export default function Chat({ onIntent }: ChatProps) {
                                                                 {scanAnalysis?.logic === 0 ? <Check className="w-3 h-3 text-emerald-400" /> : <AlertTriangle className="w-3 h-3 text-red-500" />}
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <RiskCheckItem label="HONEYPOT CHECK" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 16) ? 'failed' : 'passed')} />
-                                                                <RiskCheckItem label="OWNERSHIP" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 8) ? 'failed' : 'passed')} />
-                                                                <RiskCheckItem label="LIQUIDITY DEPTH" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 1) ? 'failed' : 'passed')} />
-                                                                <RiskCheckItem label="VOLATILITY" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic & 2) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="HONEYPOT CHECK" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 16) ? 'failed' : 'passed'} />
+                                                                <RiskCheckItem label="OWNERSHIP" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 8) ? 'failed' : 'passed'} />
+                                                                <RiskCheckItem label="LIQUIDITY DEPTH" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 1) ? 'failed' : 'passed'} />
+                                                                <RiskCheckItem label="VOLATILITY" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 2) ? 'failed' : 'passed'} />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -640,10 +633,10 @@ export default function Chat({ onIntent }: ChatProps) {
                                                                 {scanAnalysis?.ai === 0 ? <Brain className="w-3 h-3 text-cyan-400" /> : <ShieldAlert className="w-3 h-3 text-amber-500" />}
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <RiskCheckItem label="IMPERSONATION" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 32) ? 'failed' : 'passed')} />
-                                                                <RiskCheckItem label="PHISHING PATTERN" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 256) ? 'failed' : 'passed')} />
-                                                                <RiskCheckItem label="WASH TRADING" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 64) ? 'failed' : 'passed')} />
-                                                                <RiskCheckItem label="DEV ACTIVITY" status={!scanAnalysis ? 'idle' : ((scanAnalysis.ai & 128) ? 'failed' : 'passed')} />
+                                                                <RiskCheckItem label="IMPERSONATION" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 32) ? 'failed' : 'passed'} />
+                                                                <RiskCheckItem label="PHISHING PATTERN" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 256) ? 'failed' : 'passed'} />
+                                                                <RiskCheckItem label="WASH TRADING" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 64) ? 'failed' : 'passed'} />
+                                                                <RiskCheckItem label="DEV ACTIVITY" status={!scanAnalysis ? 'idle' : ((scanAnalysis.logic | scanAnalysis.ai) & 128) ? 'failed' : 'passed'} />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -704,9 +697,9 @@ export default function Chat({ onIntent }: ChatProps) {
                                                     <div className="p-3 bg-zinc-900/50 border border-purple-500/10 rounded-lg space-y-2">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             {scanAnalysis?.modelResults ? <Brain className="w-3 h-3 text-purple-400" /> : <Loader2 className="w-3 h-3 animate-spin text-purple-400" />}
-                                                            <span className="text-[9px] font-bold text-purple-400 tracking-wider">AI FORENSIC ANALYSIS (Multi-Model)</span>
+                                                            <span className="text-[10px] font-bold text-purple-400 tracking-wider">AI FORENSIC ANALYSIS (Multi-Model)</span>
                                                         </div>
-                                                        <div className="space-y-3 text-[9px]">
+                                                        <div className="space-y-3 text-[10px]">
                                                             {scanAnalysis?.modelResults && scanAnalysis.modelResults.length > 0 ? (
                                                                 scanAnalysis.modelResults.map((model: any, idx: number) => (
                                                                     <div key={idx} className="border-l-2 border-purple-500/20 pl-2">
@@ -716,7 +709,7 @@ export default function Chat({ onIntent }: ChatProps) {
                                                                                 {model.status === 'Success' && (!model.flags || model.flags.length === 0 || (model.flags.length === 1 && model.flags[0] === 0)) ? 'SAFE' : 'FLAGGED'}
                                                                             </span>
                                                                         </div>
-                                                                        <div className="text-zinc-500 italic leading-relaxed">
+                                                                        <div className="text-zinc-500 italic leading-relaxed text-left">
                                                                             "{model.reasoning || "Analysis complete. No specific reasoning provided."}"
                                                                         </div>
                                                                     </div>
@@ -726,11 +719,6 @@ export default function Chat({ onIntent }: ChatProps) {
                                                                     <div className="flex items-center gap-2 text-zinc-500 italic">
                                                                         <Loader2 className="w-3 h-3 animate-spin" /> Querying Neural Consensus Layer...
                                                                     </div>
-                                                                    {/* Fake Loading Skeletons for UI Pop */}
-                                                                    <div className="space-y-2 opacity-30">
-                                                                        <div className="h-8 bg-zinc-800 rounded w-full animate-pulse" />
-                                                                        <div className="h-8 bg-zinc-800 rounded w-3/4 animate-pulse" />
-                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -738,7 +726,7 @@ export default function Chat({ onIntent }: ChatProps) {
                                                 </motion.div>
 
                                                 {/* DISMISS BUTTON */}
-                                                {(scanningStatus === 'settled' || activeSteps[2]) && (
+                                                {(scanningStatus === 'settled') && (
                                                     <motion.div
                                                         initial={{ opacity: 0 }}
                                                         animate={{ opacity: 1 }}
@@ -752,7 +740,7 @@ export default function Chat({ onIntent }: ChatProps) {
                                                                 setCompletedSteps([false, false, false]);
                                                                 setActiveSteps([false, false, false]);
                                                             }}
-                                                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold tracking-widest text-xs py-3 border border-white/10"
+                                                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold tracking-widest text-[10px] py-4 border border-white/10"
                                                         >
                                                             ACKNOWLEDGE & CLEAR
                                                         </Button>
@@ -773,13 +761,13 @@ export default function Chat({ onIntent }: ChatProps) {
                 initial={false}
                 animate={{ height: logsExpanded ? '320px' : '48px' }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="relative overflow-hidden"
+                className="relative overflow-hidden shrink-0"
             >
-                <Card className="h-full bg-zinc-950 border-white/5 shadow-2xl relative">
+                <Card className="h-full bg-zinc-950 border-white/5 shadow-2xl relative flex flex-col">
                     {/* Header Bar - Always Visible */}
                     <button
                         onClick={() => setLogsExpanded(!logsExpanded)}
-                        className="w-full py-3 px-5 border-b border-white/5 bg-zinc-900/50 hover:bg-zinc-900/70 transition-colors flex items-center justify-between group"
+                        className="w-full py-3 px-5 border-b border-white/5 bg-zinc-900/50 hover:bg-zinc-900/70 transition-colors flex items-center justify-between group shrink-0"
                     >
                         <div className="flex items-center gap-3">
                             <Zap className="w-4 h-4 text-cyan-500/70" />
@@ -791,7 +779,6 @@ export default function Chat({ onIntent }: ChatProps) {
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            {/* Network Status */}
                             <div className="flex items-center gap-6 text-[10px] font-mono font-bold tracking-wider">
                                 <div className="flex items-center gap-2">
                                     <span className="text-zinc-500">NETWORK:</span>
@@ -815,34 +802,35 @@ export default function Chat({ onIntent }: ChatProps) {
                     </button>
 
                     {/* Logs Content - Shown when expanded */}
-                    {mounted && logsExpanded && (
-                        <CardContent className="p-5 overflow-hidden font-mono text-xs h-[calc(100%-48px)]">
-                            <div className="h-full overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-                                <AnimatePresence>
-                                    {logs.map((log) => (
-                                        <motion.div
-                                            key={log.id}
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            className="flex gap-3 group hover:bg-zinc-900/30 px-2 py-1 rounded transition-colors"
-                                        >
-                                            <span className="text-zinc-600 select-none font-bold">[{log.timestamp}]</span>
-                                            <span className={cn(
-                                                "font-bold min-w-[80px]",
-                                                log.level === 'INFO' && "text-zinc-400",
-                                                log.level === 'WARN' && "text-amber-500",
-                                                log.level === 'ERROR' && "text-red-500",
-                                                log.level === 'CONSENSUS' && "text-cyan-400",
-                                                log.level === 'AI' && "text-purple-400",
-                                            )}>{log.level}:</span>
-                                            <span className="text-zinc-300 group-hover:text-zinc-100 transition-colors flex-1">{log.message}</span>
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-                                <div ref={terminalEndRef} />
-                            </div>
-                        </CardContent>
-                    )}
+                    <CardContent className={cn(
+                        "p-5 overflow-hidden font-mono text-xs flex-1 min-h-0",
+                        !logsExpanded && "hidden"
+                    )}>
+                        <div className="h-full overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                            <AnimatePresence>
+                                {logs.map((log) => (
+                                    <motion.div
+                                        key={log.id}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className="flex gap-3 group hover:bg-zinc-900/30 px-2 py-1 rounded transition-colors"
+                                    >
+                                        <span className="text-zinc-600 select-none font-bold">[{log.timestamp}]</span>
+                                        <span className={cn(
+                                            "font-bold min-w-[80px]",
+                                            log.level === 'INFO' && "text-zinc-400",
+                                            log.level === 'WARN' && "text-amber-500",
+                                            log.level === 'ERROR' && "text-red-500",
+                                            log.level === 'CONSENSUS' && "text-cyan-400",
+                                            log.level === 'AI' && "text-purple-400",
+                                        )}>{log.level}:</span>
+                                        <span className="text-zinc-300 group-hover:text-zinc-100 transition-colors flex-1">{log.message}</span>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                            <div ref={terminalEndRef} />
+                        </div>
+                    </CardContent>
                 </Card>
             </motion.div>
         </div>

@@ -18,6 +18,41 @@ Here is the exact code that powers the Sovereign Vault:
 
 ---
 
+## 🔄 Vault State Lifecycle
+
+The Vault operates as a **Finite State Machine (FSM)**. Funds are never exposed to the destination until the `AUDITING` phase resolves.
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    
+    IDLE --> LOCKED : User calls swap()
+    note right of LOCKED
+        Funds moved to Vault
+        Events emitted
+    end note
+    
+    LOCKED --> AUDITING : Chainlink Request Dispatched
+    
+    state AUDITING {
+        [*] --> CRE_Processing
+        CRE_Processing --> Variance_Check
+        Variance_Check --> Consensus_Reached
+    }
+    
+    AUDITING --> SETTLED : fulfillRequest(RiskCode)
+    
+    state SETTLED {
+        [*] --> Check_Risk
+        Check_Risk --> EXECUTE : Risk == 0
+        Check_Risk --> REFUND : Risk > 0
+    }
+    
+    SETTLED --> IDLE : Transaction Complete
+```
+
+---
+
 ## 🏛️ Architecture: The "Sovereign Executor" Pattern
 
 Aegis shifts trust from a chatbot to an immutable smart contract. The Vault acts as a **Smart Escrow** that holds capital hostage until the Chainlink network proves the trade is safe.

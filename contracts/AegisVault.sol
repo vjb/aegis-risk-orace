@@ -25,7 +25,8 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
     struct PendingRequest {
         address user;
         address token;
-        uint256 amount;
+        uint256 targetAmount; // The amount of token the user expects to get
+        uint256 escrowAmount; // The native value locked (msg.value)
         bool active;
         uint256 randomness; // Store the entropy
     }
@@ -42,7 +43,7 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
 
     uint256 public constant RISK_TTL = 1 hours;
 
-    event TradeInitiated(bytes32 indexed requestId, address indexed user, address token, uint256 amount);
+    event TradeInitiated(bytes32 indexed requestId, address indexed user, address token, uint256 targetAmount, uint256 escrowAmount);
     event EntropyGenerated(bytes32 indexed requestId, uint256 randomness); // New event for off-chain agent
     event TradeSettled(bytes32 indexed requestId, address indexed user, address token, uint256 amount, uint256 riskCode);
     event TradeRefunded(bytes32 indexed requestId, address indexed user, address token, uint256 amount, uint256 riskCode);
@@ -76,8 +77,8 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
      * @notice Phase 1: The Trigger
      * Agent calls this to initiate a trade. Funds are locked in escrow.
      */
-    function swap(address token, uint256 amount) external payable whenNotPaused {
-        require(msg.value == amount, "Aegis: Incorrect escrow amount");
+    function swap(address token, uint256 targetAmount) external payable whenNotPaused {
+        require(msg.value > 0, "Aegis: Escrow value required");
         
         // Pre-flight check: Risk Cache (the "Circuit Breaker")
         RiskEntry memory entry = riskCache[token];
@@ -94,12 +95,13 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
         requests[requestId] = PendingRequest({
             user: msg.sender,
             token: token,
-            amount: amount,
+            targetAmount: targetAmount,
+            escrowAmount: msg.value,
             active: true,
             randomness: 0
         });
 
-        userEscrow[msg.sender] += amount;
+        userEscrow[msg.sender] += msg.value;
 
         // NEW: Request Verifiable Randomness
         uint256 vrfRequestId = COORDINATOR.requestRandomWords(
@@ -112,7 +114,7 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
         
         vrfToTradeRequest[vrfRequestId] = requestId;
 
-        emit TradeInitiated(requestId, msg.sender, token, amount);
+        emit TradeInitiated(requestId, msg.sender, token, targetAmount, msg.value);
     }
 
     /**
@@ -159,15 +161,15 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
         if (riskCode == 0) {
             // ✅ SAFE: Settle Trade
             req.active = false;
-            userEscrow[req.user] -= req.amount;
+            userEscrow[req.user] -= req.escrowAmount;
             
             // In Prod: This would trigger the actual DEX swap (via Uniswap etc.)
             // For Demo: We just emit success
-            emit TradeSettled(requestId, req.user, req.token, req.amount, riskCode);
+            emit TradeSettled(requestId, req.user, req.token, req.targetAmount, riskCode);
         } else {
             // 🚫 SCAM: Refund User
             // riskCache[req.token] = riskCode; // Auto-update cache on detection - now done above
-            emit TradeRefunded(requestId, req.user, req.token, req.amount, riskCode);
+            emit TradeRefunded(requestId, req.user, req.token, req.targetAmount, riskCode);
             _refund(requestId);
         }
     }
@@ -187,7 +189,7 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
     function _refund(bytes32 requestId) internal {
         PendingRequest storage req = requests[requestId];
         req.active = false;
-        uint256 amount = req.amount;
+        uint256 amount = req.escrowAmount;
         userEscrow[req.user] -= amount;
         
         (bool success, ) = payable(req.user).call{value: amount}("");

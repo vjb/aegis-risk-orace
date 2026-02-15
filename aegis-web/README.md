@@ -18,6 +18,36 @@ The UI is designed to prove that **money is safe**.
 
 ---
 
+## 🖥️ UX Sequence: From Intent to Execution
+
+The SecOps Terminal handles the complex orchestration between the user, the AI agent, and the blockchain.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Terminal as 🖥️ SecOps UI
+    participant Agent as 🤖 elizaOS Agent
+    participant Contract as ⛓️ AegisVault.sol
+
+    User->>Terminal: "Swap 10 ETH for USDC"
+    Terminal->>Agent: Parse Intent (NLP)
+    Agent-->>Terminal: { action: "SWAP", risk: "UNKNOWN" }
+    
+    Terminal->>User: 🛡️ "Requesting Vault Lock..."
+    User->>Contract: Sign Transaction (Metamask)
+    Contract-->>Terminal: Event: Locked(10 ETH)
+    
+    rect rgb(30, 41, 59)
+        Note over Terminal: 📡 FORENSIC MODE ACTIVE
+        Terminal->>Terminal: Stream Logs from CRE
+    end
+    
+    Contract-->>Terminal: Event: Released(Safe)
+    Terminal->>User: ✅ "Trade Execution Confirmed"
+```
+
+---
+
 ## 🎨 Layout: Split-Screen Forensics
 
 The Mission Control follows a three-pane "SecOps" view:

@@ -1,0 +1,5 @@
+    // EXEMPTION: Trusted assets (Stablecoins/Pillars) often have low Volume/MCap ratios (Stable)
+    // We explicitly clear WASH_TRADING for them to prevent false positive AI hallucinations.
+    if (isTrusted) {
+        logicFlags &= ~RISK_FLAGS.WASH_TRADING;
+    }

@@ -61,7 +61,7 @@ if (!AEGIS_VAULT_ADDRESS) {
     throw new Error("AEGIS_VAULT_ADDRESS not found in .env");
 }
 const TRADE_INITIATED_EVENT = parseAbiItem(
-    "event TradeInitiated(bytes32 indexed requestId, address indexed user, address token, uint256 amount)"
+    "event TradeInitiated(bytes32 indexed requestId, address indexed user, address token, uint256 targetAmount, uint256 escrowAmount)"
 );
 
 const TOKEN_MAP: Record<string, { label: string, cgId: string }> = {
@@ -128,7 +128,7 @@ const runListener = async () => {
         onLogs: async (logs) => {
             traceLog(`👀 Detected ${logs.length} RAW LOGS via watchEvent`);
             for (const log of logs) {
-                const { requestId, user, token, amount } = (log as any).args;
+                const { requestId, user, token, targetAmount, escrowAmount } = (log as any).args;
                 traceLog(`   - Processing requestId: ${requestId}`);
                 const normalizedToken = token ? getAddress(token) : "";
                 const tokenMeta = NORMALIZED_TOKEN_MAP[normalizedToken] || { label: token, cgId: "ethereum" };
@@ -137,7 +137,8 @@ const runListener = async () => {
 ${C.ICON_ALERT} ${C.RED}${C.BOLD}CHAINLINK EVENT: TradeInitiated Detected${C.RESET}
    ├─ User:           ${C.CYAN}${user}${C.RESET}
    ├─ Target Token:   ${C.YELLOW}${tokenLabel}${C.RESET}
-   ├─ Amount:         ${C.DIM}${amount.toString()}${C.RESET}
+   ├─ Target Amount:  ${C.DIM}${targetAmount.toString()}${C.RESET}
+   ├─ Escrow Value:   ${C.DIM}${escrowAmount.toString()}${C.RESET}
    └─ RequestID:      ${C.MAGENTA}${requestId}${C.RESET}
 `);
 
@@ -162,28 +163,19 @@ ${C.ICON_ALERT} ${C.RED}${C.BOLD}CHAINLINK EVENT: TradeInitiated Detected${C.RES
                         traceLog(`   [!] Could not fetch dynamic price, falling back to defaults`);
                     }
 
-                    const escrowAmount = Number(amount) / 1e18;
-                    const totalEscrowValue = escrowAmount * nativePrice;
-
-                    // If this is a demo "Phishing Trap", the user is getting a fixed low amount.
-                    // For the demo to work as specified, we need to detect the value gap.
-                    // We'll pass the unit-relative-asking price: 
-                    // How much Target is the user actually getting per unit of Native?
-                    // BUT for the current "Deviation" logic in main.ts, it expects:
-                    // (Asking Price of Target) vs (Market Price of Target).
-
-                    // To trigger Scenario 2 (100 AVAX for $10):
-                    // Value Gap is huge. Let's pass the "Value Reality Ratio" to the AI.
+                    const escrowAmountNative = Number(escrowAmount) / 1e18;
+                    const totalEscrowValue = escrowAmountNative * nativePrice;
+                    const targetAmountFormatted = Number(targetAmount) / 1e18; // Defaulting to 18 decimals for simplicity in demo
 
                     const assessment = await analyzeRisk({
                         tokenAddress: normalizedToken,
                         coingeckoId: tokenMeta.cgId,
                         chainId: "8453", // Base
                         userAddress: user!,
-                        askingPrice: targetPrice.toString(), // The price they WANT for the target
-                        // We'll extend payload to include the value gap
+                        askingPrice: targetPrice.toString(),
                         details: {
-                            escrowAmount,
+                            targetAmount: targetAmountFormatted,
+                            escrowAmountNative,
                             nativePrice,
                             totalEscrowValue,
                             targetUnitPrice: targetPrice

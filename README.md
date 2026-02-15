@@ -403,6 +403,50 @@ function swap(address token, uint256 amount) external {
 
 ---
 
+## 🏗️ System Components
+
+Aegis is composed of four distinct layers working in unison.
+
+```mermaid
+graph TD
+    User((👤 User))
+    
+    subgraph "Layer 1: The Sovereign Interface"
+        UI[🖥️ SecOps Terminal<br/>(Next.js + elizaOS)]
+        User -->|Intents| UI
+    end
+    
+    subgraph "Layer 2: The Sovereign Enforcer"
+        Vault[🛡️ AegisVault.sol<br/>(Smart Escrow)]
+        UI -->|Tx: Lock Assets| Vault
+        Tenderly[(☁️ Tenderly Virtual TestNet<br/>Base Mainnet Fork)]
+        Vault -.->|Deployed On| Tenderly
+    end
+    
+    subgraph "Layer 3: The Sovereign Oracle (CRE)"
+        DON[⚡ Chainlink DON Cluster]
+        Vault -->|Request Audit| DON
+        DON -->|Fulfill Verdict| Vault
+        
+        VRF[🎲 Chainlink VRF]
+        DON -.->|Entropy Source| VRF
+    end
+    
+    subgraph "Layer 4: The Intelligence Grid"
+        API_Data[📊 Market Data<br/>(CoinGecko + GoPlus)]
+        AI_Cluster[🧠 AI Cluster<br/>(OpenAI + Groq)]
+        
+        DON --> API_Data
+        DON --> AI_Cluster
+    end
+    
+    style Vault fill:#f59e0b,stroke:#333,stroke-width:2px,color:#000
+    style DON fill:#3b82f6,stroke:#333,stroke-width:2px,color:#fff
+    style Tenderly fill:#8b5cf6,stroke:#333,stroke-width:2px,color:#fff
+```
+
+---
+
 ## 🛠️ The Stack
 
 - **Smart Contract**: Solidity, Foundry, Anvil
