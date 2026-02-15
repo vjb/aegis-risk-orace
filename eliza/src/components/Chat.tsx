@@ -2,6 +2,8 @@ import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Hammer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export interface Message {
     id: string;
@@ -49,7 +51,16 @@ export default function Chat({ messages, isProcessing }: ChatProps) {
                                     : 'bg-indigo-600/20 border border-indigo-500/30 text-white rounded-tr-none'
                                     }`}>
                                     {m.role === 'agent' && <div className="absolute top-0 left-0 w-1 h-full bg-purple-500/50" />}
-                                    <p className="text-sm leading-relaxed">{m.content}</p>
+                                    <div className="prose prose-sm prose-invert max-w-none text-sm leading-relaxed">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline" />
+                                            }}
+                                        >
+                                            {m.content}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}

@@ -5,7 +5,16 @@
 
 **Aegis is an enforcement protocol, not an advisory tool.** While other projects warn users about threats, Aegis prevents malicious trades through **on-chain sovereignty**—funds are locked in a smart contract escrow and only released after cryptographic verification by a Chainlink Decentralized Oracle Network (DON).
 
-👉 **[Read the Full Technical Architecture Deep Dive here](docs/SYSTEM_BLUEPRINT.md)**
+## 🎭 Judge's Live Demo Guide
+**Start here for the best demonstration experience!**
+👉 **[The Ultimate Judge's Demo Flow](docs/DEMO_GUIDE.md)**
+
+High-fidelity scenarios covered:
+- ✅ **The Happy Path**: Audit Success & Settlement.
+- 🔴 **The Circuit Breaker**: Real-time On-Chain Reversion.
+- 🔍 **The Forensic Trail**: Parallel Logic + AI Logs.
+
+---
 
 ## 🎬 The "Hollywood" Demo (Run in 2 mins)
 We've packaged the entire protocol (Blockchain + Chainlink CRE + AI Cluster) into a single Docker container.

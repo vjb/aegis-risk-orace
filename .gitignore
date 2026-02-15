@@ -73,3 +73,11 @@ eliza_broken/
 cache/
 out/
 broadcast/
+
+# IDE Config
+.vscode/
+
+# Auto-generated Reports
+eliza/public/reports/
+eliza/src/db.sqlite
+

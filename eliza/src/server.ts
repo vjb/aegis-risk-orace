@@ -1,5 +1,6 @@
 import { serve } from "bun";
 import { aegisPlugin } from "./aegisPlugin";
+import { Hex } from "viem";
 import character from "../character.json" assert { type: "json" };
 
 /**
@@ -19,25 +20,31 @@ const C = {
     MAGENTA: "\x1b[35m",
     DIM: "\x1b[90m",
     BOLD: "\x1b[1m",
-    BG_CYAN: "\x1b[46m\x1b[30m"
+    BG_CYAN: "\x1b[46m\x1b[30m",
+    ICON_SHIELD: "[🛡]",
+    ICON_LOCK: "[🔒]",
+    ICON_AUDIT: "[🕵]",
+    ICON_ROCKET: "[🚀]",
+    ICON_TARGET: "[🎯]",
+    ICON_CHECK: "[✔]"
 };
 
 function logSecOps(level: string, msg: string) {
     const time = new Date().toLocaleTimeString();
-    let icon = "ℹ️";
+    let icon = "[i]";
     let color = C.CYAN;
 
-    if (level === "INTERCEPT") { icon = "🔒"; color = C.YELLOW; }
-    if (level === "AUDIT") { icon = "🕵️"; color = C.MAGENTA; }
-    if (level === "VERDICT") { icon = "⚖️"; color = C.GREEN; }
-    if (level === "ERROR") { icon = "❌"; color = C.RED; }
+    if (level === "INTERCEPT") { icon = "[L]"; color = C.YELLOW; }
+    if (level === "AUDIT") { icon = "[A]"; color = C.MAGENTA; }
+    if (level === "VERDICT") { icon = "[V]"; color = C.GREEN; }
+    if (level === "ERROR") { icon = "[X]"; color = C.RED; }
 
     console.log(`${C.DIM}[${time}]${C.RESET} ${color}${C.BOLD}${level.padEnd(10)}${C.RESET} ${icon} ${msg}`);
 }
 
 console.log(`${C.CYAN}${C.BOLD}
 ╔══════════════════════════════════════════════════════════════╗
-║        🛡️  AEGIS SOVEREIGN EXECUTOR - BACKEND NODE  🛡️      ║
+║        ${C.ICON_SHIELD}  AEGIS SOVEREIGN EXECUTOR - BACKEND NODE  ${C.ICON_SHIELD}      ║
 ╚══════════════════════════════════════════════════════════════╝${C.RESET}`);
 console.log(`${C.DIM}>> Protocol Active for Agent: ${C.GREEN}${character.name}${C.RESET}`);
 console.log(`${C.DIM}>> Security Level: ${C.RED}MAXIMUM${C.RESET}\n`);
@@ -59,9 +66,9 @@ const server = serve({
         if (url.pathname === "/message" && req.method === "POST") {
             try {
                 const body = await req.json();
-                const { text } = body;
+                const userMsg = body.text;
 
-                logSecOps("INTERCEPT", `Incoming Transmission: "${C.BOLD}${text}${C.RESET}"`);
+                logSecOps("INTERCEPT", `${C.ICON_LOCK} Incoming Transmission: "${C.BOLD}${userMsg}${C.RESET}"`);
 
                 const mockRuntime = {
                     getSetting: (key: string) => process.env[key]
@@ -71,23 +78,42 @@ const server = serve({
                 let oracleVerdict: any = null;
 
                 // 2. Hybrid Logic Router
-                if (text.toLowerCase().match(/swap|buy|sell|transfer|send|check|scan|audit/)) {
-                    logSecOps("AUDIT", `Identifying Intent... Threat Analysis Started.`);
+                const intentMatch = userMsg.toLowerCase().match(/swap|buy|sell|transfer|send|check|scan|audit/);
+                if (intentMatch) {
+                    logSecOps("AUDIT", `${C.ICON_AUDIT} Identifying Intent... Threat Analysis Started.`);
 
                     // Dynamically find the matching action
-                    const action = aegisPlugin.actions.find(a => a.name === "EXECUTE_SWAP") || aegisPlugin.actions[0];
+                    const actions = aegisPlugin.actions || [];
+                    const action = actions.find(a => a.name === "EXECUTE_SWAP") || actions[0];
+                    const intent = intentMatch[0].toUpperCase(); // Derive intent from match
 
-                    logSecOps("SYSTEM", `Routing to Action: ${action.name}`);
+                    if (intent === "EXECUTE_SWAP") {
+                        logSecOps("SYSTEM", `ℹ️ Routing to Action: ${C.BOLD}EXECUTE_SWAP${C.RESET}`);
+                        console.log(`${C.ICON_ROCKET} ${C.BG_CYAN} [AEGIS ACTION] Initiating Swap Sequence... ${C.RESET}`);
 
-                    await action.handler(mockRuntime as any, { content: { text } } as any, {}, {}, (response) => {
-                        oracleVerdict = (response as any).content;
-                        agentResponseText = (response as any).text;
-                    }, []);
+                        const emptyState: any = { values: {}, data: {}, text: "" };
+                        await action.handler(mockRuntime as any, { content: { text: userMsg } } as any, emptyState, {}, async (response) => { // Used 'userMsg'
+                            oracleVerdict = (response as any).content;
+                            agentResponseText = (response as any).text;
+                            return [];
+                        }, []);
+                    } else {
+                        logSecOps("SYSTEM", `ℹ️ Routing to Action: ${C.BOLD}${action.name}${C.RESET}`);
+                        const emptyState: any = { values: {}, data: {}, text: "" };
+                        await action.handler(mockRuntime as any, { content: { text: userMsg } } as any, emptyState, {}, async (response) => {
+                            oracleVerdict = (response as any).content;
+                            agentResponseText = (response as any).text;
+                            return [];
+                        }, []);
+                    }
 
                     if (oracleVerdict) {
                         if (oracleVerdict.status === "REJECT") {
                             logSecOps("VERDICT", `${C.RED}THREAT DETECTED${C.RESET} -> Blocking Transaction.`);
                             agentResponseText = `❌ [AEGIS_REJECT] ${oracleVerdict.aegisVerdict?.reasoning || "Security Violation"}`;
+                        } else if (oracleVerdict.status === "PENDING_AUDIT") {
+                            logSecOps("SYSTEM", `${C.MAGENTA}AUDIT TRIGGERED${C.RESET} -> Notifying Chainlink CRE Network.`);
+                            agentResponseText = `⏳ [AEGIS_PENDING] Transaction escrowed. Chainlink CRE Node (DON) is executing forensic audit...`;
                         } else {
                             logSecOps("VERDICT", `${C.GREEN}COMPLIANCE VERIFIED${C.RESET} -> Authorizing Settlement.`);
                             agentResponseText = `✅ [AEGIS_APPROVE] Compliance verified. Settlement authorized.`;
@@ -116,7 +142,7 @@ const server = serve({
                                         role: "system",
                                         content: `${character.system}\n\nBIO:\n${character.bio.join("\n")}\n\nSTYLE:\n${character.style.all.join("\n")}`
                                     },
-                                    { role: "user", content: text }
+                                    { role: "user", content: userMsg }
                                 ],
                                 temperature: 0.7
                             })
@@ -140,6 +166,103 @@ const server = serve({
 
             } catch (err: any) {
                 logSecOps("ERROR", err.message);
+                return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
+            }
+        }
+
+        if (url.pathname === "/audit-status" && req.method === "POST") {
+            try {
+                const { requestId } = await req.json();
+                if (!requestId) return new Response(JSON.stringify({ error: "No requestId" }), { status: 400, headers });
+
+                const { createPublicClient, http } = await import("viem");
+                const { base } = await import("viem/chains");
+                const AEGIS_VAULT_ADDRESS = process.env.AEGIS_VAULT_ADDRESS as Hex;
+                const RPC_URL = process.env.TENDERLY_RPC_URL || process.env.VITE_TENDERLY_RPC_URL;
+
+                if (!AEGIS_VAULT_ADDRESS) throw new Error("AEGIS_VAULT_ADDRESS missing in .env");
+                if (!RPC_URL) throw new Error("TENDERLY_RPC_URL missing in .env");
+
+                const publicClient = createPublicClient({
+                    chain: base,
+                    transport: http(RPC_URL)
+                });
+
+                // Check for TradeSettled or TradeRefunded events for this requestId
+                const [settledLogs, refundedLogs] = await Promise.all([
+                    publicClient.getLogs({
+                        address: AEGIS_VAULT_ADDRESS,
+                        event: {
+                            type: 'event',
+                            name: 'TradeSettled',
+                            inputs: [
+                                { type: 'bytes32', name: 'requestId', indexed: true },
+                                { type: 'address', name: 'user', indexed: true },
+                                { type: 'address', name: 'token' },
+                                { type: 'uint256', name: 'amount' },
+                                { type: 'uint256', name: 'riskCode' }
+                            ]
+                        },
+                        args: { requestId },
+                        fromBlock: 0n
+                    }),
+                    publicClient.getLogs({
+                        address: AEGIS_VAULT_ADDRESS,
+                        event: {
+                            type: 'event',
+                            name: 'TradeRefunded',
+                            inputs: [
+                                { type: 'bytes32', name: 'requestId', indexed: true },
+                                { type: 'address', name: 'user', indexed: true },
+                                { type: 'address', name: 'token' },
+                                { type: 'uint256', name: 'amount' },
+                                { type: 'uint256', name: 'riskCode' }
+                            ]
+                        },
+                        args: { requestId },
+                        fromBlock: 0n
+                    })
+                ]);
+
+                // Helper to read report file
+                const readReport = (reqId: string) => {
+                    try {
+                        const reportPath = `public/reports/${reqId}.json`;
+                        const file = Bun.file(reportPath);
+                        if (file.size > 0) {
+                            return file.json();
+                        }
+                    } catch (e) {
+                        console.error(`Failed to read report for ${reqId}:`, e);
+                    }
+                    return null;
+                };
+
+                if (requestId.startsWith("0xMOCK")) {
+                    console.log(`[MOCK] Serving Mock Report for ${requestId}`);
+                    const report = await readReport(requestId);
+                    if (report) {
+                        return new Response(JSON.stringify({
+                            status: "REJECTED", // Mock is always rejected in this demo flow for now
+                            riskCode: Number(report.riskCode),
+                            report
+                        }), { headers });
+                    }
+                }
+
+                if (settledLogs.length > 0) {
+                    const report = await readReport(requestId);
+                    return new Response(JSON.stringify({ status: "COMPLIANT", riskCode: 0, report }), { headers });
+                }
+                if (refundedLogs.length > 0) {
+                    const riskCode = (refundedLogs[0].args as any).riskCode;
+                    const report = await readReport(requestId);
+                    return new Response(JSON.stringify({ status: "REJECTED", riskCode: Number(riskCode), report }), { headers });
+                }
+
+                return new Response(JSON.stringify({ status: "PENDING" }), { headers });
+
+            } catch (err: any) {
                 return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
             }
         }

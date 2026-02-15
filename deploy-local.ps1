@@ -113,6 +113,21 @@ $vaultString = $vaultOutput -join "`n"
 if ($vaultString -match "Deployed to: (0x[a-fA-F0-9]{40})") {
     $vaultAddress = $matches[1]
     Write-Host "   ✅ AegisVault deployed to: $vaultAddress" -ForegroundColor Green
+    
+    # 📝 Update .env file automatically
+    if (Test-Path $envPath) {
+        $content = Get-Content $envPath
+        if ($content -match "AEGIS_VAULT_ADDRESS=") {
+            $content = $content -replace "AEGIS_VAULT_ADDRESS=.*", "AEGIS_VAULT_ADDRESS=$vaultAddress"
+        } else {
+            $content += "`nAEGIS_VAULT_ADDRESS=$vaultAddress"
+        }
+        $content | Out-File $envPath -Encoding utf8
+        Write-Host "   📝 Updated .env with new Vault Address" -ForegroundColor Gray
+    } else {
+        "AEGIS_VAULT_ADDRESS=$vaultAddress" | Out-File $envPath -Encoding utf8
+        Write-Host "   📝 Created new .env with Vault Address" -ForegroundColor Gray
+    }
 } else {
     Write-Host "   ❌ Failed to deploy AegisVault" -ForegroundColor Red
     Write-Host "$vaultString"

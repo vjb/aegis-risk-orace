@@ -20,7 +20,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Activity, Lock, Zap, ArrowRight, Loader2, Check, Brain, Search, AlertTriangle, FileText, Twitter, ShieldAlert } from 'lucide-react';
+import { Shield, Activity, Lock, Zap, ArrowRight, Loader2, Check, Brain, Search, AlertTriangle, FileText, Twitter, ShieldAlert, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/moving-border";
@@ -98,6 +98,16 @@ const VerdictHeader = ({ type }: { type: 'APPROVE' | 'DENIED' | 'REJECT' }) => {
     );
 };
 
+const RiskCheckItem = ({ label, passed }: { label: string, passed: boolean }) => (
+    <div className="flex justify-between items-center text-[9px]">
+        <span className={cn("font-medium", passed ? "text-zinc-500" : "text-white")}>{label}</span>
+        <div className={cn(
+            "w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]",
+            passed ? "bg-emerald-500 text-emerald-500" : "bg-red-500 text-red-500"
+        )} />
+    </div>
+);
+
 type ScanningStatus = 'idle' | 'detecting' | 'scanning' | 'analyzing' | 'complete' | 'locked' | 'settled';
 
 interface LogEntry {
@@ -114,12 +124,13 @@ export default function Chat({ onIntent }: ChatProps) {
     const [activeSteps, setActiveSteps] = useState<boolean[]>([false, false, false]); // [Market, Security, AI]
     const [completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false]);
     const [mounted, setMounted] = useState(false);
-    const [logsExpanded, setLogsExpanded] = useState(true); // Start expanded
+    const [logsExpanded, setLogsExpanded] = useState(false); // Start collapsed
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [messages, setMessages] = useState<Message[]>([
         { id: '1', role: 'agent', content: "Dispatcher Online. Secure Uplink Established. Awaiting Intent." },
     ]);
-    const [scanAnalysis, setScanAnalysis] = useState<{ logic: number, ai: number } | null>(null);
+    const [scanAnalysis, setScanAnalysis] = useState<{ logic: number, ai: number, modelResults?: any[] } | null>(null);
+    const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
     // Fix hydration error: Initialize logs only on client
@@ -160,6 +171,73 @@ export default function Chat({ onIntent }: ChatProps) {
             inputRef.current?.focus();
         }
     }, [isLoading, scanningStatus]);
+
+    // Polling Logic for Pending Audits
+    useEffect(() => {
+        if (!pendingRequestId) return;
+
+        const pollInterval = setInterval(async () => {
+            try {
+                const response = await fetch('http://localhost:3011/audit-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requestId: pendingRequestId })
+                });
+                const data = await response.json();
+
+                if (data.status === 'COMPLIANT' || data.status === 'REJECTED') {
+                    clearInterval(pollInterval);
+                    // setPendingRequestId(null); // Keep ID until dismissed if needed, but we clear it in dismiss
+                    setScanningStatus('settled'); // PERSISTENT STATE - DO NOT RESET TO IDLE
+                    setCompletedSteps([true, true, true]);
+
+                    // Helper to synthesize reasoning from flags if missing
+                    const getReasoningFromFlags = (flags: number[]) => {
+                        if (!flags || flags.length === 0) return "No risk vectors detected. Asset appears clean.";
+                        const reasons = [];
+                        if (flags.includes(1)) reasons.push("Contract contains honeypot mechanisms.");
+                        if (flags.includes(16)) reasons.push("Abnormal trading volume detected.");
+                        if (flags.includes(32)) reasons.push("Wash trading patterns identified.");
+                        if (flags.includes(256)) reasons.push("Known phishing signatures matched.");
+                        if (flags.includes(65535)) reasons.push("Critical security vulnerability found.");
+                        return reasons.join(" ") || "Risk factors identified by neural cluster.";
+                    };
+
+                    // Capture detailed results for the settled view
+                    if (data.report) {
+                        const rawModels = data.report.details?.modelResults || [];
+                        // Inject reasoning if missing
+                        const processedModels = rawModels.map((m: any) => ({
+                            ...m,
+                            reasoning: m.reasoning || getReasoningFromFlags(m.flags)
+                        }));
+
+                        setScanAnalysis({
+                            logic: data.report.logicFlags || 0,
+                            ai: data.report.aiFlags || 0,
+                            modelResults: processedModels
+                        });
+                    }
+
+                    const isRejected = data.status === 'REJECTED';
+                    addLog(isRejected ? 'WARN' : 'CONSENSUS', `ORACLE VERDICT RECEIVED: ${data.status}`);
+
+                    setMessages(prev => [...prev, {
+                        id: Date.now().toString(),
+                        role: 'agent',
+                        content: isRejected
+                            ? `❌ [AEGIS_REJECT] Security scan complete. Risk Score: ${data.report?.riskScore || data.riskCode}. Assets refunded.`
+                            : "✅ [AEGIS_APPROVE] Compliance verified. Settlement authorized.",
+                        isVerdict: true
+                    }]);
+                }
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }, 2000);
+
+        return () => clearInterval(pollInterval);
+    }, [pendingRequestId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -214,7 +292,11 @@ export default function Chat({ onIntent }: ChatProps) {
             // Capture Split-Brain Data if available
             const verdict = data.content?.aegisVerdict || data.content;
             if (verdict?.logicFlags !== undefined) {
-                setScanAnalysis({ logic: verdict.logicFlags, ai: verdict.aiFlags });
+                setScanAnalysis({
+                    logic: verdict.logicFlags,
+                    ai: verdict.aiFlags,
+                    modelResults: verdict.modelResults || []
+                });
             }
 
             setMessages(prev => [...prev, {
@@ -225,18 +307,16 @@ export default function Chat({ onIntent }: ChatProps) {
                     data.text.includes('VERDICT') ||
                     data.text.includes('AEGIS_APPROVE') ||
                     data.text.includes('AEGIS_REJECT') ||
+                    data.text.includes('AEGIS_PENDING') ||
                     data.text.includes('REJECT') ||
                     (data.content?.riskCode !== undefined)
                 ),
                 txHash: data.content?.hash
             }]);
 
-            if (data.content?.hash) {
-                setCompletedSteps([true, true, true]);
-            }
-
-            if (onIntent && (isRiskQuery || data.content?.hash)) {
-                onIntent(userMsg);
+            if (data.content?.requestId) {
+                setPendingRequestId(data.content.requestId);
+                setScanningStatus('analyzing');
             }
 
         } catch (err) {
@@ -249,7 +329,10 @@ export default function Chat({ onIntent }: ChatProps) {
             }]);
         } finally {
             setIsLoading(false);
-            setScanningStatus('idle');
+            // Only reset scanningStatus if we're not waiting for an oracle audit
+            if (!isRiskQuery || messages[messages.length - 1]?.content?.includes('FAILED')) {
+                setScanningStatus('idle');
+            }
             inputRef.current?.focus();
         }
     };
@@ -259,15 +342,15 @@ export default function Chat({ onIntent }: ChatProps) {
             {/* MAIN AREA: 2-Column Layout */}
             <div className="flex gap-3 flex-1">
                 {/* LEFT PANE: USER/AGENT CHAT (Dispatcher) - Wider for readability */}
-                <Card className="w-1/3 bg-zinc-950/90 border-white/10 flex flex-col shadow-2xl relative overflow-hidden">
+                <Card className="w-1/3 h-full max-h-full bg-zinc-950/90 border-white/10 flex flex-col shadow-2xl relative overflow-hidden">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/10 via-transparent to-transparent pointer-events-none" />
                     <CardHeader className="py-3 border-b border-white/5 bg-purple-500/5">
                         <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-purple-400 flex items-center gap-2">
                             <Activity className="w-3 h-3" /> Dispatcher
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col p-4 overflow-hidden">
-                        <div className="flex-1 overflow-y-auto mb-4 space-y-3 scrollbar-none">
+                    <CardContent className="flex-1 flex flex-col p-4 overflow-hidden min-h-0">
+                        <div className="flex-1 overflow-y-auto mb-4 space-y-3 scrollbar-none min-h-0">
                             <AnimatePresence mode="popLayout">
                                 {messages.map((m) => (
                                     <motion.div
@@ -283,9 +366,11 @@ export default function Chat({ onIntent }: ChatProps) {
                                                     ? "bg-blue-900/20 border-blue-500/30 text-blue-100"
                                                     : m.isVerdict && m.content.includes('REJECT')
                                                         ? "bg-red-900/20 border-red-500/30 text-red-100"
-                                                        : m.isVerdict
-                                                            ? "bg-green-900/20 border-green-500/30 text-green-100"
-                                                            : "bg-zinc-900/50 border-white/5 text-zinc-300"
+                                                        : m.isVerdict && m.content.includes('PENDING')
+                                                            ? "bg-amber-900/20 border-amber-500/30 text-amber-100"
+                                                            : m.isVerdict
+                                                                ? "bg-green-900/20 border-green-500/30 text-green-100"
+                                                                : "bg-zinc-900/50 border-white/5 text-zinc-300"
                                             )}>
                                             {m.isScanReport ? "Forensic Audit Executed." : (
                                                 <>
@@ -297,6 +382,14 @@ export default function Chat({ onIntent }: ChatProps) {
                                                             <span className="text-red-400 font-bold tracking-wider text-base">TRANSACTION REJECTED</span>
                                                         </div>
                                                     )}
+                                                    {m.isVerdict && m.content.includes('PENDING') && (
+                                                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-amber-500/30">
+                                                            <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                                                <Clock className="w-4 h-4 text-amber-400" />
+                                                            </div>
+                                                            <span className="text-amber-400 font-bold tracking-wider text-base">AUDIT INITIATED</span>
+                                                        </div>
+                                                    )}
                                                     {m.isVerdict && m.content.includes('APPROVE') && (
                                                         <div className="flex items-center gap-2 mb-3 pb-3 border-b border-green-500/30">
                                                             <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -306,25 +399,46 @@ export default function Chat({ onIntent }: ChatProps) {
                                                         </div>
                                                     )}
                                                     <div className="space-y-2">
-                                                        {m.content.replace(/\[AEGIS_(APPROVE|DENIED|REJECT)\]\s*/g, '').split('\n\n').map((section, i) => (
-                                                            <div key={i} className="leading-relaxed">
-                                                                {section.split('\n').map((line, j) => (
-                                                                    <div key={j} className={cn(
-                                                                        line.startsWith('  [!]') ? 'ml-2 mt-2 text-amber-200 font-semibold' :
-                                                                            line.startsWith('      ') ? 'ml-6 text-zinc-400 text-xs italic' :
-                                                                                line.includes(':') && !line.startsWith(' ') ? 'font-bold text-zinc-100 mt-2' :
+                                                        {m.content.replace(/\[AEGIS_(APPROVE|DENIED|REJECT|PENDING)\]\s*/g, '').split('\n\n').map((section, i) => (
+                                                            <div key={i} className="leading-relaxed text-zinc-300">
+                                                                {section.split('\n').map((line, j) => {
+                                                                    // List Items
+                                                                    if (line.trim().startsWith('- ')) {
+                                                                        return (
+                                                                            <div key={j} className="flex gap-2 ml-2 mt-1">
+                                                                                <span className="text-zinc-500">•</span>
+                                                                                <span dangerouslySetInnerHTML={{
+                                                                                    __html: line.replace(/^- /, '').replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-zinc-100">$1</span>')
+                                                                                }} />
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    // Headers / Bold Lines
+                                                                    if (line.includes(':') && !line.startsWith(' ')) {
+                                                                        return (
+                                                                            <div key={j} className="font-bold text-zinc-100 mt-2" dangerouslySetInnerHTML={{
+                                                                                __html: line.replace(/\*\*(.*?)\*\*/g, '<span class="text-white">$1</span>')
+                                                                            }} />
+                                                                        );
+                                                                    }
+                                                                    // Standard Text
+                                                                    return (
+                                                                        <div key={j} className={cn(
+                                                                            line.startsWith('  [!]') ? 'ml-2 mt-2 text-amber-200 font-semibold' :
+                                                                                line.startsWith('      ') ? 'ml-6 text-zinc-400 text-xs italic' :
                                                                                     'text-zinc-300'
-                                                                    )}>
-                                                                        {line}
-                                                                    </div>
-                                                                ))}
+                                                                        )} dangerouslySetInnerHTML={{
+                                                                            __html: line.replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-zinc-100">$1</span>')
+                                                                        }} />
+                                                                    );
+                                                                })}
                                                             </div>
                                                         ))}
 
                                                         {m.txHash && (
                                                             <div className="mt-4 pt-4 border-t border-white/5">
                                                                 <a
-                                                                    href={`https://dashboard.tenderly.co/vjb/aegis-risk-orace/testnet/71828c3f-65cb-42ba-bc2a-3938c16ca878/transactions/${m.txHash}`}
+                                                                    href={`https://dashboard.tenderly.co/aegis/project/testnet/71828c3f-65cb-42ba-bc2a-3938c16ca878/tx/${m.txHash}`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="flex items-center gap-2 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors group/link"
@@ -426,16 +540,22 @@ export default function Chat({ onIntent }: ChatProps) {
                                     scanningStatus === 'detecting' && "bg-zinc-500/5 border-zinc-500/20 text-zinc-500",
                                     scanningStatus === 'scanning' && "bg-amber-500/10 border-amber-500/40 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.1)]",
                                     scanningStatus === 'analyzing' && "bg-cyan-500/10 border-cyan-500/40 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)]",
+                                    scanningStatus === 'settled' && ((scanAnalysis?.logic || 0) + (scanAnalysis?.ai || 0) > 0
+                                        ? "bg-red-500/10 border-red-500/40 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.1)]"
+                                        : "bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]")
                                 )}>
                                     <div className={cn(
                                         "w-2 h-2 rounded-full",
-                                        scanningStatus === 'idle' ? "bg-zinc-600" : (scanningStatus === 'scanning' || scanningStatus === 'analyzing') ? "bg-amber-500" : "bg-cyan-400"
+                                        scanningStatus === 'idle' ? "bg-zinc-600" :
+                                            (scanningStatus === 'scanning' || scanningStatus === 'analyzing') ? "bg-amber-500" :
+                                                ((scanAnalysis?.logic || 0) + (scanAnalysis?.ai || 0) > 0 ? "bg-red-500" : "bg-emerald-400")
                                     )} />
                                     {
                                         (scanningStatus === 'idle') ? "VAULT STANDBY" :
                                             (scanningStatus === 'detecting') ? "LOCKING ASSETS..." :
                                                 (scanningStatus === 'scanning') ? "DISPATCHING REQUEST" :
-                                                    (scanningStatus === 'analyzing') ? "AWAITING CONSENSUS" : "VERIFIED SAFE"
+                                                    (scanningStatus === 'analyzing') ? "AWAITING CONSENSUS" :
+                                                        ((scanAnalysis?.logic || 0) + (scanAnalysis?.ai || 0) > 0 ? "THREAT BLOCKED" : "VERIFIED SAFE")
                                     }
                                 </div>
                             </div>
@@ -459,35 +579,46 @@ export default function Chat({ onIntent }: ChatProps) {
                                     </motion.div>
                                 ) : (
                                     <div className="w-full max-w-md space-y-8">
-                                        <div className="bg-zinc-900/50 border border-white/5 p-6 rounded-3xl backdrop-blur-xl">
-                                            <div className="flex flex-col gap-6">
-                                                <InlinePipelineStep active={activeSteps[0]} completed={completedSteps[0]} icon={<Activity className="w-4 h-4" />} label="MARKET DATA (CoinGecko)" />
-                                                <InlinePipelineStep active={activeSteps[1]} completed={completedSteps[1]} icon={<Shield className="w-4 h-4" />} label="SECURITY AUDIT (GoPlus)" />
-                                                <InlinePipelineStep active={activeSteps[2]} completed={completedSteps[2]} icon={<Brain className="w-4 h-4" />} label="AI FORENSIC SCAN (GPT-4o)" />
-                                            </div>
-                                        </div>
-
-                                        {activeSteps[2] && (
+                                        {/* UNIFIED DETAILED GRID VIEW */}
+                                        {(scanningStatus === 'scanning' || scanningStatus === 'analyzing' || scanningStatus === 'detecting' || scanningStatus === 'settled') && (
                                             <div className="space-y-4">
+                                                {/* BRAIN SPLIT HEADER (Traffic Light Edition) */}
                                                 <motion.div
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     className="grid grid-cols-2 gap-4"
                                                 >
+                                                    {/* LEFT BRAIN */}
                                                     <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl relative overflow-hidden group">
                                                         <div className="absolute inset-0 bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors" />
-                                                        <div className="relative z-10">
-                                                            <div className="text-[10px] font-bold text-purple-400 mb-1 tracking-wider">LEFT BRAIN (LOGIC)</div>
-                                                            <div className="text-2xl font-black text-white">{scanAnalysis?.logic !== undefined ? scanAnalysis.logic : "-"}</div>
-                                                            <div className="text-[9px] text-zinc-500 mt-1">DETERMINISTIC</div>
+                                                        <div className="relative z-10 space-y-3">
+                                                            <div className="flex justify-between items-center border-b border-purple-500/20 pb-2">
+                                                                <div className="text-[10px] font-bold text-purple-400 tracking-wider">LEFT BRAIN (LOGIC)</div>
+                                                                {scanAnalysis?.logic === 0 ? <Check className="w-3 h-3 text-emerald-400" /> : <AlertTriangle className="w-3 h-3 text-red-500" />}
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <RiskCheckItem label="HONEYPOT CHECK" passed={!((scanAnalysis?.logic || 0) & 16)} />
+                                                                <RiskCheckItem label="OWNERSHIP" passed={!((scanAnalysis?.logic || 0) & 8)} />
+                                                                <RiskCheckItem label="LIQUIDITY DEPTH" passed={!((scanAnalysis?.logic || 0) & 1)} />
+                                                                <RiskCheckItem label="VOLATILITY" passed={!((scanAnalysis?.logic || 0) & 2)} />
+                                                            </div>
                                                         </div>
                                                     </div>
+
+                                                    {/* RIGHT BRAIN */}
                                                     <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl relative overflow-hidden group">
                                                         <div className="absolute inset-0 bg-cyan-500/5 group-hover:bg-cyan-500/10 transition-colors" />
-                                                        <div className="relative z-10">
-                                                            <div className="text-[10px] font-bold text-cyan-400 mb-1 tracking-wider">RIGHT BRAIN (AI)</div>
-                                                            <div className="text-2xl font-black text-white">{scanAnalysis?.ai !== undefined ? scanAnalysis.ai : "-"}</div>
-                                                            <div className="text-[9px] text-zinc-500 mt-1">SEMANTIC CLUSTER</div>
+                                                        <div className="relative z-10 space-y-3">
+                                                            <div className="flex justify-between items-center border-b border-cyan-500/20 pb-2">
+                                                                <div className="text-[10px] font-bold text-cyan-400 tracking-wider">RIGHT BRAIN (AI)</div>
+                                                                {scanAnalysis?.ai === 0 ? <Brain className="w-3 h-3 text-cyan-400" /> : <ShieldAlert className="w-3 h-3 text-amber-500" />}
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <RiskCheckItem label="IMPERSONATION" passed={!((scanAnalysis?.ai || 0) & 32)} />
+                                                                <RiskCheckItem label="PHISHING PATTERN" passed={!((scanAnalysis?.ai || 0) & 256)} />
+                                                                <RiskCheckItem label="WASH TRADING" passed={!((scanAnalysis?.ai || 0) & 64)} />
+                                                                <RiskCheckItem label="DEV ACTIVITY" passed={!((scanAnalysis?.ai || 0) & 128)} />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </motion.div>
@@ -496,27 +627,27 @@ export default function Chat({ onIntent }: ChatProps) {
                                                 <motion.div
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: 0.3 }}
+                                                    transition={{ delay: 0.2 }}
                                                     className="space-y-3"
                                                 >
                                                     {/* CoinGecko Market Data */}
                                                     <div className="p-3 bg-zinc-900/50 border border-white/5 rounded-lg space-y-2">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Activity className="w-3 h-3 text-green-400" />
-                                                            <span className="text-[9px] font-bold text-green-400 tracking-wider">COINGECKO MARKET DATA</span>
+                                                            {activeSteps[0] ? <Activity className="w-3 h-3 text-green-400" /> : <Loader2 className="w-3 h-3 animate-spin text-zinc-600" />}
+                                                            <span className={cn("text-[9px] font-bold tracking-wider", activeSteps[0] ? "text-green-400" : "text-zinc-600")}>COINGECKO MARKET DATA</span>
                                                         </div>
                                                         <div className="grid grid-cols-3 gap-2 text-[9px]">
                                                             <div>
                                                                 <div className="text-zinc-500">Price (24h)</div>
-                                                                <div className="text-white font-mono">$2,501.20 <span className="text-green-400">+2.3%</span></div>
+                                                                <div className="text-white font-mono">{activeSteps[0] ? "$2,501.20" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />} {activeSteps[0] && <span className="text-green-400">+2.3%</span>}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="text-zinc-500">Liquidity</div>
-                                                                <div className="text-white font-mono">$8.2M</div>
+                                                                <div className="text-white font-mono">{activeSteps[0] ? "$8.2M" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="text-zinc-500">Volume</div>
-                                                                <div className="text-white font-mono">$142K</div>
+                                                                <div className="text-white font-mono">{activeSteps[0] ? "$142K" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />}</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -524,61 +655,83 @@ export default function Chat({ onIntent }: ChatProps) {
                                                     {/* GoPlus Security Audit */}
                                                     <div className="p-3 bg-zinc-900/50 border border-white/5 rounded-lg space-y-2">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Shield className="w-3 h-3 text-blue-400" />
-                                                            <span className="text-[9px] font-bold text-blue-400 tracking-wider">GOPLUS SECURITY SCAN</span>
+                                                            {activeSteps[1] ? <Shield className="w-3 h-3 text-blue-400" /> : <Loader2 className="w-3 h-3 animate-spin text-zinc-600" />}
+                                                            <span className={cn("text-[9px] font-bold tracking-wider", activeSteps[1] ? "text-blue-400" : "text-zinc-600")}>GOPLUS SECURITY SCAN</span>
                                                         </div>
                                                         <div className="grid grid-cols-3 gap-2 text-[9px]">
                                                             <div>
                                                                 <div className="text-zinc-500">Honeypot</div>
-                                                                <div className="text-green-400 font-mono">CLEAR ✓</div>
+                                                                <div className="text-green-400 font-mono">{activeSteps[1] ? "CLEAR ✓" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-8 inline-block" />}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="text-zinc-500">Ownership</div>
-                                                                <div className="text-green-400 font-mono">RENOUNCED ✓</div>
+                                                                <div className="text-green-400 font-mono">{activeSteps[1] ? "RENOUNCED ✓" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-10 inline-block" />}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="text-zinc-500">Trading</div>
-                                                                <div className="text-green-400 font-mono">OPEN ✓</div>
+                                                                <div className="text-green-400 font-mono">{activeSteps[1] ? "OPEN ✓" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-8 inline-block" />}</div>
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* AI Model Analysis */}
+                                                    {/* AI Model Analysis & Reasoning */}
                                                     <div className="p-3 bg-zinc-900/50 border border-purple-500/10 rounded-lg space-y-2">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Brain className="w-3 h-3 text-purple-400" />
-                                                            <span className="text-[9px] font-bold text-purple-400 tracking-wider">AI FORENSIC ANALYSIS</span>
+                                                            {scanAnalysis?.modelResults ? <Brain className="w-3 h-3 text-purple-400" /> : <Loader2 className="w-3 h-3 animate-spin text-purple-400" />}
+                                                            <span className="text-[9px] font-bold text-purple-400 tracking-wider">AI FORENSIC ANALYSIS (Multi-Model)</span>
                                                         </div>
-                                                        <div className="space-y-1.5 text-[9px]">
-                                                            <div className="flex justify-between">
-                                                                <span className="text-zinc-500">GPT-4o-mini Pattern Match</span>
-                                                                <span className="text-cyan-400 font-mono">96.2% Safe</span>
-                                                            </div>
-                                                            <div className="flex justify-between">
-                                                                <span className="text-zinc-500">Claude Semantic Score</span>
-                                                                <span className="text-cyan-400 font-mono">0.94 Confidence</span>
-                                                            </div>
-                                                            <div className="flex justify-between">
-                                                                <span className="text-zinc-500">Mempool Risk Index</span>
-                                                                <span className="text-green-400 font-mono">Low (0.12)</span>
-                                                            </div>
+                                                        <div className="space-y-3 text-[9px]">
+                                                            {scanAnalysis?.modelResults && scanAnalysis.modelResults.length > 0 ? (
+                                                                scanAnalysis.modelResults.map((model: any, idx: number) => (
+                                                                    <div key={idx} className="border-l-2 border-purple-500/20 pl-2">
+                                                                        <div className="flex justify-between items-center mb-1">
+                                                                            <span className="text-zinc-400 font-bold">{model.name}</span>
+                                                                            <span className={model.status === 'Success' && (!model.flags || model.flags.length === 0 || (model.flags.length === 1 && model.flags[0] === 0)) ? "text-cyan-400 font-mono" : "text-amber-400 font-mono"}>
+                                                                                {model.status === 'Success' && (!model.flags || model.flags.length === 0 || (model.flags.length === 1 && model.flags[0] === 0)) ? 'SAFE' : 'FLAGGED'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="text-zinc-500 italic leading-relaxed">
+                                                                            "{model.reasoning || "Analysis complete. No specific reasoning provided."}"
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <div className="flex flex-col gap-2">
+                                                                    <div className="flex items-center gap-2 text-zinc-500 italic">
+                                                                        <Loader2 className="w-3 h-3 animate-spin" /> Querying Neural Consensus Layer...
+                                                                    </div>
+                                                                    {/* Fake Loading Skeletons for UI Pop */}
+                                                                    <div className="space-y-2 opacity-30">
+                                                                        <div className="h-8 bg-zinc-800 rounded w-full animate-pulse" />
+                                                                        <div className="h-8 bg-zinc-800 rounded w-3/4 animate-pulse" />
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </motion.div>
 
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: 0.6 }}
-                                                    className="flex flex-col gap-2 p-4 bg-zinc-900/50 border border-white/5 rounded-2xl"
-                                                >
-                                                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-left">Reasoning Matrix:</span>
-                                                    <div className="flex flex-wrap gap-2 mt-1">
-                                                        <span className="px-2 py-1 rounded bg-cyan-500/10 text-[8px] text-cyan-300 font-bold border border-cyan-500/10">#SplitBrain</span>
-                                                        <span className="px-2 py-1 rounded bg-purple-500/10 text-[8px] text-purple-300 font-bold border border-purple-500/10">#HoneypotAnalysis</span>
-                                                        <span className="px-2 py-1 rounded bg-amber-500/10 text-[8px] text-amber-300 font-bold border border-amber-500/10">#WashTrading</span>
-                                                    </div>
-                                                </motion.div>
+                                                {/* DISMISS BUTTON */}
+                                                {(scanningStatus === 'settled' || activeSteps[2]) && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        transition={{ delay: 0.5 }}
+                                                    >
+                                                        <Button
+                                                            onClick={() => {
+                                                                setScanningStatus('idle');
+                                                                setPendingRequestId(null);
+                                                                setScanAnalysis(null);
+                                                                setCompletedSteps([false, false, false]);
+                                                                setActiveSteps([false, false, false]);
+                                                            }}
+                                                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold tracking-widest text-xs py-3 border border-white/10"
+                                                        >
+                                                            ACKNOWLEDGE & CLEAR
+                                                        </Button>
+                                                    </motion.div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

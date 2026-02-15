@@ -36,7 +36,7 @@ export default function SecurityFeed({ status }: Props) {
             setLogs(prev => [...prev,
             { time: t(), msg: "[CRE] FETCHING COINGECKO: 200 OK", type: 'info' },
             { time: t(), msg: "[CRE] GOPLUS HONEYPOT SCAN: CLEAN", type: 'info' },
-            { time: t(), msg: "[AI] GPT-4o FORENSIC ANALYSIS: STARTED", type: 'warn' }
+            { time: t(), msg: "[AI] MULTI-MODEL FORENSIC ANALYSIS: STARTED", type: 'warn' }
             ]);
         }
         if (status === 'VERIFYING') {
@@ -60,8 +60,8 @@ export default function SecurityFeed({ status }: Props) {
                 <button
                     onClick={() => setActiveTab('logs')}
                     className={`flex-1 px-3 py-2 text-xs uppercase tracking-wider transition-colors ${activeTab === 'logs'
-                            ? 'text-green-400 bg-black/40 border-b-2 border-green-500'
-                            : 'text-gray-600 hover:text-gray-400'
+                        ? 'text-green-400 bg-black/40 border-b-2 border-green-500'
+                        : 'text-gray-600 hover:text-gray-400'
                         }`}
                 >
                     System Logs
@@ -69,8 +69,8 @@ export default function SecurityFeed({ status }: Props) {
                 <button
                     onClick={() => setActiveTab('threats')}
                     className={`flex-1 px-3 py-2 text-xs uppercase tracking-wider transition-colors ${activeTab === 'threats'
-                            ? 'text-purple-400 bg-black/40 border-b-2 border-purple-500'
-                            : 'text-gray-600 hover:text-gray-400'
+                        ? 'text-purple-400 bg-black/40 border-b-2 border-purple-500'
+                        : 'text-gray-600 hover:text-gray-400'
                         }`}
                 >
                     Threat Feed
@@ -86,7 +86,7 @@ export default function SecurityFeed({ status }: Props) {
                                 <motion.div
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    key={i}
+                                    key={`${i}-${log.time}`}
                                     className="mb-1 whitespace-pre-wrap break-all flex group hover:bg-zinc-900/50"
                                 >
                                     <span className="text-zinc-600 mr-2 shrink-0 select-none">[{log.time}]</span>

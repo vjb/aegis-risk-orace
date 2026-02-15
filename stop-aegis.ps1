@@ -25,6 +25,18 @@ if ($port3011) {
     Write-Host "   No process found on port 3011" -ForegroundColor DarkGray
 }
 
+# Find and kill the Chainlink CRE Node (cre-listener.ts) - it doesn't have a port but has a unique cmdline
+Write-Host "🛑 Stopping Chainlink CRE Node..." -ForegroundColor Cyan
+$listenerProcs = Get-CimInstance Win32_Process -Filter "Name LIKE 'bun%' OR Name LIKE 'node%'" | Where-Object { $_.CommandLine -like "*cre-listener.ts*" }
+if ($listenerProcs) {
+    $listenerProcs | ForEach-Object {
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        Write-Host "   Stopped Listener (PID: $($_.ProcessId))" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "   No Listener process found." -ForegroundColor DarkGray
+}
+
 # FORCE CLEANUP: Next.js dev lock can sometimes persist
 Write-Host "🧹 Cleaning up dev locks..." -ForegroundColor Cyan
 $lockPath = Join-Path $PSScriptRoot "aegis-web\.next\dev\lock"

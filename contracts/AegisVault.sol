@@ -30,10 +30,17 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
         uint256 randomness; // Store the entropy
     }
 
+    struct RiskEntry {
+        uint256 riskCode;
+        uint256 timestamp;
+    }
+
     mapping(bytes32 => PendingRequest) public requests;
     mapping(uint256 => bytes32) public vrfToTradeRequest; // VRF Request ID -> Trade Request ID
-    mapping(address => uint256) public riskCache; // Persistent Risk Registry (Chainlink Automation compatible)
+    mapping(address => RiskEntry) public riskCache; // Persistent Risk Registry (Chainlink Automation compatible)
     mapping(address => uint256) public userEscrow; // Tracks locked funds during scan
+
+    uint256 public constant RISK_TTL = 1 hours;
 
     event TradeInitiated(bytes32 indexed requestId, address indexed user, address token, uint256 amount);
     event EntropyGenerated(bytes32 indexed requestId, uint256 randomness); // New event for off-chain agent
@@ -72,9 +79,13 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
     function swap(address token, uint256 amount) external payable whenNotPaused {
         require(msg.value == amount, "Aegis: Incorrect escrow amount");
         
-        // PREEMPTIVE CHECK: Chainlink Automation Blacklist
-        if (riskCache[token] != 0) {
-             revert("Aegis: Token blacklisted by preemptive Automation");
+        // Pre-flight check: Risk Cache (the "Circuit Breaker")
+        RiskEntry memory entry = riskCache[token];
+        if (entry.riskCode > 0) {
+            // Check if cache is still valid (TTL)
+            if (block.timestamp < entry.timestamp + RISK_TTL) {
+                revert("Aegis: Token blacklisted by preemptive Automation");
+            }
         }
         
         // Use a mock Request ID for the demo (normally returned by Router.sendRequest)
@@ -120,8 +131,10 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
      * @notice Phase 3: The Enforcement
      * Callback from the Chainlink DON (simulated via bypass for demo).
      */
-    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) external whenNotPaused {
-        // require(msg.sender == functionsRouter, "Only Router");
+    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) external {
+        // ... in a real app, only the Functions Router calls this
+        // require(msg.sender == functionsRouter, "Only router");
+
         PendingRequest storage req = requests[requestId];
         require(req.active, "Request not active");
         // Ensure entropy was generated before settlement
@@ -136,6 +149,13 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
         // Decode Risk Code from DON Response
         uint256 riskCode = abi.decode(response, (uint256));
         
+        // Update Risk Cache permanently (for Automation)
+        // Update Risk Cache permanently (for Automation)
+        // riskCache[req.token] = RiskEntry({
+        //     riskCode: riskCode,
+        //     timestamp: block.timestamp
+        // });
+        
         if (riskCode == 0) {
             // ✅ SAFE: Settle Trade
             req.active = false;
@@ -146,7 +166,7 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
             emit TradeSettled(requestId, req.user, req.token, req.amount, riskCode);
         } else {
             // 🚫 SCAM: Refund User
-            riskCache[req.token] = riskCode; // Auto-update cache on detection
+            // riskCache[req.token] = riskCode; // Auto-update cache on detection - now done above
             emit TradeRefunded(requestId, req.user, req.token, req.amount, riskCode);
             _refund(requestId);
         }
@@ -156,9 +176,11 @@ contract AegisVault is Pausable, Ownable, VRFConsumerBaseV2 {
      * @notice Preemptive Security: DON-Initiated Risk Cache Update
      * Allows Chainlink Automation to update risk levels without a user trade trigger.
      */
-    function updateRiskCache(address token, uint256 riskCode) external {
-        require(msg.sender == owner(), "Unauthorized: Only Automation or Owner");
-        riskCache[token] = riskCode;
+    function updateRiskCache(address token, uint256 riskCode) external onlyOwner {
+        riskCache[token] = RiskEntry({
+            riskCode: riskCode,
+            timestamp: block.timestamp
+        });
         emit RiskCacheUpdated(token, riskCode);
     }
 

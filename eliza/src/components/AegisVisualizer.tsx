@@ -20,7 +20,7 @@ export default function AegisVisualizer({ status, scanData, verdict }: Props) {
                 transition={{ type: "spring", bounce: 0.5 }}
                 className="w-full max-w-md"
             >
-                <VerdictCard status={verdict} reason={scanData?.details?.reason} />
+                <VerdictCard status={verdict} reason={scanData?.reason} data={scanData} />
             </motion.div>
         );
     }
