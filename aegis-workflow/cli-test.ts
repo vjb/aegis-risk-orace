@@ -14,6 +14,7 @@ const SCENARIOS = [
         askingPrice: "1.00",
         description: "Official Circle USDC. Should return Risk Score 0 (Approved).",
         details: { totalEscrowValue: 4650, targetAmount: 4650 },
+        uiCommand: "Swap 1.5 ETH for 4650 USDC",
         expected: "APPROVE (Clear)"
     },
     {
@@ -23,14 +24,17 @@ const SCENARIOS = [
         askingPrice: "1.00",
         description: "A proven honeypot. Left Brain (Logic) should catch this immediately.",
         details: { totalEscrowValue: 100, targetAmount: 100 },
+        uiCommand: "Swap 0.032 ETH for 0x5a31705664a6d1dc79287c4613cbe30d8920153f",
         expected: "REJECT (Left Brain: Value Asymmetry)"
     },
     {
         name: "3. THE SPLIT-BRAIN (BRETT / Meme Branding)",
         address: "0x532f27101965dd16442E59d40670FaF5eBB142E4", // BRETT
         cgId: "brett",
-        askingPrice: "0.00003",
+        askingPrice: "0.10",
         description: "High-risk meme asset. AI models may disagree on risk, triggers 'Union of Fears'.",
+        details: { totalEscrowValue: 500, targetAmount: 5000 },
+        uiCommand: "Swap 0.16 ETH for 0x532f27101965dd16442E59d40670FaF5eBB142E4",
         expected: "REJECT (Split-Brain Consensus)"
     },
     {
@@ -39,14 +43,18 @@ const SCENARIOS = [
         cgId: "usd-coin",
         askingPrice: "1.00",
         description: "Contract logic might pass, but AI should flag semantic impersonation (Right Brain victory).",
+        details: { totalEscrowValue: 1000, targetAmount: 1000 },
+        uiCommand: "Swap 0.32 ETH for 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         expected: "REJECT (Right Brain: Impersonation)"
     },
     {
-        name: "5. THE HOLISTIC INVESTIGATOR (DEGEN L3 Bridge Audit)",
+        name: "5. THE HOLISTIC INVESTIGATOR (DEGEN L3 Audit)",
         address: "0x4ed4E28C584783f62c52515911550035B25A87C5", // DEGEN
         cgId: "degen-base",
-        askingPrice: "0.01",
+        askingPrice: "0.02",
         description: "Auditing development transparency. Checks for unverified proxies or suspicious metadata.",
+        details: { totalEscrowValue: 200, targetAmount: 10000 },
+        uiCommand: "Swap 0.065 ETH for 0x4ed4E28C584783f62c52515911550035B25A87C5",
         expected: "REJECT (Right Brain: Transparency/Code Audit)"
     },
     {
@@ -55,6 +63,8 @@ const SCENARIOS = [
         cgId: "bald",
         askingPrice: "0.01",
         description: "Infamous Base rug pull. AI should catch the lack of Renounced Ownership and suspicious code patterns.",
+        details: { totalEscrowValue: 50, targetAmount: 5000 },
+        uiCommand: "Swap 0.016 ETH for 0x27D2EB259661D09FF275d417515d532b63415733",
         expected: "REJECT (Forensic Ownership Audit)"
     },
     {
@@ -63,14 +73,18 @@ const SCENARIOS = [
         cgId: "grok",
         askingPrice: "1.00",
         description: "Impersonation of a famous brand (Grok). AI flags semantic lure.",
+        details: { totalEscrowValue: 100, targetAmount: 100 },
+        uiCommand: "Swap 0.032 ETH for 0x51096171Caa179770Bc2bB8ca8629eA78C2C51d4",
         expected: "REJECT (Right Brain: Phishing/Impersonation)"
     },
     {
         name: "8. THE ECOSYSTEM PILLAR (AERO)",
         address: "0x94018130D51403c9f1dE546b57922C05faE4491D",
         cgId: "aerodrome-finance",
-        askingPrice: "0.3147",
+        askingPrice: "1.50",
         description: "Official Aerodrome finance token. Trusted ecosystem pillar.",
+        details: { totalEscrowValue: 1500, targetAmount: 1000 },
+        uiCommand: "Swap 0.5 ETH for 1000 AERO",
         expected: "APPROVE (Clear)"
     }
 ];
@@ -85,7 +99,8 @@ async function runTests() {
 
     for (const scenario of SCENARIOS) {
         console.log(`\n▶️ [RUNNING] Scenario ${scenario.name}`);
-        console.log(`[TARGET]   ${scenario.address}`);
+        console.log(`[UI COMMAND] "${scenario.uiCommand}"`);
+        console.log(`[TARGET]     ${scenario.address}`);
 
         try {
             const result: any = await analyzeRisk({
@@ -122,6 +137,7 @@ async function runTests() {
             tableData.push({
                 "Scenario ID": scenario.name.split(".")[0].trim(),
                 "Asset Name": scenario.name.split(".")[1].trim().split(" (")[0],
+                "UI Command": `"${scenario.uiCommand}"`,
                 "Left Brain Flags": logicFlagNames || "CLEAN",
                 "Right Brain Flags": aiFlagNames || "CLEAN",
                 "Verdict": verdict,
