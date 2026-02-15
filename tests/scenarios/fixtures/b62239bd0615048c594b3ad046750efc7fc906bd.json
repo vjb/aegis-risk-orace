@@ -1,0 +1,9 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "{\n  \"flags\": [],\n  \"reasoning\": \"[GPT-4o] The asset 'Brett' appears to be a legitimate community-led meme token. The source code is standard and ownership is transparent. Low liquidity is common for this asset class. No malicious patterns detected.\"\n}"
+      }
+    }
+  ]
+}

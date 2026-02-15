@@ -1,0 +1,9 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "{\n  \"flags\": [32, 256],\n  \"reasoning\": \"[Llama-3] CRITICAL: Brand Impersonation Detected. This asset mimics the famous BRETT token but exhibits social engineering patterns in the metadata designed to lure Solana users. Risk of phishing scam (Flag 256) and Impersonation (Flag 32).\"\n}"
+      }
+    }
+  ]
+}

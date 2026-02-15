@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-D9cJYlvRiLctMJtP1sQF0dW36Ew6W",
+  "object": "chat.completion",
+  "created": 1771184604,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n    \"flags\": [1, 64],\n    \"reasoning\": \"The token has been flagged for low liquidity (LIQUIDITY_WARN), which poses a risk as it indicates that there may not be enough funds available for users to sell their tokens without significantly impacting the price. Additionally, the high 24-hour trading volume with a flat price change (0%) suggests potential wash trading (WASH_TRADING), indicating that the volume may be artificially inflated to mislead investors about the token's activity and demand.\"\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 949,
+    "completion_tokens": 107,
+    "total_tokens": 1056,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_bd4be55b21"
+}

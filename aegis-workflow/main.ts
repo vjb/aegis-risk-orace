@@ -80,7 +80,9 @@ const TRUSTED_TOKENS = new Set([
     "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
     "0xfde4C96251273064830555d01ecB9c5E3AC1761a", // USDT
     "0x4200000000000000000000000000000000000006", // WETH
-    "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // WBTC
+    "0x4200000000000000000000000000000000000006", // WETH
+    "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // WBTC (Mainnet)
+    "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", // WBTC (Base)
     "0x514910771AF9Ca656af840dff83E8264EcF986CA", // LINK
     "0x54251907338946759b07d61E30052a48bd4e81F4", // AVAX
     "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", // UNI
@@ -104,8 +106,8 @@ async function fetchContractSourceCode(contractAddress: string, basescanApiKey: 
         return "Error: API Key missing.";
     }
 
-    // USE OFFICIAL BASESCAN API (More reliable for Base Proxy Detection than Etherscan V2)
-    const url = `https://api.basescan.org/api?module=contract&action=getsourcecode&address=${contractAddress}&apikey=${basescanApiKey}`;
+    // USE OFFICIAL ETHERSCAN V2 API (Multichain endpoint)
+    const url = `https://api.etherscan.io/v2/api?chainid=8453&module=contract&action=getsourcecode&address=${contractAddress}&apikey=${basescanApiKey}`;
 
     try {
         const response = await fetch(url);
@@ -141,7 +143,6 @@ async function fetchContractSourceCode(contractAddress: string, basescanApiKey: 
                 return combinedCode;
             }
 
-            return sourceCode;
             return sourceCode;
         } else {
             // Rate limit or other non-fatal error
@@ -537,7 +538,7 @@ const callGroq = async (runtime: Runtime<Config>, httpClient: any, apiKey: strin
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.1-8b-instant",
+                model: "llama3-70b-8192",
                 messages: [{ role: "system", content: prompt }],
                 response_format: { type: "json_object" },
                 temperature: 0
@@ -550,7 +551,13 @@ const callGroq = async (runtime: Runtime<Config>, httpClient: any, apiKey: strin
             console.log("Groq Response:", raw);
             return JSON.parse(raw);
         } else {
-            console.error("Groq Error:", await response.text());
+            const errText = await response.text();
+            console.error("Groq Error:", errText);
+
+            // Fallback for Rate Limits
+            if (response.status === 429) {
+                return { flags: [], reasoning: "Groq Rate Limited (Skipped)" };
+            }
         }
     } catch (e) {
         console.error("Groq Fetch Error:", e);
@@ -559,8 +566,7 @@ const callGroq = async (runtime: Runtime<Config>, httpClient: any, apiKey: strin
 };
 
 // --- BRAIN HANDLER ---
-const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Promise<string> => {
-
+export const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Promise<string> => {
     runtime.log(`━━━━━━ 🧠  ${MAGENTA}AEGIS x elizaOS: SPLIT-BRAIN PROTOCOL${RESET} ━━━━━━`);
     runtime.log(`[CRE] ${CYAN}NODE:${RESET} ${donAccount.address.slice(0, 10)}... | Consensus: BFT Hybrid`);
     runtime.log(""); // Space for readability
@@ -613,12 +619,12 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     const contractCode = bsRes.status === 'fulfilled' ? (bsRes.value as string) : "Failed to fetch source code.";
 
     // Process CoinGecko Result
-    let marketPrice = 2500;
+    let marketPrice = 0;
     let volume24h = 10000000;
     let marketCap = 250000000;
     let priceChange24h = 0;
-    if (cgResSimple.status === 'fulfilled' && ok(cgResSimple.value)) {
-        const data = (json(cgResSimple.value) as any)[requestData.coingeckoId || 'ethereum'];
+    if (cgResSimple.status === 'fulfilled' && (cgResSimple.value as any).ok) {
+        const data = (cgResSimple.value as any).json()[requestData.coingeckoId || 'ethereum'];
         if (data && data.usd) {
             marketPrice = data.usd;
             volume24h = data.usd_24h_vol || volume24h;
@@ -632,8 +638,8 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     let tokenCategories: string[] = [];
     let githubLinks: string[] = [];
 
-    if (cgResRich.status === 'fulfilled' && ok(cgResRich.value)) {
-        const richData = json(cgResRich.value) as any;
+    if (cgResRich.status === 'fulfilled' && (cgResRich.value as any).ok) {
+        const richData = (cgResRich.value as any).json();
         tokenDescription = richData.description?.en ? cleanHtml(richData.description.en) : "";
         tokenCategories = richData.categories || [];
         githubLinks = richData.links?.repos_url?.github || [];
@@ -649,8 +655,14 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     let gpData: any = {};
     let securityNote = "";
 
-    if (gpRes.status === 'fulfilled' && ok(gpRes.value)) {
-        gpData = (json(gpRes.value) as any).result?.[requestData.tokenAddress.toLowerCase()] || {};
+    runtime.log(`[DEBUG] GP Res Status: ${gpRes.status}, OK: ${gpRes.status === 'fulfilled' ? (gpRes.value as any).ok : 'N/A'}`);
+    if (gpRes.status === 'fulfilled' && (gpRes.value as any).ok) {
+        const fullResult = (gpRes.value as any).json().result || {};
+        const addr = requestData.tokenAddress;
+        // Case-insensitive lookup
+        const matchKey = Object.keys(fullResult).find(k => k.toLowerCase() === addr.toLowerCase());
+        gpData = matchKey ? fullResult[matchKey] : (Object.values(fullResult)[0] || {});
+
         isHoneypot = gpData.is_honeypot === "1";
         ownerAddress = gpData.owner_address || ownerAddress;
         buyTax = gpData.buy_tax || "0";
@@ -658,6 +670,7 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
         hiddenOwner = gpData.hidden_owner === "1";
         cannotSellAll = gpData.cannot_sell_all === "1";
         securityNote = gpData.note || "";
+        runtime.log(`[DEBUG] GoPlus Match: ${matchKey || 'NONE'}, Honeypot: ${isHoneypot}, BuyTax: ${buyTax}`);
     }
 
     const askingPrice = Number(requestData.askingPrice || "0");
@@ -676,6 +689,12 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     if (Math.abs(deviation) > 50) {
         logicFlags |= RISK_FLAGS.VOLATILITY_WARN;
     }
+
+    if (isHoneypot || parseFloat(buyTax) > 0.1 || parseFloat(sellTax) > 0.1 || cannotSellAll) {
+        logicFlags |= RISK_FLAGS.HONEYPOT_FAIL;
+    }
+
+    runtime.log(`   ├─ Logic Evaluation: ${logicFlags > 0 ? YELLOW + "RISK DETECTED" : GREEN + "CLEAN"}${RESET} (Flags: ${logicFlags})`);
 
     // 3. RIGHT BRAIN: MULTI-MODEL AI CLUSTER
     console.log(`${CYAN}⚡ RIGHT BRAIN:${RESET} Engaging Multi-Model Semantic Cluster`);
@@ -750,21 +769,26 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     ${contractCode.slice(0, 15000)}
     ---
     
+    OFFICIAL CANONICAL REGISTRY (Base/8453):
+    - 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913: USDC (Official Circle)
+    - 0x4200000000000000000000000000000000000006: WETH (Official Wrapper)
+    - 0x514910771AF9Ca656af840dff83E8264EcF986CA: LINK (Chainlink)
+    
     FORENSIC PROCEDURES:
-    1. **Code Analysis**: Look for hidden mint functions, blacklists, or fee changers in the source code.
-    2. **Marketing vs. Reality Check**: Does the Token Description match the complexity of the Source Code? 
-    3. **Social Engineering**: Does the description use scam-adjacent terminology (e.g., "guaranteed pump", "to the moon")? 
-    4. **Development Transparency**: If this claims to be a utility token, is the lack of a GitHub link a red flag?
-    5. **Tax Analysis**: High taxes (>10%) combined with 'cannotSellAll' indicates a honeytrap.
-    3. **Ownership Structure**: If 'hiddenOwner' is true OR owner is not renounced, threat level increases.
-    4. **Impersonation**: Compare 'name' against known trusted assets. If name is "USDC" but address is distinctive, it is a lure.
-    5. **Wash Trading**: High 24h volume with flat price change (0%) or low liquidity ratio suggests artificial inflation.
+    1. **Code Analysis**: Look for hidden mint functions, blacklists, or fee changers. NOTE: Official proxy patterns (FiatTokenProxy) for known tokens like USDC are TRUSTED.
+    2. **Marketing vs. Reality Check**: Does the symbol/name claim to be a major token (e.g. USDC, PEPE) but has a different address than the Registry above? If so, flag 32 (IMPERSONATION).
+    3. **Social Engineering**: Check for "guaranteed pump" or "to the moon" in descriptions.
+    4. **Development Transparency**: Utility tokens without GitHub or verification are high risk.
+    5. **Tax Analysis**: High taxes (>10%) combined with 'cannotSellAll' indicates a honeytrap (Flag 16).
+    6. **Ownership Structure**: If 'hiddenOwner' is true OR owner is not renounced, threat level increases (Flag 8).
+    7. **Wash Trading**: High 24h volume with flat price change (0%) or low liquidity ratio suggests artificial inflation (Flag 64).
 
     DETERMINISTIC LOGIC ALERT:
     The following risks were ALREADY detected by the deterministic logic brain:
     ${Object.entries(RISK_FLAG_DESCRIPTIONS).filter(([flag]) => (logicFlags & Number(flag))).map(([_, desc]) => "- " + desc).join("\n") || "No deterministic flags triggered."}
 
-    IMPORTANT: If any 'DETERMINISTIC LOGIC ALERTS' are present, your reasoning MUST explain why those specific risks are dangerous for the user in this context.
+    IMPORTANT: If any 'DETERMINISTIC LOGIC ALERTS' are present, your reasoning MUST explain why those specific risks are dangerous for the user in this context. 
+    If an address is in the OFFICIAL CANONICAL REGISTRY, you should be extremely cautious about flagging it unless deterministic alerts exist.
 
     RISK BITMASK REFERENCE:
     - 1: LIQUIDITY_WARN (Low liquidity <$50k)

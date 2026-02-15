@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-D9ci5nV3yfcEIVKyPynvw00W1jUli",
+  "object": "chat.completion",
+  "created": 1771186125,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n    \"flags\": [1, 16],\n    \"reasoning\": \"The token has been flagged for low liquidity (LIQUIDITY_WARN) with a liquidity status of 'LOW_LIQUIDITY', indicating a risk of price manipulation and difficulty in executing trades. Additionally, it has been identified as a honeypot (HONEYPOT_FAIL), meaning users cannot sell their tokens after purchase, which poses a significant risk of financial loss for investors.\"\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1171,
+    "completion_tokens": 94,
+    "total_tokens": 1265,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_2d82c05f26"
+}

@@ -6,6 +6,8 @@ import { base } from "viem/chains";
 import dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
+import { brainHandler } from "../../../aegis-workflow/main.ts";
+import { createMockRuntime } from "../../../tests/scenarios/api-recorder";
 
 dotenv.config();
 
@@ -56,9 +58,21 @@ const REVERSE_TOKEN_MAP: Record<string, string> = {
     "avax": "0x54251907338946759b07d61E30052a48bd4e81F4",
     "weth": "0x4200000000000000000000000000000000000006",
     "link": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
-    "btc": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-    "fake_usdc": "0x1234567890123456789012345678901234567890", // Mock for Impersonation
-    "mock_honeypot": "0x5a31705664a6d1dc79287c4613cbe30d8920153f" // Mock for Honeypot
+    "btc": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    "wbtc": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", // Base WBTC
+    "fake_usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // Scenario 4: Fake USDC (AI Save)
+    "mock_honeypot": "0x5a31705664a6d1dc79287c4613cbe30d8920153f", // Mock for Honeypot
+    "brett": "0x532f27101965dd16442E59d40670FaF5eBB142E4" // Scenario 3: BRETT (Disagreement)
+};
+
+const COINGECKO_MAP: Record<string, string> = {
+    "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": "usd-coin",
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "usd-coin",
+    "0x4200000000000000000000000000000000000006": "ethereum",
+    "0x6982508145454Ce325dDbE47a25d4ec3d2311933": "pepe",
+    "0x5a31705664a6d1dc79287c4613cbe30d8920153f": "honeypot-token-demo",
+    "0x532f27101965dd16442E59d40670FaF5eBB142E4": "brett",
+    "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf": "wrapped-bitcoin"
 };
 
 export const executeSwapAction: Action = {
@@ -81,9 +95,10 @@ export const executeSwapAction: Action = {
         const swapTemplate = `
         Extract the trade details from the user's message. 
         Supported tokens: USDC, USDT, PEPE, AVAX, WETH, WBTC, LINK, UNI, FAKE_USDC, MOCK_HONEYPOT.
-        If the user says "native" or "eth", use WETH.
-        If the user says "dollars", use USDC.
-
+        If the user provides a raw address (starts with 0x), puts it in 'targetToken'.
+        NEVER put a raw address in 'sourceAmount' or 'targetAmount'. Amounts must be numbers.
+        If target amount is unspecified, default to "1".
+        
         User Message: "${message.content.text}"
 
         Return JSON only:
@@ -91,7 +106,7 @@ export const executeSwapAction: Action = {
             "sourceAmount": "string number of native/eth to escrow",
             "targetAmount": "string number of target token being bought",
             "sourceToken": "string symbol",
-            "targetToken": "string symbol",
+            "targetToken": "string symbol or 0x address",
             "reasoning": "brief explanation"
         }
         `;
@@ -127,6 +142,13 @@ export const executeSwapAction: Action = {
 
                     sourceAmountVal = extraction.sourceAmount || sourceAmountVal;
                     targetAmountVal = extraction.targetAmount || targetAmountVal;
+
+                    // 🛑 SANITY CHECK: If AI put an address in amount, fix it
+                    if (targetAmountVal.startsWith("0x")) {
+                        console.warn("⚠️ AI incorrectly put address in targetAmount. Defaulting to '1'.");
+                        targetAmountVal = "1";
+                    }
+
                     sourceTokenLabel = extraction.sourceToken || sourceTokenLabel;
                     targetTokenLabel = extraction.targetToken || targetTokenLabel;
                 } else {
@@ -137,6 +159,14 @@ export const executeSwapAction: Action = {
                         sourceAmountVal = regexMatch[1];
                         targetAmountVal = regexMatch[2];
                         targetTokenLabel = regexMatch[3];
+                    } else {
+                        // Regex fallback for "Swap ... for ... 0xAddr"
+                        const rawAddrMatch = text.match(/swap\s+([\d\.]+)\s+.+for\s+([\d\.]+)\s+(0x[a-fA-F0-9]{40})/i);
+                        if (rawAddrMatch) {
+                            sourceAmountVal = rawAddrMatch[1];
+                            targetAmountVal = rawAddrMatch[2];
+                            targetTokenLabel = rawAddrMatch[3];
+                        }
                     }
                 }
             } catch (e) {
@@ -161,22 +191,39 @@ export const executeSwapAction: Action = {
             "uniswap": "uni"
         };
 
-        const findAddress = (label: string) => {
+        const findAddress = (label: string): { address: string, symbol: string } | null => {
             const cleanLabel = label.toLowerCase();
+            // 🛑 NEW: Support raw addresses directly
+            if (cleanLabel.startsWith("0x") && cleanLabel.length === 42) {
+                try {
+                    return { address: getAddress(cleanLabel), symbol: "UNKNOWN_TOKEN" };
+                } catch {
+                    return null;
+                }
+            }
             const actualKey = ALIASES[cleanLabel] || cleanLabel;
 
             // O(1) Lookup from REVERSE_TOKEN_MAP
             if (REVERSE_TOKEN_MAP[actualKey]) {
-                return getAddress(REVERSE_TOKEN_MAP[actualKey]);
+                return { address: getAddress(REVERSE_TOKEN_MAP[actualKey]), symbol: actualKey.toUpperCase() };
             }
             return null;
         };
 
         // Resolve Target (Audit Subject)
         const resolvedTarget = findAddress(targetTokenLabel);
+        let targetSymbol = targetTokenLabel.toUpperCase(); // Default
+
         if (resolvedTarget) {
-            targetAddress = resolvedTarget;
-            targetTokenLabel = targetTokenLabel.toUpperCase();
+            targetAddress = resolvedTarget.address;
+            targetSymbol = resolvedTarget.symbol;
+
+            // If it was a raw address, try to reverse lookup the name again for display
+            if (targetSymbol === "UNKNOWN_TOKEN") {
+                const knownName = Object.keys(REVERSE_TOKEN_MAP).find(key => REVERSE_TOKEN_MAP[key].toLowerCase() === targetAddress.toLowerCase());
+                if (knownName) targetSymbol = knownName.toUpperCase();
+                else targetSymbol = `${targetAddress.slice(0, 6)}...${targetAddress.slice(-4)}`;
+            }
         }
 
         console.log(`🎯 Intent Decoded: Escrowing ${sourceAmountVal} core to buy ${targetAmountVal} ${targetTokenLabel} (${targetAddress})`);
@@ -207,57 +254,49 @@ export const executeSwapAction: Action = {
             // We check the *Address* to be robust against LLM label variations
             const MOCK_FAKE_USDC_ADDR = REVERSE_TOKEN_MAP["fake_usdc"];
             const MOCK_HONEYPOT_ADDR = REVERSE_TOKEN_MAP["mock_honeypot"];
+            const MOCK_BRETT_ADDR = REVERSE_TOKEN_MAP["brett"];
 
-            if (targetAddress === MOCK_FAKE_USDC_ADDR || targetAddress === MOCK_HONEYPOT_ADDR) {
-                console.log("⚠️ Mock Token Verification: Generating Synthetic Report");
+            if (targetAddress === MOCK_FAKE_USDC_ADDR || targetAddress === MOCK_HONEYPOT_ADDR || targetAddress === MOCK_BRETT_ADDR) {
+                console.log("⚠️ Mock Token Verification: Generating Real-Logic Synthetic Report");
 
                 const mockReqId = `0xMOCK_${Date.now()}`;
-                const mockHash = `0xMOCK_HASH_${Date.now()}`;
-                // If address matches FAKE_USDC, it's Impersonation. Else it's Honeypot.
-                const isImpersonation = (targetAddress === MOCK_FAKE_USDC_ADDR);
 
-                // Generate Synthetic Report (MATCHING BACKEND SCHEMA)
+                // Invoke real brainHandler for the mock address
+                const mockRuntime = createMockRuntime({
+                    openaiApiKey: process.env.OPENAI_API_KEY,
+                    groqKey: process.env.GROQ_API_KEY,
+                    coingeckoApiKey: process.env.COINGECKO_API_KEY,
+                    basescanApiKey: process.env.BASESCAN_API_KEY,
+                    telemetryUrl: `http://localhost:3011/telemetry`
+                });
 
-                const mockReport = {
-                    requestId: mockReqId,
-                    status: "completed",
-                    riskCode: isImpersonation ? "32" : "16", // 32=Impersonation, 16=Honeypot
-                    logicFlags: isImpersonation ? 0 : 16,
-                    aiFlags: isImpersonation ? 32 : 0,
-                    reasoning: isImpersonation ? "[GPT-4o: 32] IMPERSONATION DETECTED. Name 'USD Coin' heavily resembles trusted asset." : "[LOGIC] HONEYPOT DETECTED. Creation code verification failed.",
-                    timestamp: Math.floor(Date.now() / 1000).toString(),
-                    details: {
-                        modelResults: [
-                            {
-                                name: "GPT-4o",
-                                status: "Success",
-                                flags: isImpersonation ? [32] : [],
-                                reasoning: isImpersonation ? "Token name 'USD Coin' is suspicious for this address." : "No semantic anomalies."
-                            },
-                            {
-                                name: "Grok",
-                                status: "Success",
-                                flags: isImpersonation ? [32] : [],
-                                reasoning: isImpersonation ? "High confidence impersonation attack." : "Honeypot logic confirmed."
-                            }
-                        ]
-                    }
+                const auditPayload = {
+                    input: JSON.stringify({
+                        tokenAddress: targetAddress,
+                        chainId: "8453",
+                        vrfSalt: mockReqId,
+                        askingPrice: "0.1",
+                        coingeckoId: COINGECKO_MAP[targetAddress] || "honeypot-token-demo",
+                        details: {
+                            targetAmount: Number(targetAmountVal),
+                            totalEscrowValue: Number(sourceAmountVal) * 2500 // Simulating ETH price
+                        }
+                    })
                 };
 
-                // Write report to public/reports
-                const reportDir = path.resolve(process.cwd(), "public", "reports");
-                if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir, { recursive: true });
-                fs.writeFileSync(path.join(reportDir, `${mockReqId}.json`), JSON.stringify(mockReport, null, 2));
+                // The brainHandler will send the telemetry to /telemetry, which server.ts will save
+                // 🚀 Fire-and-forget to avoid UI hang
+                brainHandler(mockRuntime as any, auditPayload as any).catch(console.error);
 
                 if (callback) {
                     callback({
-                        text: `⏳ [AEGIS_PENDING] Transaction Escrowed (${isImpersonation ? 'Impersonation Test' : 'Honeypot Test'}). Audit Active.\n\nRequest ID: ${mockReqId}\nHash: ${mockHash}`,
+                        text: `⏳ [AEGIS_PENDING] Transaction Escrowed (Demo Scenario). Audit Active.\n\nRequest ID: ${mockReqId}`,
                         content: {
-                            hash: mockHash,
+                            hash: `0xDEMO_HASH_${Date.now()}`,
                             requestId: mockReqId,
                             status: "PENDING_AUDIT",
                             amount: targetAmountVal,
-                            token: targetTokenLabel,
+                            token: targetSymbol,
                             targetAddress: targetAddress
                         }
                     });

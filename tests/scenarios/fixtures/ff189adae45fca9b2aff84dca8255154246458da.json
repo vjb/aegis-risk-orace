@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-D9cQbw5FsnVsuaCVyKNVbcjHXj3Eu",
+  "object": "chat.completion",
+  "created": 1771185041,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n    \"flags\": [],\n    \"reasoning\": \"No risks were detected based on the provided telemetry and source code. The token is listed in the Official Canonical Registry, has a renounced ownership, and does not exhibit any suspicious patterns in the code or trading activity. Additionally, there are no indicators of impersonation, social engineering, or wash trading.\"\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5047,
+    "completion_tokens": 74,
+    "total_tokens": 5121,
+    "prompt_tokens_details": {
+      "cached_tokens": 4224,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_373a14eb6f"
+}

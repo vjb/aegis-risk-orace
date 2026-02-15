@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-a94b00a9-4e37-46c5-ab39-cc7d073d3641",
+  "object": "chat.completion",
+  "created": 1771185041,
+  "model": "llama-3.1-8b-instant",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"flags\": [0],\n   \"reasoning\": \"No deterministic flags triggered. However, the contract's metadata lacks transparency, and the 'cannotSellAll' flag is set to false, which could indicate a potential honeypot risk. Additionally, the 'hiddenOwner' flag is set to false, which could indicate a potential ownership risk. Further investigation is required to confirm these suspicions.\"\n}"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.036447598,
+    "prompt_tokens": 5109,
+    "prompt_time": 0.365116533,
+    "completion_tokens": 82,
+    "completion_time": 0.128915101,
+    "total_tokens": 5191,
+    "total_time": 0.494031634
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_e2c608b1d6",
+  "x_groq": {
+    "id": "req_01khhdnvj5ebjtyg5ajv2jmky6",
+    "seed": 910374179
+  },
+  "service_tier": "on_demand"
+}

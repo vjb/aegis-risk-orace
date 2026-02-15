@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-643f2c2b-bb97-45d3-af6c-a773c4994566",
+  "object": "chat.completion",
+  "created": 1771185049,
+  "model": "llama-3.1-8b-instant",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"flags\": [1, 64],\n   \"reasoning\": \"Detected LIQUIDITY_WARN (Low liquidity depth detected) and WASH_TRADING (Artificial volume) due to high 24h volume with flat price change (0%). The contract source code is also unverified, increasing the risk. Additionally, the owner is not renounced, which is a risk factor (OWNERSHIP_RISK).\"\n}"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.036527949,
+    "prompt_tokens": 1140,
+    "prompt_time": 0.103189431,
+    "completion_tokens": 90,
+    "completion_time": 0.131745293,
+    "total_tokens": 1230,
+    "total_time": 0.234934724
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_020e283281",
+  "x_groq": {
+    "id": "req_01khhdp3bvec5t4nwr5h0pgt48",
+    "seed": 477892666
+  },
+  "service_tier": "on_demand"
+}

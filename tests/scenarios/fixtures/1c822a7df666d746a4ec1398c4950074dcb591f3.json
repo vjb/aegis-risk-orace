@@ -1,0 +1,9 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "{\n  \"flags\": [32, 256],\n  \"reasoning\": \"[Llama-3] THREAT DETECTED: Social Engineering & Phishing. The metadata description is a direct copy of the official USDC documentation, but the deployment origin is unverified. This is a semantic impersonation trap (Flag 32). High risk of capital loss.\"\n}"
+      }
+    }
+  ]
+}

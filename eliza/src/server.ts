@@ -61,6 +61,9 @@ const server = serve({
             "Content-Type": "application/json"
         };
 
+        // 🔍 DEBUG WATERMARK
+        console.log(`[DEBUG] 📡 AEGIS VERSION: 2.0.0-FIX | PATH: ${url.pathname} | METHOD: ${req.method}`);
+
         if (req.method === "OPTIONS") return new Response(null, { headers });
 
         if (url.pathname === "/message" && req.method === "POST") {
@@ -197,7 +200,9 @@ const server = serve({
 
         if (url.pathname === "/audit-status" && req.method === "POST") {
             try {
-                const { requestId } = await req.json();
+                const body = await req.json();
+                const requestId = body.requestId ? String(body.requestId).trim() : "";
+
                 if (!requestId) return new Response(JSON.stringify({ error: "No requestId" }), { status: 400, headers });
 
                 const { createPublicClient, http } = await import("viem");
@@ -214,6 +219,35 @@ const server = serve({
                 });
 
                 // Check for TradeSettled or TradeRefunded events for this requestId
+                // Helper to read report file
+                const readReport = (reqId: string) => {
+                    try {
+                        const reportPath = `public/reports/${reqId}.json`;
+                        const file = Bun.file(reportPath);
+                        if (file.size > 0) {
+                            return file.json();
+                        }
+                    } catch (e) {
+                        console.error(`Failed to read report for ${reqId}:`, e);
+                    }
+                    return null;
+                };
+
+                // 🛑 MOCK HANDLER (Must be before blockchain calls to avoid failures with invalid IDs)
+                if (requestId.startsWith("0xMOCK") || requestId.includes("MOCK")) {
+                    console.log(`[MOCK] Serving Mock Report for ${requestId}`);
+                    const report = await readReport(requestId);
+                    if (report) {
+                        return new Response(JSON.stringify({
+                            status: "REJECTED", // Mock is always rejected in this demo flow for now
+                            riskCode: Number(report.riskCode),
+                            report
+                        }), { headers });
+                    }
+                    // If report not found yet, return PENDING to keep polling
+                    return new Response(JSON.stringify({ status: "PENDING" }), { headers });
+                }
+
                 const [settledLogs, refundedLogs] = await Promise.all([
                     publicClient.getLogs({
                         address: AEGIS_VAULT_ADDRESS,
@@ -250,30 +284,9 @@ const server = serve({
                 ]);
 
                 // Helper to read report file
-                const readReport = (reqId: string) => {
-                    try {
-                        const reportPath = `public/reports/${reqId}.json`;
-                        const file = Bun.file(reportPath);
-                        if (file.size > 0) {
-                            return file.json();
-                        }
-                    } catch (e) {
-                        console.error(`Failed to read report for ${reqId}:`, e);
-                    }
-                    return null;
-                };
 
-                if (requestId.startsWith("0xMOCK")) {
-                    console.log(`[MOCK] Serving Mock Report for ${requestId}`);
-                    const report = await readReport(requestId);
-                    if (report) {
-                        return new Response(JSON.stringify({
-                            status: "REJECTED", // Mock is always rejected in this demo flow for now
-                            riskCode: Number(report.riskCode),
-                            report
-                        }), { headers });
-                    }
-                }
+
+
 
                 if (settledLogs.length > 0) {
                     const report = await readReport(requestId);

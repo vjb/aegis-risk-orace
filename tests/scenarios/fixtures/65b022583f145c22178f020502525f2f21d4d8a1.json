@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-D9cNNOrPQ9brfD6aAmjAAWTIHZEz3",
+  "object": "chat.completion",
+  "created": 1771184841,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n    \"flags\": [],\n    \"reasoning\": \"No deterministic flags were triggered, indicating that there are no immediate risks detected in the token's liquidity, ownership structure, or source code. The token has a renounced ownership, no hidden mint functions, and a trusted liquidity status. However, the lack of a description and GitHub links may raise concerns about transparency and development credibility, but these do not trigger specific risk flags.\"\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 4906,
+    "completion_tokens": 88,
+    "total_tokens": 4994,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_373a14eb6f"
+}

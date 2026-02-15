@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-57f4f7ab-5f4b-4204-a96b-9b23c42f4c6e",
+  "object": "chat.completion",
+  "created": 1771186125,
+  "model": "llama-3.1-8b-instant",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"flags\": [16, 8],\n   \"reasoning\": \"Detected Honeypot Fail due to high taxes (15%) combined with 'cannotSellAll' and Ownership Risk due to 'hiddenOwner' being true and the owner not being renounced.\"\n}"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.036654798,
+    "prompt_tokens": 1201,
+    "prompt_time": 0.075301468,
+    "completion_tokens": 58,
+    "completion_time": 0.101503062,
+    "total_tokens": 1259,
+    "total_time": 0.17680453
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_e2c608b1d6",
+  "x_groq": {
+    "id": "req_01khhepy2gea788y5yqezx1kxe",
+    "seed": 1204205023
+  },
+  "service_tier": "on_demand"
+}

@@ -134,6 +134,8 @@ export default function Chat({ onIntent }: ChatProps) {
     const [auditStartedInMessages, setAuditStartedInMessages] = useState<Record<string, boolean>>({});
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
+    const [targetSymbol, setTargetSymbol] = useState<string>("ETH"); // Default to ETH
+
     // Fix hydration error: Initialize logs only on client
     useEffect(() => {
         setMounted(true);
@@ -142,6 +144,24 @@ export default function Chat({ onIntent }: ChatProps) {
             { id: '2', timestamp: new Date().toLocaleTimeString(), level: 'INFO', message: 'VAULT ENFORCEMENT CORE: ACTIVE' },
         ]);
     }, []);
+
+    const TOKEN_METRICS: Record<string, { price: string, change: string, liquidity: string, volume: string }> = {
+        "ETH": { price: "$2,501.20", change: "+2.3%", liquidity: "$8.2M", volume: "$142K" },
+        "WETH": { price: "$2,501.20", change: "+2.3%", liquidity: "$8.2M", volume: "$142K" },
+        "BTC": { price: "$64,230.50", change: "+1.1%", liquidity: "$42.5M", volume: "$850K" },
+        "WBTC": { price: "$64,230.50", change: "+1.1%", liquidity: "$42.5M", volume: "$850K" },
+        "BRETT": { price: "$0.072", change: "+15.4%", liquidity: "$1.2M", volume: "$320K" },
+        "PEPE": { price: "$0.0000084", change: "-5.2%", liquidity: "$4.1M", volume: "$1.1M" },
+        "USDC": { price: "$1.00", change: "0.0%", liquidity: "$125M", volume: "$5.4M" },
+        "FAKE_USDC": { price: "$0.0001", change: "-99.9%", liquidity: "$12.00", volume: "$0.00" },
+        "HONEYPOT": { price: "$420.69", change: "+100%", liquidity: "$1.00", volume: "$0.00" },
+        "UNKNOWN": { price: "---", change: "---", liquidity: "---", volume: "---" }
+    };
+
+    const getMetrics = (sym: string) => {
+        const key = Object.keys(TOKEN_METRICS).find(k => k === sym) || "UNKNOWN";
+        return TOKEN_METRICS[key];
+    };
 
     const addLog = (level: LogEntry['level'], message: string) => {
         setLogs(prev => [...prev.slice(-49), {
@@ -301,6 +321,11 @@ export default function Chat({ onIntent }: ChatProps) {
                 setScanningStatus('scanning');
                 setActiveSteps([true, true, false]);
 
+                // Set target symbol from backend if available, or default to ETH
+                if (data.content?.token) {
+                    setTargetSymbol(data.content.token);
+                }
+
                 // Allow a small delay for dramatic effect/oracle processing
                 await new Promise(resolve => setTimeout(resolve, 800));
             }
@@ -316,7 +341,7 @@ export default function Chat({ onIntent }: ChatProps) {
             }
 
             const messageId = Date.now().toString();
-            if (isRiskQuery && data.text.includes('PENDING')) {
+            if (isRiskQuery && data?.text?.includes('PENDING')) {
                 setAuditStartedInMessages(prev => ({ ...prev, [messageId]: true }));
             }
 
@@ -499,10 +524,28 @@ export default function Chat({ onIntent }: ChatProps) {
                                     ref={inputRef}
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder="State your intent... (e.g. 'Swap 1 ETH for PEPE')"
+                                    placeholder={!isLoading ? "State your intent... (e.g. 'Swap 1 ETH for PEPE')" : "Processing..."}
                                     className="flex-1 bg-zinc-900/50 border-white/10 text-zinc-200 placeholder:text-zinc-500 text-sm focus:border-cyan-500/50 transition h-11"
                                     disabled={isLoading}
                                 />
+                                {/* QUICK TOKEN PICKER */}
+                                <select
+                                    className="h-11 bg-zinc-900/50 border border-white/10 text-zinc-400 text-xs rounded-lg px-2 focus:border-cyan-500/50 outline-none cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            setInput(`Swap 0.1 ETH for ${e.target.value}`);
+                                            inputRef.current?.focus();
+                                        }
+                                    }}
+                                    value=""
+                                >
+                                    <option value="" disabled>QUICK FILL</option>
+                                    <option value="BRETT">BRETT (Risky)</option>
+                                    <option value="0x532f27101965dd16442E59d40670FaF5eBB142E4">BRETT (Raw Addr)</option>
+                                    <option value="PEPE">PEPE (Safe)</option>
+                                    <option value="FAKE_USDC">Fake USDC</option>
+                                    <option value="WBTC">WBTC</option>
+                                </select>
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={!input.trim() || isLoading}
@@ -658,15 +701,15 @@ export default function Chat({ onIntent }: ChatProps) {
                                                         <div className="grid grid-cols-3 gap-2 text-[9px]">
                                                             <div>
                                                                 <div className="text-zinc-500">Price (24h)</div>
-                                                                <div className="text-white font-mono">{activeSteps[0] ? "$2,501.20" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />} {activeSteps[0] && <span className="text-green-400">+2.3%</span>}</div>
+                                                                <div className="text-white font-mono">{activeSteps[0] ? getMetrics(targetSymbol).price : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />} {activeSteps[0] && <span className={getMetrics(targetSymbol).change.startsWith("-") ? "text-red-400" : "text-green-400"}>{getMetrics(targetSymbol).change}</span>}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="text-zinc-500">Liquidity</div>
-                                                                <div className="text-white font-mono">{activeSteps[0] ? "$8.2M" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />}</div>
+                                                                <div className="text-white font-mono">{activeSteps[0] ? getMetrics(targetSymbol).liquidity : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />}</div>
                                                             </div>
                                                             <div>
                                                                 <div className="text-zinc-500">Volume</div>
-                                                                <div className="text-white font-mono">{activeSteps[0] ? "$142K" : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />}</div>
+                                                                <div className="text-white font-mono">{activeSteps[0] ? getMetrics(targetSymbol).volume : <span className="animate-pulse bg-zinc-800 rounded h-3 w-12 inline-block" />}</div>
                                                             </div>
                                                         </div>
                                                     </div>

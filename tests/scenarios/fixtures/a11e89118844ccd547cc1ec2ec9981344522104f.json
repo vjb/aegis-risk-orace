@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-158ae868-09a7-4f37-a9f2-b888c2321f35",
+  "object": "chat.completion",
+  "created": 1771184841,
+  "model": "llama-3.1-8b-instant",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"flags\": [4, 8, 32],\n   \"reasoning\": \"Detected suspicious code patterns, ownership risk due to non-renounced owner, and impersonation risk due to fake brand/name. The source code contains a honeypot-like mechanism with high taxes (>10%) and 'cannotSellAll' flag, which is a common trait of honeypots. Additionally, the owner is not renounced, and the token name is 'USDC' but the address is distinctive, indicating a potential impersonation risk. Furthermore, the lack of a GitHub link and the presence of a honeypot-like mechanism suggest a lack of transparency and potential for malicious activity.\"\n}"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.039353222,
+    "prompt_tokens": 4967,
+    "prompt_time": 0.359140308,
+    "completion_tokens": 140,
+    "completion_time": 0.242244442,
+    "total_tokens": 5107,
+    "total_time": 0.60138475
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_66c49b4aa6",
+  "x_groq": {
+    "id": "req_01khhdfrhxewjaywk5d783d9nf",
+    "seed": 2090239191
+  },
+  "service_tier": "on_demand"
+}

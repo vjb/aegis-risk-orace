@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-9724b0fe-466b-4499-a896-2116530d880b",
+  "object": "chat.completion",
+  "created": 1771184603,
+  "model": "llama-3.1-8b-instant",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"flags\": [1, 64],\n   \"reasoning\": \"Detected LIQUIDITY_WARN due to low liquidity depth, and WASH_TRADING due to high 24h volume with flat price change. The low liquidity ratio of 0.04 and low price of $0 indicate a potential for price manipulation. Additionally, the high 24h volume of 10,000,000 with a flat price change of 0% suggests artificial inflation, which is a characteristic of wash trading.\"\n}"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.005920167,
+    "prompt_tokens": 977,
+    "prompt_time": 0.061703431,
+    "completion_tokens": 106,
+    "completion_time": 0.17594611,
+    "total_tokens": 1083,
+    "total_time": 0.237649541
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_e2c608b1d6",
+  "x_groq": {
+    "id": "req_01khhd8gcgecavx2646pwdcv6q",
+    "seed": 671583825
+  },
+  "service_tier": "on_demand"
+}

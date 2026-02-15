@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-D9cPmFK35sKNTZjvyBXVV2Tqol4lS",
+  "object": "chat.completion",
+  "created": 1771184990,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n    \"flags\": [1, 4],\n    \"reasoning\": \"The token has been flagged for low liquidity (LIQUIDITY_WARN), which poses a risk as it indicates that there may not be enough funds available for users to buy or sell the token without significantly affecting its price. Additionally, the source code is not verified (SUSPICIOUS_CODE), raising concerns about potential hidden malicious functions or vulnerabilities that could be exploited, making it a high-risk investment.\"\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 970,
+    "completion_tokens": 98,
+    "total_tokens": 1068,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_2d82c05f26"
+}

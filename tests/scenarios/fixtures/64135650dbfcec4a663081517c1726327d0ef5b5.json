@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-ecb63b8e-41fc-45d2-a3b7-2c6d4aede959",
+  "object": "chat.completion",
+  "created": 1771184553,
+  "model": "llama-3.1-8b-instant",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"flags\": [16, 64],\n   \"reasoning\": \"Detected Ownership Risk due to 'owner' being 'RENOUNCED' but 'hiddenOwner' is 'false'. Additionally, Wash Trading risk is present due to high 24h volume with flat price change (0%).\"\n}"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.036413228,
+    "prompt_tokens": 946,
+    "prompt_time": 0.062275656,
+    "completion_tokens": 64,
+    "completion_time": 0.096286031,
+    "total_tokens": 1010,
+    "total_time": 0.158561687
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_8f8420ecd7",
+  "x_groq": {
+    "id": "req_01khhd6zs7fehr1j2nnqmv526z",
+    "seed": 617169988
+  },
+  "service_tier": "on_demand"
+}

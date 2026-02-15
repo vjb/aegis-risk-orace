@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-6f6a9122-0aa4-4101-8d22-24da05f537fd",
+  "object": "chat.completion",
+  "created": 1771184989,
+  "model": "llama-3.1-8b-instant",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"flags\": [1, 64],\n   \"reasoning\": \"Detected LIQUIDITY_WARN due to low liquidity depth and WASH_TRADING due to high 24h volume with flat price change. The lack of a GitHub link and high taxes (>10%) combined with 'cannotSellAll' also indicate a potential honeytrap. Furthermore, the 'hiddenOwner' is true, increasing the threat level.\"\n}"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.039077631,
+    "prompt_tokens": 998,
+    "prompt_time": 0.096956167,
+    "completion_tokens": 88,
+    "completion_time": 0.130952862,
+    "total_tokens": 1086,
+    "total_time": 0.227909029
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_66c49b4aa6",
+  "x_groq": {
+    "id": "req_01khhdm96wf23t4fe9410n3a76",
+    "seed": 1039200682
+  },
+  "service_tier": "on_demand"
+}

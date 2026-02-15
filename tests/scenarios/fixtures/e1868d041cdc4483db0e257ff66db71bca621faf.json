@@ -1,0 +1,9 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "{\n  \"flags\": [32, 4],\n  \"reasoning\": \"[GPT-4o] CRITICAL: Impersonation Attack. This asset claims to be 'USDC' and uses Circle's branding in metadata, but the contract address does not match the official Circle registry on Base. Source code is unverified and exhibits suspicious proxy patterns. REJECT TO PROTECT USER.\"\n}"
+      }
+    }
+  ]
+}
