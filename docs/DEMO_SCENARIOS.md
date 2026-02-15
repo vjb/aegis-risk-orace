@@ -45,9 +45,10 @@ These tokens are mapped to their real Coingecko market data.
 
 ### 4. 🍯 The Honeypot (Logic Gate)
 *   **Prompt**: `"swap 100 usdc for 0x5a31705664a6d1dc79287c4613cbe30d8920153f"`
-*   **Note**: This is a mock address we will use to force a Honeypot trigger.
+*   **Target**: `MOCK_HONEYPOT` Address.
 *   **UI Result**: **TRANSACTION REJECTED** (Red).
-*   **Visual Check**: The "Security (GoPlus)" section should be flashing RED with "HONEYPOT DETECTED".
+*   **Reason**: `Honeypot Trap Detected (Flag 16)`.
+*   **Visual Check**: The "Security (GoPlus)" section shows RED flags.
 
 ### 5. 🧠 Split-Brain Consensus (The "Safety Feature")
 *   **Prompt**: `"swap 50000 pepe for 0.05 weth"`
@@ -59,9 +60,10 @@ These tokens are mapped to their real Coingecko market data.
 *   **Visual Check**: In "AI Consensus", verify one model is Green and one is Red.
 *   **Target Address (PEPE)**: `0x6982508145454Ce325dDbE47a25d4ec3d2311933` (Mainnet PEPE)
 
-### 6. 🎭 Impersonation Attack (Mock)
+### 6. 🎭 Impersonation Attack (Forensic AI)
 *   **Prompt**: `"swap 100 fake_usdc for 1 eth"`
 *   **Target**: `0x1234567890123456789012345678901234567890` (Mock "Fake USDC")
-*   **Result**: **TRANSACTION REJECTED**.
-*   **Why**: Name is "USDC" but address is NOT the official USDC contract.
+*   **Result**: **TRANSACTION REJECTED** (Risk 32).
+*   **Why**: Forensic Analysis detects that while name is "USDC", the address does not match the known asset.
+*   **Reasoning**: "Impersonation Risk: Name resembles 'USDC' but address is not trusted."
 *   **Visual Check**: "Impersonation Risk" flag is active.

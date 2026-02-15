@@ -64,11 +64,11 @@ Aegis introduces a **Split-Brain Risk Oracle** to solve the "Black Box" problem 
 *   **Verdict**: 100% Deterministic.
 
 ### ⚡ Right Brain: Multi-Model AI Cluster
-*   **Role**: Scans for semantic, fuzzy risks (e.g. "This contract looks like a rug pull based on variable naming").
+*   **Role**: **Forensic Analyst** (Unit 731). Scans for semantic, fuzzy risks and deep correlations (e.g., "High Volume + Low Liquidity = Wash Trading").
 *   **The Cluster**:
-    *   **OpenAI** (GPT-4o)
-
-    *   **Groq** (Llama 3)
+    *   **OpenAI** (GPT-4o): Reasoning over "Why" a token is unsafe.
+    *   **Groq** (Llama 3): Fast, adversarial review.
+*   **Telemetry**: Analyzes **Buy/Sell Taxes**, **Hidden Ownership**, **24h Price Change**, and **Liquidity Depth** from GoPlus & CoinGecko.
 *   **Verdict**: **Union of Fears**. If *any* model flags a risk, the network flags a risk.
 
 ### ⚖️ The Consensus: Bitwise Union
@@ -101,7 +101,7 @@ User calls `swap()`. The Vault **locks keys in escrow** and dispatches a job to 
 ### Phase 2: The Audit (Chainlink CRE)
 The DON executes the **Split-Brain** workflow.
 - **Left Brain**: Hard math (Liquidity, Volatility).
-- **Right Brain**: Queries OpenAI and Groq simultaneously.
+- **Right Brain**: Queries OpenAI and Groq simultaneously with **enriched forensic telemetry**.
 
 ### Phase 3: The Verdict (Consensus)
 Nodes must reach consensus on the **Risk Bitmask**.
@@ -127,11 +127,11 @@ sequenceDiagram
         Vault->>CRE: emit AuditRequested(token, amount)
         
         par Left Brain: Deterministic Logic
-            CRE->>ExtData: Query Liquidity + Security Metadata
-            ExtData-->>CRE: Price, Volume, Honeypot Status
+            CRE->>ExtData: Query Taxes, Ownership, Liquidity
+            ExtData-->>CRE: 24h Vol, Price Change, HoneyPot
         and Right Brain: AI Cluster (Union of Fears)
-            CRE->>AI: Analyze Metadata + Patterns
-            AI-->>CRE: Semantic Risk Flags
+            CRE->>AI: Analyze Enriched Telemetry
+            AI-->>CRE: Forensic Analysis & Risk Flags
         end
     end
     

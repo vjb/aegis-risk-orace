@@ -24,7 +24,7 @@ The Mission Control follows a three-pane "SecOps" view:
 
 1. **Left Pane (The Dispatcher)**: "Soft" intent parsing. JARVIS provides pre-flight warnings but has no custody.
 2. **Center Pane (The Vault Lock)**: The **Sovereign Executor**. It shows the movement of funds from `LOCKING` -> `AUDITING` -> `SETTLED`.
-3. **Right Pane (The Matrix Logs)**: A rolling terminal view of the Chainlink DON's backend telemetry, showing raw node consensus.
+3. **Right Pane (The Matrix Logs)**: **Live Forensic Reasoning**. Displays the raw "thought process" of the AI Cluster as it analyzes enriched telemetry (Taxes, Ownership) in real-time.
 
 ### 🔒 Visualizing the "Triple Lock"
 The loading states mirror the protocol's security phases:

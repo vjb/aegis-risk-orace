@@ -11,10 +11,11 @@ The Aegis AI Agent, built on **ElizaOS**, is the **Dispatcher** of the Sovereign
 The Agent is no longer just a "security tool"—it is the specialized compliance architect that prepares the groundwork for the Vault.
 
 ### Key Responsibilities:
+### Key Responsibilities:
 1. **Interpret Intent**: "User wants to swap 1.0 ETH for XYZ token."
-2. **Pre-Flight Soft Scan**: Performed off-chain to provide immediate warnings. *"Warning: That token has low liquidity. Are you sure you want to proceed?"*
+2. **Forensic Analysis**: Operates as **Unit 731**, a paranoid forensic analyst. Scans enriched telemetry (Taxes, Ownership, Liquidity) for deep fraud patterns.
 3. **Construct Transaction**: Prepares the `swap()` call for the `AegisVault.sol`. *"Initializing Secure Vault Transfer..."*
-4. **Explain the Verdict**: Translates the Vault's bitmask into human reasoning. *"The Vault rejected this trade. Reason: Honeypot Trap Detected (Flag 16)."*
+4. **Explain the Verdict**: Translates the Vault's bitmask into human reasoning. *"The Vault rejected this trade. Reason: High Volume with Low Liquidity suggests Wash Trading (Flag 64)."*
 
 ---
 

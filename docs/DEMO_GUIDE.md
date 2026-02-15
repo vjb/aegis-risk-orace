@@ -44,7 +44,7 @@ Before starting, ensure all components are active:
 1. Run a fresh audit for a new token (e.g., AVAX).
 2. Point out the **Log Terminal** in the UI:
    - Highlight the **Logic Flags** (Deterministic risks like Honeypots).
-   - Highlight the **AI Analysis** (Semantic cluster evaluating impersonation).
+   - Highlight the **Forensic Reasoning**: Show how the AI analyzes **Taxes**, **Ownership**, and **Liquidity Depth** to reach a verdict.
 3. Explain that this audit trail is cryptographically signed and archived on-chain.
 
 ---
