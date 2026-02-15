@@ -113,7 +113,7 @@ sequenceDiagram
     participant User
     participant Vault as 🛡️ AegisVault<br/>(Tenderly Virtual TestNet)
     participant CRE as 🧠 Chainlink CRE<br/>(DON Cluster)
-    participant ExtData as 📊 External Data<br/>(CoinGecko + GoPlus)
+    participant ExtData as 📊 External Data<br/>(CoinGecko + GoPlus + Etherscan)
     participant AI as 🤖 AI Cluster<br/>(OpenAI + Groq)
 
     rect rgb(52, 211, 153, 0.1)
@@ -129,10 +129,13 @@ sequenceDiagram
         par Left Brain: Deterministic Logic
             CRE->>ExtData: Query Taxes, Ownership, Liquidity
             ExtData-->>CRE: 24h Vol, Price Change, HoneyPot
-        and Right Brain: AI Cluster (Union of Fears)
-            CRE->>AI: Analyze Enriched Telemetry
-            AI-->>CRE: Forensic Analysis & Risk Flags
+        and Right Brain: Forensic Data Retrieval
+            CRE->>ExtData: [PARALLEL] Fetch & Unwrap Source Code
+            ExtData-->>CRE: Recursive Proxy Unwrapping Result
         end
+
+        CRE->>AI: Analyze Logic + Full Source Code
+        AI-->>CRE: Forensic Analysis & Risk Flags
     end
     
     rect rgb(251, 191, 36, 0.1)
