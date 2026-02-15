@@ -265,8 +265,11 @@ export const analyzeRisk = async (payload: RiskAssessmentRequest): Promise<{
     let computedValueGap = (escrowValue - targetValueExpected).toFixed(2);
     let computedDev = deviation.toFixed(2) + "%";
 
-    // Scenario 1: Happy Path
-    if (getAddress(payload.tokenAddress) === "0x4200000000000000000000000000000000000006" && escrowValue > 15000) {
+    // Scenario 1: Happy Path (Official Assets)
+    const USDC_ADDR = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+    const isHappyPath = (getAddress(payload.tokenAddress) === getAddress(USDC_ADDR) || getAddress(payload.tokenAddress) === "0x4200000000000000000000000000000000000006");
+
+    if (isHappyPath && escrowValue > 100) {
         console.log(`${GREEN}🎭 DEMO HEURISTIC: Detecting 'Happy Path' (High Value Parity)${RESET}`);
         computedValueGap = "0.00";
         if (logicFlags & RISK_FLAGS.VOLATILITY_WARN) {
@@ -634,8 +637,11 @@ const brainHandler = async (runtime: Runtime<Config>, payload: HTTPPayload): Pro
     let computedValueGap = (escrowValue - targetValueExpected).toFixed(2);
     let computedDev = deviation.toFixed(2) + "%";
 
-    // Scenario 1: Happy Path
-    if (getAddress(requestData.tokenAddress) === "0x4200000000000000000000000000000000000006" && escrowValue > 15000) {
+    // Scenario 1: Happy Path (Official Assets)
+    const USDC_ADDR = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+    const isHappyPath = (getAddress(requestData.tokenAddress) === getAddress(USDC_ADDR) || getAddress(requestData.tokenAddress) === "0x4200000000000000000000000000000000000006");
+
+    if (isHappyPath && escrowValue > 100) {
         runtime.log(`${GREEN}🎭 DEMO HEURISTIC: Detecting 'Happy Path' (High Value Parity)${RESET}`);
         computedValueGap = "0.00";
         if (logicFlags & RISK_FLAGS.VOLATILITY_WARN) {
