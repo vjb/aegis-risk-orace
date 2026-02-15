@@ -21,7 +21,7 @@ Use these 5 curated scenarios to demonstrate the **Forensic Agent Economy**.
 **Goal**: Show the "Left Brain" catching a mathematically proven scam.
 - **Story**: A user is lured into a high-tax honeypot token.
 - **Target**: `0x5a31705664a6d1dc79287c4613cbe30d8920153f`
-- **UI Command**: `Swap 0.032 ETH for 0x5a31705664a6d1dc79287c4613cbe30d8920153f`
+- **UI Command**: `Swap 0.032 ETH for 100 0x5a31705664a6d1dc79287c4613cbe30d8920153f`
 - **What to tell the judges**: *"Here, the Logic Brain takes over. GoPlus immediately flags this address as a honeypot. We don't even need the AI's opinion—Aegis halts the trade on-chain and refunds the user."*
 
 ---
@@ -30,7 +30,7 @@ Use these 5 curated scenarios to demonstrate the **Forensic Agent Economy**.
 **Goal**: Show the "Union of Fears" consensus model in action.
 - **Story**: A high-risk meme asset where AI models disagree on the "Based" nature of the token.
 - **Target**: `0x532f27101965dd16442E59d40670FaF5eBB142E4` (BRETT)
-- **UI Command**: `Swap 0.16 ETH for 0x532f27101965dd16442E59d40670FaF5eBB142E4`
+- **UI Command**: `Swap 0.16 ETH for 5000 0x532f27101965dd16442E59d40670FaF5eBB142E4`
 - **What to tell the judges**: *"This is our Split-Brain consensus. GPT-4o often sees a community token, but Llama-3 might flag potential brand impersonation or ownership risks. Because Aegis follows the 'Union of Fears'—if any model flags a risk, we block it for the user's safety."*
 
 ---
@@ -39,7 +39,7 @@ Use these 5 curated scenarios to demonstrate the **Forensic Agent Economy**.
 **Goal**: Show the "Right Brain" catching a semantic lure that logic would miss.
 - **Story**: An impersonation attack using a fake USDC address. All code checks pass, but the label is the lie.
 - **Target**: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
-- **UI Command**: `Swap 0.32 ETH for 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
+- **UI Command**: `Swap 0.32 ETH for 1000 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
 - **What to tell the judges**: *"This is a pure AI victory. The contract logic might appear standard, but the AI recognizes the name 'USDC' on an unauthorized address. It's a semantic trap caught by the machine's reasoning."*
 
 ---
@@ -48,7 +48,7 @@ Use these 5 curated scenarios to demonstrate the **Forensic Agent Economy**.
 **Goal**: Show the forensic analyzer auditing development transparency.
 - **Story**: A utility token on an L3 network with suspicious lack of public code history.
 - **Target**: `0x4ed4E28C584783f62c52515911550035B25A87C5` (DEGEN)
-- **UI Command**: `Swap 0.065 ETH for 0x4ed4E28C584783f62c52515911550035B25A87C5`
+- **UI Command**: `Swap 0.065 ETH for 10000 0x4ed4E28C584783f62c52515911550035B25A87C5`
 - **What to tell the judges**: *"Aegis is also a forensic investigator. It flags risks not just for bugs, but for a lack of GitHub transparency and unverified source code proxies. It protects users from 'Black Box' protocols."*
 
 ---
@@ -57,7 +57,7 @@ Use these 5 curated scenarios to demonstrate the **Forensic Agent Economy**.
 **Goal**: Catch the remnants of a historic rug pull.
 - **Story**: A token with unverified source code and non-renounced ownership.
 - **Target**: `0x27D2EB259661D09FF275d417515d532b63415733`
-- **UI Command**: `Swap 0.016 ETH for 0x27D2EB259661D09FF275d417515d532b63415733`
+- **UI Command**: `Swap 0.016 ETH for 5000 0x27D2EB259661D09FF275d417515d532b63415733`
 - **What to tell the judges**: *"Even after a rug pull, the forensic artifacts remain. Aegis detects the unverified code and the suspicious ownership patterns that enabled the original exploit."*
 
 ---
@@ -66,7 +66,7 @@ Use these 5 curated scenarios to demonstrate the **Forensic Agent Economy**.
 **Goal**: Catch brand impersonation traps.
 - **Story**: A token mimicking a famous AI brand (Grok) but failing GoPlus honeypot checks.
 - **Target**: `0x51096171Caa179770Bc2bB8ca8629eA78C2C51d4`
-- **UI Command**: `Swap 0.032 ETH for 0x51096171Caa179770Bc2bB8ca8629eA78C2C51d4`
+- **UI Command**: `Swap 0.032 ETH for 100 0x51096171Caa179770Bc2bB8ca8629eA78C2C51d4`
 - **What to tell the judges**: *"This is a classic social engineering trap. The AI recognizes the brand name 'Grok', but the Left Brain logic sees the honeypot mechanism. Together, they block the scam."*
 
 ---
